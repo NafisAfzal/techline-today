@@ -1,0 +1,12 @@
+---
+import { localeFor, t, localizedPath } from '../../../lib/i18n';
+import Layout from '../../../layouts/Layout.astro';
+import { data } from '../../../lib/data';
+export function getStaticPaths() { return [...new Set(data.archive_index.map(entry => entry.key.slice(0,4)))].map(year => ({params:{year},props:{year}})); }
+const {year} = Astro.props;
+const months = data.archive_index.filter(entry => entry.key.startsWith(year));
+const locale = localeFor(Astro.url.pathname);
+const ui = (key: string) => t(locale, key);
+const href = (path: string) => localizedPath(path, locale);
+---
+<Layout title={`Yearly archive · ${year}`}><section class="page-intro"><p class="eyebrow">{ui("Yearly archive index")}</p><h1>{year}</h1><p>{months.reduce((sum,month) => sum+month.count,0)} {ui("historical records, compacted into source-backed monthly bundles.")}</p><a href={href(`/data/archives/${year}.json`)}>{ui("Download the yearly bundle index →")}</a></section><ul class="digest-list">{months.map(month => <li><a href={href(month.url)}><h2>{month.key}</h2><span>{month.count} {ui("records")} →</span></a></li>)}</ul></Layout>

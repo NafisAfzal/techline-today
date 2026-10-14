@@ -1,0 +1,8 @@
+---
+import policy from '../../../../config/source-rights.json';
+interface Props { registryId: string }
+const {registryId} = Astro.props;
+const rules = policy.sources as Record<string, {publication:string; license?:string; license_url?:string}>;
+const rule = rules[registryId];
+---
+{rule?.publication === 'allow' && <p class="small" lang="en">Source material: <a href={rule.license_url} target="_blank" rel="noopener noreferrer">{rule.license}</a>. Excerpted and summarized; source claims remain attributed. No endorsement implied.</p>}

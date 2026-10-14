@@ -1,0 +1,18 @@
+version: 1
+# Tracker records are curated structured data. Unknown terms remain unknown.
+# Add records with verified source IDs after a live ingestion; see docs/ADDING_SOURCES.md.
+offers: []
+model_releases: []
+announced_events: []
+auto_offers:
+  - source_registry_id: cloudflare_ai_terms
+    provider: Cloudflare Workers AI
+    title: Workers AI daily free allocation
+    offer_type: api-credit
+    allowance_pattern: '[0-9,]+ Neurons per day'
+    eligibility: ['Eligible Workers AI models; review model-specific billing requirements']
+    claim_steps:
+      - Read the official pricing page, including models that require a paid billing method.
+      - Create or sign in to a Cloudflare account and open the Workers AI dashboard.
+      - Use an eligible model within the current free allocation and monitor usage.
+    integration_notes: Some models require a paid billing method. Allowances can change; review current terms before use.

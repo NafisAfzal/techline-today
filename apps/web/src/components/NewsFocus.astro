@@ -1,0 +1,24 @@
+---
+import type { Story } from '../../../../packages/contracts';
+import {localeFor,t,localizedPath,localizedStory,contentLanguage} from '../lib/i18n';
+interface Props {stories: Story[]}
+const {stories}=Astro.props;
+const locale=localeFor(Astro.url.pathname);
+const ui=(key:string)=>t(locale,key);
+const items=stories.slice(0,4).map(story=>({id:story.id,title:localizedStory(story,locale).headline,href:localizedPath(`/story/${story.slug}/`,locale),language:contentLanguage(story,locale)}));
+const first=items[0];
+const multiple=items.length>1;
+---
+{first && <section class="news-focus" aria-label={ui('In focus')} aria-describedby="focus-help" data-news-focus data-mode={multiple?'rotating':'static'} data-pagefind-ignore>
+  <div class="focus-label"><strong>{ui('In focus')}</strong><span data-focus-state>{ui(multiple?'Updated periodically':'One headline')}</span></div>
+  <div class="focus-content"><div class="focus-headline"><a class="focus-link" href={first.href} lang={first.language} title={first.title} data-focus-link>{first.title}</a></div><span class="focus-position" data-focus-position aria-label={ui('Headline {position} of {total}').replace('{position}',new Intl.NumberFormat(locale).format(1)).replace('{total}',new Intl.NumberFormat(locale).format(items.length))}>{new Intl.NumberFormat(locale).format(1)} / {new Intl.NumberFormat(locale).format(items.length)}</span><span class="focus-meter" aria-hidden="true" hidden={!multiple}><span class="focus-progress" data-focus-progress></span></span></div>
+  {multiple && <div class="focus-controls">
+    <button class="focus-step" type="button" data-focus-previous disabled aria-label={ui('Previous headline')}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m14 6-6 6 6 6"/></svg></button>
+    <button class="focus-toggle" type="button" data-focus-toggle disabled aria-label={ui('Pause headline rotation')} aria-pressed="false"><svg class="pause-icon" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14M16 5v14" fill="none" stroke="currentColor" stroke-width="2"/></svg><svg class="resume-icon" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="m8 5 11 7-11 7Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg><span data-focus-toggle-label>{ui('Pause')}</span></button>
+    <button class="focus-step" type="button" data-focus-next disabled aria-label={ui('Next headline')}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m10 6 6 6-6 6"/></svg></button>
+  </div>}
+  <script type="application/json" data-focus-items set:html={JSON.stringify(items).replace(/</g,'\\u003c')}></script>
+  <p class="sr-only" id="focus-help">{ui('Edition highlights, updated periodically. These headlines also appear in the stationary lead and briefing. Hovering the headline or focusing this strip pauses automatic changes.')}</p>
+  <p class="sr-only" role="status" aria-atomic="true" data-focus-announcement></p>
+</section>}
+<script>import {initNewsFocus} from '../lib/news-focus';initNewsFocus();</script>

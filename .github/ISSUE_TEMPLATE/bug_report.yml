@@ -1,0 +1,22 @@
+name: Bug report
+description: Report a broken reader flow, collection or evidence record.
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What went wrong?
+      description: Include the route or source URL and expected behavior. Do not include keys, private excerpts or environment files.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Include browser, viewport, theme and fixture/live mode when relevant.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence or correction
+      description: For a factual correction, link the primary source and affected claim.

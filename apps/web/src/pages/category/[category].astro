@@ -1,0 +1,17 @@
+---
+import { localeFor, t, localizedPath, localizedStory } from '../../lib/i18n';
+import Layout from '../../layouts/Layout.astro';
+import Feed from '../../components/Feed.astro';
+import { categoryEntries, data } from '../../lib/data';
+export function getStaticPaths() { return categoryEntries.map(([id,category]) => ({params:{category:id},props:{id,label:category.label}})); }
+const {id,label} = Astro.props;
+const stories = data.stories.filter(story => story.category === id).slice(0,120);
+const locale = localeFor(Astro.url.pathname);
+const ui = (key: string) => t(locale, key);
+const href = (path: string) => localizedPath(path, locale);
+const readingStories = stories.map(story=>localizedStory(story,locale));
+---
+<Layout title={`${label} intelligence`}><section class="page-intro"><p class="eyebrow">{ui("Follow the signal")}</p><h1>{ui(label)}</h1><p>{ui("Source-grounded updates, useful context, and a direct path to the original.")}</p>{id === 'ai' && <a href={href("/models/")}>{ui("Explore the model release tracker →")}</a>}{id === 'freebies' && <a href={href("/freebies/")}>{ui("Explore the API & credit tracker →")}</a>}</section>
+{['chips','devices'].includes(id) && stories.some(story => story.key_numbers.length) && <section class="prose"><h2>{ui("The specification snapshot")}</h2><p>{ui("Only source-reported figures are shown. Measurement context is preserved, so figures from different products are not treated as equivalent benchmarks.")}</p><div class="table-scroll"><table><thead><tr><th scope="col">{ui("Launch / update")}</th><th scope="col">{ui("Reported numbers & context")}</th></tr></thead><tbody>{readingStories.filter(story => story.key_numbers.length).slice(0,5).map(story => <tr lang={story.language}><th scope="row"><a href={href(`/story/${story.slug}/`)}>{story.headline}</a></th><td>{story.key_numbers.map(number => <p><strong>{number.value}</strong> · {number.context}</p>)}</td></tr>)}</tbody></table></div></section>}
+{id === 'jobs-skills' && stories.length > 0 && <section class="prose"><h2>{ui("The jobs & skills pulse")}</h2><p>{ui("Selected hiring, program and skills reports. Community listings remain discovery signals; availability and eligibility must be checked at the original source.")}</p><ul>{readingStories.slice(0,5).map(story => <li lang={story.language}><a href={href(`/story/${story.slug}/`)}>{story.headline}</a></li>)}</ul></section>}
+<Feed stories={stories}/></Layout>

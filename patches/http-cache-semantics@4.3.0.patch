@@ -1,0 +1,49 @@
+--- a/index.js
++++ b/index.js
+@@ -392,8 +392,21 @@
+      *   - revalidation: { headers: Record<string, string>, synchronous: boolean } Set if you should send this to the origin server
+      *   - response: HttpResponse Set if you can respond to the client with these cached headers
+      */
++    // GHSA-ch52-4w7c-c8xp: security restrictions apply to every stale reuse path.
++    _reuseForbidden() {
++        return !this.storable() || this._rescc['no-cache'] ||
++            this._rescc['must-revalidate'] || this._resHeaders.vary === '*' ||
++            (this._isShared && this._resHeaders['set-cookie'] && !this._rescc.public) ||
++            (this._isShared && this.stale() &&
++                (this._rescc['proxy-revalidate'] || this._rescc['s-maxage'] !== undefined));
++    }
++
+     evaluateRequest(req) {
+         this._assertRequestHasHeaders(req);
++
++        if (this._reuseForbidden()) {
++            return this._evaluateRequestMissResult(req);
++        }
+ 
+         // In all circumstances, a cache MUST NOT ignore the must-revalidate directive
+         if (this._rescc['must-revalidate']) {
+@@ -706,6 +719,7 @@
+      * @returns {boolean} `true` if `stale-if-error` condition allows use of a stale response.
+      */
+     _useStaleIfError() {
++        if (this._reuseForbidden()) return false;
+         return this.maxAge() + toNumberOrZero(this._rescc['stale-if-error']) > this.age();
+     }
+ 
+@@ -713,6 +727,7 @@
+      * @returns {boolean} `true` if `stale-while-revalidate` is currently allowed.
+      */
+     useStaleWhileRevalidate() {
++        if (this._reuseForbidden()) return false;
+         const swr = toNumberOrZero(this._rescc['stale-while-revalidate']);
+         return swr > 0 && this.maxAge() + swr > this.age();
+     }
+@@ -855,7 +870,7 @@
+     revalidatedPolicy(request, response) {
+         this._assertRequestHasHeaders(request);
+ 
+-        if (this._useStaleIfError() && isErrorResponse(response)) {
++        if (this._requestMatches(request, false) && this._useStaleIfError() && isErrorResponse(response)) {
+           return {
+               policy: this,
+               modified: false,

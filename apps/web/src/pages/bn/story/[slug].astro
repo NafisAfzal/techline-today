@@ -1,0 +1,5 @@
+---
+import Page, { getStaticPaths as paths } from '../../story/[slug].astro';
+export const getStaticPaths = paths;
+---
+<Page {...Astro.props}/>

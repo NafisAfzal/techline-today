@@ -1,0 +1,9 @@
+---
+import { localeFor, t } from '../lib/i18n';
+import Layout from '../layouts/Layout.astro';
+import SavedStories from '../components/SavedStories';
+import { data } from '../lib/data';
+const locale = localeFor(Astro.url.pathname);
+const ui = (key: string) => t(locale, key);
+---
+<Layout title={ui("Saved stories")} noindex><section class="page-intro"><p class="eyebrow">{ui("Worth coming back to")}</p><h1>{ui("Saved for a quieter moment.")}</h1><p>{ui("Your bookmarks stay in this browser. Some older stories may be in archive bundles; records missing from this edition remain clearly marked.")}</p></section><SavedStories locale={locale} archivesAvailable={data.archive_index.length>0} categoryLabels={Object.fromEntries(Object.entries(data.categories).map(([id,value])=>[id,ui(value.label)]))} client:only="react"><p slot="fallback" role="status">{ui("Loading your local reading list…")}</p></SavedStories><noscript>{ui("Enable JavaScript to access your local reading list.")}</noscript></Layout>

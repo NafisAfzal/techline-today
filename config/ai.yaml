@@ -1,0 +1,32 @@
+version: 1
+prompt_version: "3"
+schema_version: 1
+language: en
+max_output_tokens: 1600
+timeout_seconds: 25
+max_retries: 1
+circuit_breaker_errors: 3
+circuit_breaker_seconds: 1800
+translation:
+  enabled: true
+  target_languages: [bn]
+  provider_ids: [cloudflare, gemini, groq, openrouter, openai-compatible]
+  max_stories_per_run: 20
+  max_output_tokens: 3000
+  retry_after_seconds: 21600
+providers:
+  - id: cloudflare
+    model_env: CLOUDFLARE_AI_MODEL
+    daily_call_limit: 100
+  - id: gemini
+    model_env: GEMINI_MODEL
+    daily_call_limit: 60
+  - id: groq
+    model_env: GROQ_MODEL
+    daily_call_limit: 60
+  - id: openrouter
+    model_env: OPENROUTER_MODEL
+    daily_call_limit: 20
+  - id: openai-compatible
+    model_env: OPENAI_COMPAT_MODEL
+    daily_call_limit: 20

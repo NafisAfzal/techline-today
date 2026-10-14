@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "sources": {
+    "arxiv": {"publication": "allow", "license": "CC0-1.0", "license_url": "https://creativecommons.org/publicdomain/zero/1.0/", "scope": "Descriptive metadata only: titles, abstracts, authors and identifiers; no e-print full text.", "ai_submission_allowed": false},
+    "cloudflare_ai_terms": {"publication": "allow", "license": "CC-BY-4.0", "license_url": "https://creativecommons.org/licenses/by/4.0/", "scope": "Attributed documentation excerpts and summaries; changes disclosed.", "ai_submission_allowed": false},
+    "nvidia": {"publication": "exclude", "reason": "No specific public redistribution basis established for blog extracts or screenshots."},
+    "huggingface": {"publication": "exclude", "reason": "Blog/feed excerpt and derivative-summary reuse basis unresolved."},
+    "google_research": {"publication": "exclude", "reason": "Specific Research blog reuse basis unresolved."},
+    "github_releases": {"publication": "exclude", "reason": "Release-note licensing scope needs repository-specific review."},
+    "hacker_news": {"publication": "exclude", "reason": "User post/excerpt reuse basis unresolved."}
+  }
+}

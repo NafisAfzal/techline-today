@@ -1,0 +1,11 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "ai-tech-intelligence",
+  "compatibility_date": "SET_TO_DEPLOYMENT_DATE",
+  "assets": {
+    "directory": "./apps/web/dist"
+  },
+  "observability": {
+    "enabled": true
+  }
+}

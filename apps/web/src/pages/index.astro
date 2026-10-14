@@ -1,0 +1,58 @@
+---
+import { localeFor, t, localizedPath, localizedStory, storyCount } from '../lib/i18n';
+import Layout from '../layouts/Layout.astro';
+import StoryCard from '../components/StoryCard.astro';
+import Headline from '../components/Headline.astro';
+import NewsFocus from '../components/NewsFocus.astro';
+import TopicIcon from '../components/TopicIcon.astro';
+import { data, categoryEntries, evidenceLabels, age, original } from '../lib/data';
+import { prominentStories } from '../lib/editorial';
+const canonicalStories = prominentStories(data.stories, data.sources);
+const lead = canonicalStories[0];
+const canonicalBriefing = canonicalStories.slice(1,5);
+const furtherStories = canonicalStories.slice(5,8);
+const locale = localeFor(Astro.url.pathname);
+const ui = (key: string) => t(locale, key);
+const href = (path: string) => localizedPath(path, locale);
+const briefing = canonicalBriefing.map(story => localizedStory(story,locale));
+const categoryDescriptions:Record<string,string>={ai:'Models, tools and AI releases',research:'Papers, findings and evaluation','dev-apis':'Developer tools and platforms',freebies:'Credit, trials and free access','jobs-skills':'Learning and career opportunities',chips:'Processors and computing hardware',devices:'Consumer technology and devices',security:'Vulnerabilities, patches and privacy','open-source':'Projects, releases and communities'};
+---
+<Layout title={ui("Latest technology news")}>
+  <NewsFocus stories={canonicalStories}/>
+  <section class="intro"><h1>{ui("Latest technology news")}</h1><p class="intro-copy">{ui("Source-backed technology updates.")}</p></section>
+  <div class="edition-grid">
+  {lead ? <section aria-label={ui("Lead story")} class="lead-section"><StoryCard story={lead} variant="lead"/></section> : <section class="empty-state"><h2>{ui("The next edition is on its way.")}</h2><p>{ui("Validated updates will appear after the next successful collection.")}</p><a class="control-link" href={href("/digests/")}>{ui("Browse previous digests →")}</a></section>}
+  {briefing.length > 0 && <section class="briefing" id="briefing" aria-labelledby="briefing-title"><div class="section-top"><h2 id="briefing-title">{ui("Also important now")}</h2><a class="control-link" href={href('/all/')}>{ui('All stories')} <span aria-hidden="true">→</span></a></div>{locale==='bn' && canonicalBriefing.some(story=>!story.translations?.bn) && <p class="translation-note">{ui("Some stories are shown in English until a Bangla translation is available.")}</p>}<ol>{briefing.map(story => <li data-variant="briefing"><div><div class="briefing-meta"><span>{ui(data.categories[story.category].label)}</span><a href={href('/about/#evidence')} class={`evidence ${story.evidence_state}`}>{ui(evidenceLabels[story.evidence_state])}</a><time datetime={story.published_at}>{age(story.published_at, locale)}</time></div><h3 lang={story.language}><a href={href(`/story/${story.slug}/`)}><Headline text={story.headline}/></a></h3>{!original(story).excerpt && <p>{ui("Headline evidence only")}</p>}</div></li>)}</ol></section>}
+  </div>
+  <section class="category-index home-section" aria-labelledby="categories-title">
+    <div class="section-top"><div><h2 id="categories-title">{ui("Explore by category")}</h2><p>{ui('Choose a topic to browse its stories.')}</p></div></div>
+    <nav class="category-index-grid" aria-label={ui('Browse news categories')}>
+      {categoryEntries.map(([id,category]) => {
+        const count=canonicalStories.filter(story=>story.category===id).length;
+        return <a class="category-tile" href={href(`/category/${id}/`)}>
+          <span class="category-topic"><TopicIcon topic={id}/><span class="category-index-label">{ui(category.label)}</span></span>
+          <span class="category-description">{ui(categoryDescriptions[id]!)}</span>
+          <span class="category-tile-footer"><span>{storyCount(count,locale)}</span><span class="category-open">{ui('Browse')} <span aria-hidden="true">→</span></span></span>
+        </a>;
+      })}
+    </nav>
+  </section>
+  {furtherStories.length>0 && <section class="more-stories home-section" aria-labelledby="more-stories-title"><div class="section-top"><div><h2 id="more-stories-title">{ui('More stories')}</h2><p>{ui('Further reading from this edition.')}</p></div><a class="control-link primary-link" href={href('/all/')}>{ui('See all stories →')}</a></div><div class="story-grid">{furtherStories.map(story=><StoryCard story={story}/>)}</div><div class="edition-reading"><span>{ui('Prefer a collected briefing?')}</span><a class="control-link" href={href('/digests/')}>{ui('Browse digests →')}</a></div></section>}
+  <section class="tools-section home-section" aria-labelledby="tools-title">
+    <div class="section-top"><div><h2 id="tools-title">{ui('Tools & trackers')}</h2><p>{ui('Track offers, model releases and their official terms.')}</p></div></div>
+    <div class="edition-signals">
+      <aside class="tracker-signal credit-signal" aria-label={ui("Free credit signal")}>
+        <h3><TopicIcon topic="freebies"/>{ui('Free credit tracker')}</h3>
+        <p>{ui('Offers and trials, with eligibility and limits.')}</p>
+        <ul class="tracker-fields"><li>{ui('Eligibility')}</li><li>{ui('Expiry')}</li><li>{ui('Official terms')}</li></ul>
+        <a class="control-link" href={href('/freebies/')}>{ui('Check credit offers →')}</a>
+      </aside>
+      <aside class="tracker-signal model-signal" aria-label={ui('Model release signal')}>
+        <h3><TopicIcon topic="ai"/>{ui('Model release tracker')}</h3>
+        <p>{ui('Compare source-reported specifications and known limits.')}</p>
+        <ul class="tracker-fields"><li>{ui('Context window')}</li><li>{ui('Access')}</li><li>{ui('Pricing')}</li></ul>
+        <a class="control-link" href={href('/models/')}>{ui('Explore model releases →')}</a>
+      </aside>
+    </div>
+  </section>
+</Layout>

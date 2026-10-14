@@ -1,0 +1,78 @@
+---
+import '../styles/global.css';
+import Search from '../components/Search';
+import Wordmark from '../components/Wordmark.astro';
+import { data, categoryEntries, date } from '../lib/data';
+import { localeFor, t, localizedPath, withoutLocale, brandName } from '../lib/i18n';
+import { indexingBlocked } from '../../../../scripts/site-url.mjs';
+interface Props { title?: string; description?: string; noindex?: boolean }
+const locale = localeFor(Astro.url.pathname);
+const ui = (key: string) => t(locale,key);
+const href = (path: string) => localizedPath(path,locale);
+const {title = 'Your essential technology briefing', description = 'Source-backed technology news, explained simply. Read what changed, why it matters, and the evidence behind it.', noindex = false} = Astro.props;
+const pathname = withoutLocale(Astro.url.pathname);
+const storySlug = pathname.match(/^\/story\/([^/]+)\/$/)?.[1];
+const story = storySlug ? data.stories.find(story=>story.slug===storySlug) : undefined;
+const fallback = locale === 'bn' && !!story && !story.translations?.bn;
+const canonical = new URL(fallback ? pathname : Astro.url.pathname, Astro.site);
+const blocked = noindex || indexingBlocked(data.mode, Astro.site?.hostname);
+const alternate = !story || !!story.translations?.bn;
+const languagePath = /\/404(?:\/|\.html|$)/.test(pathname) ? '/' : pathname;
+const analyticsToken = import.meta.env.PUBLIC_CLOUDFLARE_WEB_ANALYTICS_TOKEN;
+if (analyticsToken && !/^[a-f0-9]{32}$/i.test(analyticsToken)) throw new Error('Invalid public analytics token');
+---
+<!doctype html>
+<html lang={locale}>
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+  <meta name="description" content={ui(description)}/><meta name="color-scheme" content="light dark"/>
+  <meta name="theme-color" content="#f4f2eb" media="(prefers-color-scheme: light)"/>
+  <meta name="theme-color" content="#101c2d" media="(prefers-color-scheme: dark)"/>
+  <title>{ui(title)} · {brandName}</title><link rel="icon" type="image/svg+xml" href="/favicon.svg"/>
+  <link rel="canonical" href={canonical}/>
+  {alternate && !noindex && <><link rel="alternate" hreflang="en" href={new URL(localizedPath(pathname,'en'),Astro.site)}/><link rel="alternate" hreflang="bn" href={new URL(localizedPath(pathname,'bn'),Astro.site)}/><link rel="alternate" hreflang="x-default" href={new URL(localizedPath(pathname,'en'),Astro.site)}/></>}
+  <meta property="og:title" content={ui(title)}/><meta property="og:description" content={ui(description)}/><meta property="og:type" content="website"/><meta property="og:url" content={canonical}/><meta property="og:locale" content={locale==='bn'?'bn_BD':'en_GB'}/><meta name="twitter:card" content="summary"/>
+  {(blocked || fallback) && <meta name="robots" content={blocked?'noindex, nofollow':'noindex, follow'}/>}
+  <link rel="alternate" type="application/rss+xml" title={`${brandName} · English`} href="/rss.xml"/><script is:inline src="/theme.js"></script>
+</head>
+<body>
+  <a href="#main" class="skip-link">{ui('Skip to content')}</a>
+  <div class="edition-status" role="region" aria-label={ui("Edition information")}><div class="container edition-bar"><span>{ui('The dispatch')} · {date(data.generated_at,false,locale)}</span><span>{ui('Updated')} <time datetime={data.generated_at}>{date(data.generated_at,true,locale)} BDT</time></span></div></div>
+  <header class="site-header">
+    <div class="container masthead"><a class="brand" href={href('/')} aria-label={`${brandName} ${locale==='bn'?'প্রথম পাতা':'home'}`}><Wordmark/><span class="brand-tagline">{ui('Technology News & Insights')}</span></a>
+      <div class="header-actions">
+        <Search locale={locale} client:load/>
+        <nav class="language-control" aria-label={ui('Language')}>
+          <a href={localizedPath(languagePath,'en')} data-language="en" lang="en" aria-label={ui('Read in English')} aria-current={locale==='en'?'true':undefined}>EN</a>
+          <span aria-hidden="true">/</span>
+          <a href={localizedPath(languagePath,'bn')} data-language="bn" lang="bn" aria-label={ui('Read in Bangla')} aria-current={locale==='bn'?'true':undefined}>বাংলা</a>
+        </nav>
+        <div class="appearance-control" role="group" aria-label={ui('Appearance')}>
+          <button class="appearance-option" type="button" data-theme="light" aria-pressed="true" aria-label={ui('Light theme')}>
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/></svg>
+            <span>{ui('Light')}</span>
+          </button>
+          <button class="appearance-option" type="button" data-theme="dark" aria-pressed="false" aria-label={ui('Dark theme')}>
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M20.5 14.5A8.5 8.5 0 0 1 9.5 3.5a8.5 8.5 0 1 0 11 11Z"/></svg>
+            <span>{ui('Dark')}</span>
+          </button>
+        </div>
+      </div>
+    </div>
+    <nav class="category-nav container" aria-label={ui('Main navigation')}>
+      {[['/','Today'],['/category/ai/','AI'],['/category/chips/','Chips'],['/category/security/','Security'],['/freebies/','Free credit']].map(([url,label]) => <a class={label==='Chips'?'nav-chips':label==='Security'?'nav-security':undefined} href={href(url!)} aria-current={pathname===url?'page':undefined}>{ui(label!)}</a>)}
+      <details class="more-nav"><summary>{ui('More')}</summary><div class="more-menu">
+        <a class="compact-chips" href={href('/category/chips/')} aria-current={pathname==='/category/chips/'?'page':undefined}>{ui('Chips')}</a>
+        <a class="compact-security" href={href('/category/security/')} aria-current={pathname==='/category/security/'?'page':undefined}>{ui('Security')}</a>
+        {categoryEntries.filter(([id])=>!['ai','chips','security'].includes(id)).map(([id,category])=><a href={href(`/category/${id}/`)} aria-current={pathname===`/category/${id}/`?'page':undefined}>{ui(category.label)}</a>)}
+        {[['/all/','All stories'],['/models/','Model releases'],['/digests/','Digests'],['/saved/','Saved stories'],['/settings/','Reading preferences'],['/about/','Methodology & about']].map(([url,label])=><a href={href(url!)}>{ui(label!)}</a>)}
+        {data.archive_index.length>0 && <a href={href('/archives/')}>{ui('Archives')}</a>}
+      </div></details>
+    </nav>
+  </header>
+  {data.mode === 'fixture' && <aside class="demo-notice container" aria-label={ui('Demonstration notice')}><strong>{ui('Demonstration edition.')}</strong> {ui('All stories, model releases and offers in this edition are synthetic test fixtures, not live news.')}</aside>}
+  <main id="main" class="container" tabindex="-1"><slot/></main>
+  <footer class="container site-footer"><div><a class="footer-brand" href={href('/')} aria-label={`${brandName} ${locale==='bn'?'প্রথম পাতা':'home'}`}><Wordmark small/></a><p>{ui('A little context goes a long way.')}</p><p class="small">{ui('Collected periodically. Sources always within reach.')}</p></div><nav aria-label={ui('Footer')}><a href={href('/about/')}>{ui('Methodology & source policy')}</a><a href={href('/settings/')}>{ui('Reading preferences')}</a>{data.archive_index.length>0 && <a href={href('/archives/')}>{ui('Archives')}</a>}<a href="/rss.xml">{ui('RSS feed')} ↗</a></nav><p class="small">{ui('No account. No behavioral profiling.')}<br/>{ui('Your reading list stays on your device.')}</p></footer>
+  <script>import '../lib/browser';</script>
+  {analyticsToken && <script is:inline defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon={JSON.stringify({token:analyticsToken})}></script>}
+</body></html>

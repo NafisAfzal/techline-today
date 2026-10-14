@@ -1,0 +1,38 @@
+version: 1
+categories:
+  ai:
+    label: AI
+    priority: 1.0
+    subcategories: [models, agents, multimodal, benchmarks, policy-platform]
+  research:
+    label: Research
+    priority: 0.85
+    subcategories: [papers, datasets, methods, evaluations]
+  dev-apis:
+    label: Dev & APIs
+    priority: 0.95
+    subcategories: [api, sdk, cloud, tooling, pricing]
+  freebies:
+    label: Freebie stories
+    priority: 1.0
+    subcategories: [api-credit, student, trial, open-source, cloud-credit]
+  jobs-skills:
+    label: Jobs & Skills
+    priority: 0.75
+    subcategories: [hiring, internships, skill-trends, career]
+  chips:
+    label: Chips
+    priority: 0.8
+    subcategories: [gpu, cpu, accelerator, semiconductor]
+  devices:
+    label: Devices
+    priority: 0.75
+    subcategories: [laptop, phone, tablet, wearable]
+  security:
+    label: Security
+    priority: 0.9
+    subcategories: [vulnerability, breach, patch, platform-security]
+  open-source:
+    label: Open Source
+    priority: 0.9
+    subcategories: [release, library, framework, model]

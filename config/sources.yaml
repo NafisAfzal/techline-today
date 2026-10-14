@@ -1,0 +1,119 @@
+version: 1
+# Verified via HTTPS response and parser on 2026-10-03. No HTML extraction is enabled.
+sources:
+  - id: cloudflare_ai_terms
+    name: Cloudflare Workers AI free allocation
+    adapter: github_document
+    source_class: primary
+    enabled: true
+    endpoint: https://api.github.com/repos/cloudflare/cloudflare-docs/contents/src/content/docs/workers-ai/platform/pricing.mdx
+    document_url: https://developers.cloudflare.com/workers-ai/platform/pricing/
+    allowed_hosts: [api.github.com]
+    categories: [freebies]
+    independence_group: cloudflare
+    terms_url: https://github.com/cloudflare/cloudflare-docs/blob/production/LICENSE
+    verified_at: '2026-10-03'
+    excerpt_patterns:
+      - 'Some models require a paid billing method\.'
+      - 'Workers AI is included[^\n]+'
+      - 'Our free allocation allows[^\n]+'
+      - 'All limits reset[^\n]+'
+    fetch_policy: {max_items: 1, min_interval_seconds: 1}
+  - id: huggingface
+    name: Hugging Face Blog
+    adapter: rss
+    source_class: primary
+    enabled: false
+    endpoint: https://huggingface.co/blog/feed.xml
+    allowed_hosts: [huggingface.co]
+    categories: [ai, dev-apis, research]
+    independence_group: huggingface
+    terms_url: https://huggingface.co/terms-of-service
+    verified_at: '2026-10-03'
+    fetch_policy: {max_items: 25, min_interval_seconds: 1}
+  - id: google_research
+    name: Google Research
+    adapter: rss
+    source_class: primary
+    enabled: false
+    endpoint: https://research.google/blog/rss/
+    allowed_hosts: [research.google, www.research.google]
+    categories: [research, ai, security]
+    independence_group: google
+    terms_url: https://policies.google.com/terms
+    verified_at: '2026-10-03'
+    fetch_policy: {max_items: 20, min_interval_seconds: 1}
+  - id: nvidia
+    name: NVIDIA Blog
+    adapter: rss
+    source_class: primary
+    enabled: false
+    endpoint: https://blogs.nvidia.com/feed/
+    allowed_hosts: [blogs.nvidia.com]
+    categories: [chips, ai, devices]
+    independence_group: nvidia
+    terms_url: https://www.nvidia.com/en-us/about-nvidia/legal-info/
+    verified_at: '2026-10-03'
+    fetch_policy: {max_items: 20, min_interval_seconds: 1}
+  - id: github_releases
+    name: Official GitHub Releases
+    adapter: github_releases
+    source_class: primary
+    enabled: false
+    endpoint: https://api.github.com
+    allowed_hosts: [api.github.com]
+    categories: [open-source, dev-apis, ai]
+    repositories: [astral-sh/ruff, withastro/astro, huggingface/transformers]
+    independence_group: github-projects
+    terms_url: https://docs.github.com/en/site-policy/github-terms/github-terms-of-service
+    verified_at: '2026-10-03'
+    fetch_policy: {max_items: 15, min_interval_seconds: 1}
+  - id: arxiv
+    name: arXiv preprints
+    adapter: arxiv
+    source_class: primary
+    enabled: true
+    endpoint: https://export.arxiv.org/api/query
+    allowed_hosts: [export.arxiv.org]
+    categories: [research]
+    query_groups: [cs.AI, cs.CL, cs.LG]
+    independence_group: arxiv-authors
+    terms_url: https://info.arxiv.org/help/api/tou.html
+    verified_at: '2026-10-03'
+    fetch_policy: {max_items: 12, min_interval_seconds: 3}
+  - id: hacker_news
+    name: Hacker News
+    adapter: hacker_news
+    source_class: community
+    enabled: false
+    endpoint: https://hacker-news.firebaseio.com/v0/
+    allowed_hosts: [hacker-news.firebaseio.com]
+    categories: [dev-apis, ai, open-source, security, devices, jobs-skills]
+    independence_group: hacker-news
+    # Literal words/phrases, matched at word boundaries. Broad community news stays out.
+    discovery_keywords: [ai, llm, gpt, claude, gemini, opus, model, machine learning, neural, inference, agent, software, coding, programming, developer, api, sdk, compiler, database, redis, github, linux, macos, windows, unix, cpu, gpu, semiconductor, chip, security, vulnerability, encryption, privacy, vpn, browser, cloud, open source, laptop, smartphone, gadgets, hiring, fellowship, show hn, ask hn]
+    terms_url: https://github.com/HackerNews/API
+    verified_at: '2026-10-03'
+    fetch_policy: {max_items: 25, min_interval_seconds: 0.15}
+  - id: json_api_example
+    name: Owner-approved JSON API
+    adapter: json_api
+    source_class: primary
+    enabled: false
+    endpoint: https://example.com/api/updates
+    allowed_hosts: [example.com]
+    categories: [dev-apis]
+    independence_group: example
+    terms_url: https://example.com/terms
+  - id: html_example
+    name: Owner-approved official offer page
+    adapter: html
+    source_class: primary
+    enabled: false
+    endpoint: https://example.com/developer-offer
+    allowed_hosts: [example.com]
+    categories: [freebies]
+    independence_group: example
+    terms_url: https://example.com/terms
+    html_permission: false
+    html_selector: main

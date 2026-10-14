@@ -1,0 +1,9 @@
+---
+import { localeFor, t, localizedPath, storyCount } from '../../lib/i18n';
+import Layout from '../../layouts/Layout.astro';
+import { data, date } from '../../lib/data';
+const locale = localeFor(Astro.url.pathname);
+const ui = (key: string) => t(locale, key);
+const href = (path: string) => localizedPath(path, locale);
+---
+<Layout title={ui("Technology digests")}><section class="page-intro"><h1>{ui("The bigger picture.")}</h1><p>{ui("Daily dispatches and calendar-based digests. Editorial periods follow Asia/Dhaka. An open period is marked in progress.")}</p></section>{['daily','weekly','monthly','yearly'].map(period => <section><h2 class="archive-heading">{ui(period[0]!.toUpperCase()+period.slice(1)+' editions')}</h2><ul class="digest-list">{data.digests.filter(digest => digest.period_type === period).slice(0,30).map(digest => <li><a href={href(`/digests/${digest.period_type}/${digest.id}/`)}><div><span class="eyebrow">{ui(digest.status)} / {storyCount(digest.story_ids.length,locale)}</span><h3>{date(digest.period_start,false,locale)}</h3><p lang="en">{date(digest.period_start)} · {digest.summary}</p></div><span aria-hidden="true">→</span></a></li>)}</ul></section>)}<a href={href("/archives/")}>{ui("Browse compacted historical archives →")}</a></Layout>

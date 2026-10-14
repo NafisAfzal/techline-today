@@ -1,0 +1,25 @@
+[project]
+name = "tech-intelligence-pipeline"
+version = "1.0.0"
+requires-python = ">=3.13"
+dependencies = [
+  "pydantic==2.13.5", "httpx==0.28.1", "httpcore==1.0.9",
+  "feedparser==6.0.14", "beautifulsoup4==4.15.0", "PyYAML==6.0.3",
+  "jsonschema==4.26.0", "tzdata==2026.5", "python-dotenv==1.2.4"
+]
+
+[dependency-groups]
+dev = ["pytest==9.1.1", "pytest-asyncio==1.4.0", "ruff==0.16.10"]
+
+[tool.pytest.ini_options]
+testpaths = ["pipeline/tests"]
+pythonpath = ["."]
+asyncio_mode = "auto"
+
+[tool.ruff]
+target-version = "py313"
+line-length = 110
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I", "B", "UP", "S"]
+ignore = ["S101"]

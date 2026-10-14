@@ -1,0 +1,10 @@
+---
+import { localeFor, t } from '../lib/i18n';
+import Layout from '../layouts/Layout.astro';
+import Preferences from '../components/Preferences';
+import { categoryEntries } from '../lib/data';
+import type { Category } from '../../../../packages/contracts';
+const locale = localeFor(Astro.url.pathname);
+const ui = (key: string) => t(locale, key);
+---
+<Layout title={ui("Reading preferences")} noindex><section class="page-intro"><h1>{ui("A feed that fits you.")}</h1><p>{ui("Pin your interests, choose your reading density, and keep the theme comfortable.")}</p></section><Preferences locale={locale} categories={categoryEntries.map(([id,category]) => ({id:id as Category,label:ui(category.label)}))} client:load/></Layout>

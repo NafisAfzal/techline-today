@@ -1,0 +1,8 @@
+---
+import { localeFor, t } from '../lib/i18n';
+interface Props { value: string | null | undefined; missing?: string }
+const {value, missing='Not supplied by the source'} = Astro.props;
+const locale = localeFor(Astro.url.pathname);
+const ui = (key: string) => t(locale, key);
+---
+{value ? <span lang="en">{value}</span> : <span class="missing-value" data-missing>{ui(missing)}</span>}

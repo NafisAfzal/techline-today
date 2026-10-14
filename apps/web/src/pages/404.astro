@@ -1,0 +1,9 @@
+---
+import { localeFor, t, localizedPath } from '../lib/i18n';
+import Layout from '../layouts/Layout.astro';
+import { data } from '../lib/data';
+const locale = localeFor(Astro.url.pathname);
+const ui = (key: string) => t(locale, key);
+const href = (path: string) => localizedPath(path, locale);
+---
+<Layout title={ui("Page not found")} noindex><section class="empty-state"><p class="eyebrow">{ui("404 / A missing page")}</p><h1>{ui("This story took another turn.")}</h1><p>{ui("The address may have changed. Search from the header or browse the current edition.")}</p><a href={href("/")}>{ui("Back to the briefing →")}</a><a class="control-link" href={href("/all/")}>{ui("Browse all stories →")}</a><a class="control-link" href={href("/digests/")}>{ui("Browse digests →")}</a>{data.archive_index.length>0 && <a class="control-link" href={href("/archives/")}>{ui("Look in the archives →")}</a>}</section></Layout>

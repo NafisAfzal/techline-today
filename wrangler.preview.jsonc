@@ -1,0 +1,6 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "ai-tech-intelligence-preview",
+  "compatibility_date": "2026-10-03",
+  "assets": { "directory": "./apps/web/dist", "not_found_handling": "404-page" }
+}

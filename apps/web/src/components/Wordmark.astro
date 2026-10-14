@@ -1,0 +1,5 @@
+---
+interface Props { small?: boolean }
+const {small=false}=Astro.props;
+---
+<span class={`wordmark notranslate ${small?'wordmark-small':''}`} lang="en" translate="no" aria-hidden="true"><svg class="brand-mark" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 5h20v23H3Z" stroke="currentColor" stroke-width="2"/><path d="M23 9h6v19h-6M8 11h10" stroke="var(--brand-secondary)" stroke-width="2"/><path d="M8 16h10M8 21h6" stroke="currentColor" stroke-width="2"/></svg><span>Techline <span class="wordmark-ending">Today</span></span></span>

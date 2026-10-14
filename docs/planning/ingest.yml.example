@@ -1,0 +1,38 @@
+name: ingest-build-deploy
+
+on:
+  workflow_dispatch:
+  schedule:
+    # UTC. Four times/day, intentionally not at minute 00.
+    - cron: "17 1,7,13,19 * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-ingest
+  cancel-in-progress: false
+
+jobs:
+  build:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@PIN_FULL_COMMIT_SHA
+
+      - name: Set up Python
+        uses: actions/setup-python@PIN_FULL_COMMIT_SHA
+        with:
+          python-version: "3.13"
+
+      - name: Set up Node
+        uses: actions/setup-node@PIN_FULL_COMMIT_SHA
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      # Codex should implement pinned dependency install, tests, ingestion,
+      # Astro build, and Wrangler deploy. Production secrets must only be
+      # referenced in the deploy/AI steps and never printed.

@@ -1,0 +1,22 @@
+ai-tech-intelligence/
+├─ apps/web/
+├─ pipeline/
+│  ├─ adapters/
+│  ├─ extractors/
+│  ├─ dedupe/
+│  ├─ ranking/
+│  ├─ ai/providers/
+│  ├─ verification/
+│  ├─ digests/
+│  └─ tests/fixtures/
+├─ packages/contracts/
+├─ config/
+├─ content/generated/
+├─ content/archives/
+├─ scripts/
+├─ .github/workflows/
+├─ docs/
+├─ .env.example
+├─ wrangler.jsonc
+├─ pnpm-workspace.yaml
+└─ README.md

@@ -1,0 +1,11 @@
+---
+import { localeFor, t, localizedPath } from '../lib/i18n';
+import Layout from '../layouts/Layout.astro';
+import Feed from '../components/Feed.astro';
+import { data } from '../lib/data';
+import { rankedStories } from '../lib/editorial';
+const locale = localeFor(Astro.url.pathname);
+const ui = (key: string) => t(locale, key);
+const href = (path: string) => localizedPath(path, locale);
+---
+<Layout title={ui("All stories")}><section class="page-intro"><h1>{ui("All stories.")}</h1><p>{ui("Every selected development. Filter by time or put your preferred categories first with")}{' '}<a href={href("/settings/")}>{ui("reading preferences")}</a>.</p></section><Feed stories={rankedStories(data.stories).slice(0,120)}/></Layout>

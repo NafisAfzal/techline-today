@@ -1,0 +1,5 @@
+retain_individual_days: 548
+max_static_files: 18000
+max_asset_bytes: 26214400
+latest_limit: 120
+max_individual_stories: 4000

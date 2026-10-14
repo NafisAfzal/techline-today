@@ -1,0 +1,73 @@
+version: 1
+
+# This is intentionally an example registry. Verify every feed/API URL and its terms
+# before enabling it in production.
+
+sources:
+  - id: hacker_news
+    name: Hacker News
+    type: api
+    source_class: community
+    enabled: true
+    adapter: hacker_news
+    base_url: https://hacker-news.firebaseio.com/v0/
+    categories: [ai, dev, open-source, security]
+    independence_group: hacker_news
+    fetch_policy:
+      max_items: 80
+      min_interval_seconds: 1
+
+  - id: github_releases
+    name: GitHub Releases Registry
+    type: release_registry
+    source_class: primary
+    enabled: true
+    adapter: github_releases
+    categories: [ai, dev, open-source]
+    repositories:
+      # Add only repositories you intentionally track.
+      # - owner/repository
+    fetch_policy:
+      conditional_requests: true
+
+  - id: arxiv
+    name: arXiv
+    type: api
+    source_class: primary
+    enabled: false
+    adapter: arxiv
+    categories: [ai, research]
+    query_groups:
+      - cs.AI
+      - cs.CL
+      - cs.LG
+      - cs.CV
+
+  - id: official_ai_newsroom_example
+    name: Official AI Provider Newsroom
+    type: rss
+    source_class: primary
+    enabled: false
+    adapter: rss
+    feed_url: VERIFY_AND_REPLACE
+    categories: [ai, dev]
+    independence_group: official-provider
+
+  - id: trusted_tech_publication_example
+    name: Trusted Technology Publication
+    type: rss
+    source_class: independent
+    enabled: false
+    adapter: rss
+    feed_url: VERIFY_AND_REPLACE
+    categories: [ai, chips, devices, security]
+    independence_group: publication-name
+
+rules:
+  html_extraction:
+    enabled_by_default: false
+    require_allowlist: true
+    respect_robots_txt: true
+    user_agent: "TechIntelligenceBot/1.0 (+CONTACT_URL_OR_EMAIL)"
+    max_response_bytes: 3000000
+    max_redirects: 3

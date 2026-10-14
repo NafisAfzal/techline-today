@@ -1,0 +1,266 @@
+{
+  "captured_on": "2026-10-14",
+  "edition_generated_at": "2026-10-14T14:38:13Z (second precision from capture record)",
+  "mode": "live",
+  "stories": 37,
+  "browser": "Chromium",
+  "physical_devices": false,
+  "hosted": false,
+  "adaptation_notice": "Browser screenshots of normalized/excerpted/summarized sources; no publisher endorsement or third-party artwork.",
+  "files": [
+    {
+      "path": "evidence-detail.jpg",
+      "bytes": 117749,
+      "sha256": "6fd26ce84c4551d90fa5fce532e4c2ffc51ca3917b0ad2cfcdceef561802fb0a"
+    },
+    {
+      "path": "home-dark-1366.jpg",
+      "bytes": 170907,
+      "sha256": "752e076d7ef9a0f63663db8c43536d4d5d471171b0c16808f5781b6aecd4d07f"
+    },
+    {
+      "path": "home-dark-390.jpg",
+      "bytes": 64344,
+      "sha256": "00e4a395741fb1dd444a8d6197789883ed741e1f71eded9cbc71813a62f33bf6"
+    },
+    {
+      "path": "home-light-1366.jpg",
+      "bytes": 172598,
+      "sha256": "9f5638adb2bb85572bda2b843cb71d9fef84c75e353d5f9c2a4782501a08be71"
+    },
+    {
+      "path": "home-light-390.jpg",
+      "bytes": 65268,
+      "sha256": "dad565b573dcbfab0fd393f48efb3be03dbd6576c5edfa8f4c957c9121561e58"
+    },
+    {
+      "path": "search-mobile.jpg",
+      "bytes": 49164,
+      "sha256": "8adffc19eb7bbdefa6ca2e74b763e492352a08d2c07fb49e070378a2e941b281"
+    }
+  ],
+  "source_attribution": [
+    {
+      "publisher": "arXiv preprints",
+      "original_url": "https://arxiv.org/abs/2610.18874v1",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/"
+    },
+    {
+      "publisher": "arXiv preprints",
+      "original_url": "https://arxiv.org/abs/2610.18871v1",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/"
+    },
+    {
+      "publisher": "arXiv preprints",
+      "original_url": "https://arxiv.org/abs/2610.18869v1",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/"
+    },
+    {
+      "publisher": "arXiv preprints",
+      "original_url": "https://arxiv.org/abs/2610.18868v1",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/"
+    },
+    {
+      "publisher": "arXiv preprints",
+      "original_url": "https://arxiv.org/abs/2610.18863v1",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/"
+    },
+    {
+      "publisher": "arXiv preprints",
+      "original_url": "https://arxiv.org/abs/2610.18862v1",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/"
+    },
+    {
+      "publisher": "arXiv preprints",
+      "original_url": "https://arxiv.org/abs/2610.18860v1",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/"
+    },
+    {
+      "publisher": "arXiv preprints",
+      "original_url": "https://arxiv.org/abs/2610.18861v1",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/"
+    },
+    {
+      "publisher": "arXiv preprints",
+      "original_url": "https://arxiv.org/abs/2610.18856v1",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/"
+    },
+    {
+      "publisher": "arXiv preprints",
+      "original_url": "https://arxiv.org/abs/2610.18853v1",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/"
+    },
+    {
+      "publisher": "arXiv preprints",
+      "original_url": "https://arxiv.org/abs/2610.18851v1",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/"
+    },
+    {
+      "publisher": "arXiv preprints",
+      "original_url": "https://arxiv.org/abs/2610.18845v1",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/"
+    },
+    {
+      "publisher": "Cloudflare Workers AI free allocation",
+      "original_url": "https://developers.cloudflare.com/workers-ai/platform/pricing/",
+      "license": "CC-BY-4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0/"
+    },
+    {
+      "publisher": "arXiv preprints",
+      "original_url": "https://arxiv.org/abs/2610.13948v1",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/"
+    },
+    {
+      "publisher": "arXiv preprints",
+      "original_url": "https://arxiv.org/abs/2610.13935v1",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/"
+    },
+    {
+      "publisher": "arXiv preprints",
+      "original_url": "https://arxiv.org/abs/2610.13931v1",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/"
+    },
+    {
+      "publisher": "arXiv preprints",
+      "original_url": "https://arxiv.org/abs/2610.13928v1",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/"
+    },
+    {
+      "publisher": "arXiv preprints",
+      "original_url": "https://arxiv.org/abs/2610.13924v1",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/"
+    },
+    {
+      "publisher": "arXiv preprints",
+      "original_url": "https://arxiv.org/abs/2610.13923v1",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/"
+    },
+    {
+      "publisher": "arXiv preprints",
+      "original_url": "https://arxiv.org/abs/2610.13918v1",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/"
+    },
+    {
+      "publisher": "arXiv preprints",
+      "original_url": "https://arxiv.org/abs/2610.13917v1",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/"
+    },
+    {
+      "publisher": "arXiv preprints",
+      "original_url": "https://arxiv.org/abs/2610.13912v1",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/"
+    },
+    {
+      "publisher": "arXiv preprints",
+      "original_url": "https://arxiv.org/abs/2610.13910v1",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/"
+    },
+    {
+      "publisher": "arXiv preprints",
+      "original_url": "https://arxiv.org/abs/2610.13909v1",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/"
+    },
+    {
+      "publisher": "arXiv preprints",
+      "original_url": "https://arxiv.org/abs/2610.13901v1",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/"
+    },
+    {
+      "publisher": "arXiv preprints",
+      "original_url": "https://arxiv.org/abs/2610.02207v1",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/"
+    },
+    {
+      "publisher": "arXiv preprints",
+      "original_url": "https://arxiv.org/abs/2610.02206v1",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/"
+    },
+    {
+      "publisher": "arXiv preprints",
+      "original_url": "https://arxiv.org/abs/2610.02204v1",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/"
+    },
+    {
+      "publisher": "arXiv preprints",
+      "original_url": "https://arxiv.org/abs/2610.02203v1",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/"
+    },
+    {
+      "publisher": "arXiv preprints",
+      "original_url": "https://arxiv.org/abs/2610.02202v1",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/"
+    },
+    {
+      "publisher": "arXiv preprints",
+      "original_url": "https://arxiv.org/abs/2610.02201v1",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/"
+    },
+    {
+      "publisher": "arXiv preprints",
+      "original_url": "https://arxiv.org/abs/2610.02200v1",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/"
+    },
+    {
+      "publisher": "arXiv preprints",
+      "original_url": "https://arxiv.org/abs/2610.02199v1",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/"
+    },
+    {
+      "publisher": "arXiv preprints",
+      "original_url": "https://arxiv.org/abs/2610.02198v1",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/"
+    },
+    {
+      "publisher": "arXiv preprints",
+      "original_url": "https://arxiv.org/abs/2610.02195v1",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/"
+    },
+    {
+      "publisher": "arXiv preprints",
+      "original_url": "https://arxiv.org/abs/2610.02193v1",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/"
+    },
+    {
+      "publisher": "arXiv preprints",
+      "original_url": "https://arxiv.org/abs/2610.02191v1",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/"
+    }
+  ]
+}

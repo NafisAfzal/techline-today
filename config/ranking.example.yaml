@@ -1,0 +1,25 @@
+version: 1
+weights:
+  recency: 0.25
+  source_strength: 0.20
+  cross_source_support: 0.15
+  novelty: 0.15
+  category_relevance: 0.15
+  community_signal: 0.10
+
+limits:
+  max_raw_items_per_run: 600
+  max_llm_clusters_per_run: 50
+  max_items_per_source_default: 80
+  recent_cluster_window_hours: 72
+  fetch_lookback_hours: 12
+
+boosts:
+  primary_product_release: 0.12
+  actively_expiring_offer: 0.15
+  critical_security_update: 0.18
+
+penalties:
+  syndication_duplicate: 0.50
+  missing_original_source: 0.70
+  community_only_unverified: 0.35

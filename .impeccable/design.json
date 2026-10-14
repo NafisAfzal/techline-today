@@ -1,0 +1,935 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-13T18:40:02Z",
+  "title": "Design System: Techline Today",
+  "extensions": {
+    "colorMeta": {
+      "bg": {
+        "role": "neutral",
+        "displayName": "Warm canvas",
+        "tonalRamp": [
+          "oklch(15% 0.0095 93.57)",
+          "oklch(26% 0.0095 93.57)",
+          "oklch(37% 0.0095 93.57)",
+          "oklch(49% 0.0095 93.57)",
+          "oklch(60% 0.0095 93.57)",
+          "oklch(72% 0.0095 93.57)",
+          "oklch(84% 0.0095 93.57)",
+          "oklch(95% 0.0095 93.57)"
+        ]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Reading paper",
+        "tonalRamp": [
+          "oklch(15% 0.0054 95.10)",
+          "oklch(26% 0.0054 95.10)",
+          "oklch(37% 0.0054 95.10)",
+          "oklch(49% 0.0054 95.10)",
+          "oklch(60% 0.0054 95.10)",
+          "oklch(72% 0.0054 95.10)",
+          "oklch(84% 0.0054 95.10)",
+          "oklch(95% 0.0054 95.10)"
+        ]
+      },
+      "secondary": {
+        "role": "neutral",
+        "displayName": "Cool grouped field",
+        "tonalRamp": [
+          "oklch(15% 0.0060 223.46)",
+          "oklch(26% 0.0060 223.46)",
+          "oklch(37% 0.0060 223.46)",
+          "oklch(49% 0.0060 223.46)",
+          "oklch(60% 0.0060 223.46)",
+          "oklch(72% 0.0060 223.46)",
+          "oklch(84% 0.0060 223.46)",
+          "oklch(95% 0.0060 223.46)"
+        ]
+      },
+      "featured": {
+        "role": "neutral",
+        "displayName": "Summary field",
+        "tonalRamp": [
+          "oklch(15% 0.0092 232.37)",
+          "oklch(26% 0.0092 232.37)",
+          "oklch(37% 0.0092 232.37)",
+          "oklch(49% 0.0092 232.37)",
+          "oklch(60% 0.0092 232.37)",
+          "oklch(72% 0.0092 232.37)",
+          "oklch(84% 0.0092 232.37)",
+          "oklch(95% 0.0092 232.37)"
+        ]
+      },
+      "text": {
+        "role": "neutral",
+        "displayName": "Strong ink",
+        "tonalRamp": [
+          "oklch(15% 0.0510 254.93)",
+          "oklch(26% 0.0510 254.93)",
+          "oklch(37% 0.0510 254.93)",
+          "oklch(49% 0.0510 254.93)",
+          "oklch(60% 0.0510 254.93)",
+          "oklch(72% 0.0510 254.93)",
+          "oklch(84% 0.0510 254.93)",
+          "oklch(95% 0.0510 254.93)"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Secondary ink",
+        "tonalRamp": [
+          "oklch(15% 0.0309 251.90)",
+          "oklch(26% 0.0309 251.90)",
+          "oklch(37% 0.0309 251.90)",
+          "oklch(49% 0.0309 251.90)",
+          "oklch(60% 0.0309 251.90)",
+          "oklch(72% 0.0309 251.90)",
+          "oklch(84% 0.0309 251.90)",
+          "oklch(95% 0.0309 251.90)"
+        ]
+      },
+      "navy": {
+        "role": "primary",
+        "displayName": "Midnight masthead ink",
+        "tonalRamp": [
+          "oklch(15% 0.0625 255.85)",
+          "oklch(26% 0.0625 255.85)",
+          "oklch(37% 0.0625 255.85)",
+          "oklch(49% 0.0625 255.85)",
+          "oklch(60% 0.0625 255.85)",
+          "oklch(72% 0.0625 255.85)",
+          "oklch(84% 0.0625 255.85)",
+          "oklch(95% 0.0625 255.85)"
+        ]
+      },
+      "accent": {
+        "role": "primary",
+        "displayName": "Editorial blue",
+        "tonalRamp": [
+          "oklch(15% 0.1271 256.08)",
+          "oklch(26% 0.1271 256.08)",
+          "oklch(37% 0.1271 256.08)",
+          "oklch(49% 0.1271 256.08)",
+          "oklch(60% 0.1271 256.08)",
+          "oklch(72% 0.1271 256.08)",
+          "oklch(84% 0.1271 256.08)",
+          "oklch(95% 0.1271 256.08)"
+        ]
+      },
+      "brand-secondary": {
+        "role": "secondary",
+        "displayName": "Publication teal",
+        "tonalRamp": [
+          "oklch(15% 0.0700 196.39)",
+          "oklch(26% 0.0700 196.39)",
+          "oklch(37% 0.0700 196.39)",
+          "oklch(49% 0.0700 196.39)",
+          "oklch(60% 0.0700 196.39)",
+          "oklch(72% 0.0700 196.39)",
+          "oklch(84% 0.0700 196.39)",
+          "oklch(95% 0.0700 196.39)"
+        ]
+      },
+      "indigo": {
+        "role": "secondary",
+        "displayName": "Quiet indigo",
+        "tonalRamp": [
+          "oklch(15% 0.1075 274.21)",
+          "oklch(26% 0.1075 274.21)",
+          "oklch(37% 0.1075 274.21)",
+          "oklch(49% 0.1075 274.21)",
+          "oklch(60% 0.1075 274.21)",
+          "oklch(72% 0.1075 274.21)",
+          "oklch(84% 0.1075 274.21)",
+          "oklch(95% 0.1075 274.21)"
+        ]
+      },
+      "warm": {
+        "role": "tertiary",
+        "displayName": "Credit gold",
+        "tonalRamp": [
+          "oklch(15% 0.0833 78.22)",
+          "oklch(26% 0.0833 78.22)",
+          "oklch(37% 0.0833 78.22)",
+          "oklch(49% 0.0833 78.22)",
+          "oklch(60% 0.0833 78.22)",
+          "oklch(72% 0.0833 78.22)",
+          "oklch(84% 0.0833 78.22)",
+          "oklch(95% 0.0833 78.22)"
+        ]
+      },
+      "green": {
+        "role": "tertiary",
+        "displayName": "Evidence green",
+        "tonalRamp": [
+          "oklch(15% 0.0788 164.84)",
+          "oklch(26% 0.0788 164.84)",
+          "oklch(37% 0.0788 164.84)",
+          "oklch(49% 0.0788 164.84)",
+          "oklch(60% 0.0788 164.84)",
+          "oklch(72% 0.0788 164.84)",
+          "oklch(84% 0.0788 164.84)",
+          "oklch(95% 0.0788 164.84)"
+        ]
+      },
+      "amber": {
+        "role": "tertiary",
+        "displayName": "Caution amber",
+        "tonalRamp": [
+          "oklch(15% 0.0833 78.22)",
+          "oklch(26% 0.0833 78.22)",
+          "oklch(37% 0.0833 78.22)",
+          "oklch(49% 0.0833 78.22)",
+          "oklch(60% 0.0833 78.22)",
+          "oklch(72% 0.0833 78.22)",
+          "oklch(84% 0.0833 78.22)",
+          "oklch(95% 0.0833 78.22)"
+        ]
+      },
+      "coral": {
+        "role": "tertiary",
+        "displayName": "Expiry rose",
+        "tonalRamp": [
+          "oklch(15% 0.1177 17.22)",
+          "oklch(26% 0.1177 17.22)",
+          "oklch(37% 0.1177 17.22)",
+          "oklch(49% 0.1177 17.22)",
+          "oklch(60% 0.1177 17.22)",
+          "oklch(72% 0.1177 17.22)",
+          "oklch(84% 0.1177 17.22)",
+          "oklch(95% 0.1177 17.22)"
+        ]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Rule",
+        "tonalRamp": [
+          "oklch(15% 0.0130 236.66)",
+          "oklch(26% 0.0130 236.66)",
+          "oklch(37% 0.0130 236.66)",
+          "oklch(49% 0.0130 236.66)",
+          "oklch(60% 0.0130 236.66)",
+          "oklch(72% 0.0130 236.66)",
+          "oklch(84% 0.0130 236.66)",
+          "oklch(95% 0.0130 236.66)"
+        ]
+      },
+      "soft-line": {
+        "role": "neutral",
+        "displayName": "Soft rule",
+        "tonalRamp": [
+          "oklch(15% 0.0086 225.09)",
+          "oklch(26% 0.0086 225.09)",
+          "oklch(37% 0.0086 225.09)",
+          "oklch(49% 0.0086 225.09)",
+          "oklch(60% 0.0086 225.09)",
+          "oklch(72% 0.0086 225.09)",
+          "oklch(84% 0.0086 225.09)",
+          "oklch(95% 0.0086 225.09)"
+        ]
+      },
+      "bg-dark": {
+        "role": "neutral",
+        "displayName": "Navy canvas",
+        "tonalRamp": [
+          "oklch(15% 0.0376 257.17)",
+          "oklch(26% 0.0376 257.17)",
+          "oklch(37% 0.0376 257.17)",
+          "oklch(49% 0.0376 257.17)",
+          "oklch(60% 0.0376 257.17)",
+          "oklch(72% 0.0376 257.17)",
+          "oklch(84% 0.0376 257.17)",
+          "oklch(95% 0.0376 257.17)"
+        ]
+      },
+      "surface-dark": {
+        "role": "neutral",
+        "displayName": "Navy reading surface",
+        "tonalRamp": [
+          "oklch(15% 0.0452 254.34)",
+          "oklch(26% 0.0452 254.34)",
+          "oklch(37% 0.0452 254.34)",
+          "oklch(49% 0.0452 254.34)",
+          "oklch(60% 0.0452 254.34)",
+          "oklch(72% 0.0452 254.34)",
+          "oklch(84% 0.0452 254.34)",
+          "oklch(95% 0.0452 254.34)"
+        ]
+      },
+      "secondary-dark": {
+        "role": "neutral",
+        "displayName": "Navy grouped field",
+        "tonalRamp": [
+          "oklch(15% 0.0444 252.92)",
+          "oklch(26% 0.0444 252.92)",
+          "oklch(37% 0.0444 252.92)",
+          "oklch(49% 0.0444 252.92)",
+          "oklch(60% 0.0444 252.92)",
+          "oklch(72% 0.0444 252.92)",
+          "oklch(84% 0.0444 252.92)",
+          "oklch(95% 0.0444 252.92)"
+        ]
+      },
+      "featured-dark": {
+        "role": "neutral",
+        "displayName": "Navy summary field",
+        "tonalRamp": [
+          "oklch(15% 0.0469 248.35)",
+          "oklch(26% 0.0469 248.35)",
+          "oklch(37% 0.0469 248.35)",
+          "oklch(49% 0.0469 248.35)",
+          "oklch(60% 0.0469 248.35)",
+          "oklch(72% 0.0469 248.35)",
+          "oklch(84% 0.0469 248.35)",
+          "oklch(95% 0.0469 248.35)"
+        ]
+      },
+      "text-dark": {
+        "role": "neutral",
+        "displayName": "Strong ink · dark",
+        "tonalRamp": [
+          "oklch(15% 0.0051 228.82)",
+          "oklch(26% 0.0051 228.82)",
+          "oklch(37% 0.0051 228.82)",
+          "oklch(49% 0.0051 228.82)",
+          "oklch(60% 0.0051 228.82)",
+          "oklch(72% 0.0051 228.82)",
+          "oklch(84% 0.0051 228.82)",
+          "oklch(95% 0.0051 228.82)"
+        ]
+      },
+      "muted-dark": {
+        "role": "neutral",
+        "displayName": "Secondary ink · dark",
+        "tonalRamp": [
+          "oklch(15% 0.0239 252.21)",
+          "oklch(26% 0.0239 252.21)",
+          "oklch(37% 0.0239 252.21)",
+          "oklch(49% 0.0239 252.21)",
+          "oklch(60% 0.0239 252.21)",
+          "oklch(72% 0.0239 252.21)",
+          "oklch(84% 0.0239 252.21)",
+          "oklch(95% 0.0239 252.21)"
+        ]
+      },
+      "navy-dark": {
+        "role": "primary",
+        "displayName": "Light publication ink",
+        "tonalRamp": [
+          "oklch(15% 0.0051 228.82)",
+          "oklch(26% 0.0051 228.82)",
+          "oklch(37% 0.0051 228.82)",
+          "oklch(49% 0.0051 228.82)",
+          "oklch(60% 0.0051 228.82)",
+          "oklch(72% 0.0051 228.82)",
+          "oklch(84% 0.0051 228.82)",
+          "oklch(95% 0.0051 228.82)"
+        ]
+      },
+      "accent-dark": {
+        "role": "primary",
+        "displayName": "Editorial blue · dark",
+        "tonalRamp": [
+          "oklch(15% 0.0957 257.45)",
+          "oklch(26% 0.0957 257.45)",
+          "oklch(37% 0.0957 257.45)",
+          "oklch(49% 0.0957 257.45)",
+          "oklch(60% 0.0957 257.45)",
+          "oklch(72% 0.0957 257.45)",
+          "oklch(84% 0.0957 257.45)",
+          "oklch(95% 0.0957 257.45)"
+        ]
+      },
+      "brand-secondary-dark": {
+        "role": "secondary",
+        "displayName": "Publication teal · dark",
+        "tonalRamp": [
+          "oklch(15% 0.0726 189.17)",
+          "oklch(26% 0.0726 189.17)",
+          "oklch(37% 0.0726 189.17)",
+          "oklch(49% 0.0726 189.17)",
+          "oklch(60% 0.0726 189.17)",
+          "oklch(72% 0.0726 189.17)",
+          "oklch(84% 0.0726 189.17)",
+          "oklch(95% 0.0726 189.17)"
+        ]
+      },
+      "indigo-dark": {
+        "role": "secondary",
+        "displayName": "Quiet indigo · dark",
+        "tonalRamp": [
+          "oklch(15% 0.0798 278.87)",
+          "oklch(26% 0.0798 278.87)",
+          "oklch(37% 0.0798 278.87)",
+          "oklch(49% 0.0798 278.87)",
+          "oklch(60% 0.0798 278.87)",
+          "oklch(72% 0.0798 278.87)",
+          "oklch(84% 0.0798 278.87)",
+          "oklch(95% 0.0798 278.87)"
+        ]
+      },
+      "warm-dark": {
+        "role": "tertiary",
+        "displayName": "Credit gold · dark",
+        "tonalRamp": [
+          "oklch(15% 0.0766 82.25)",
+          "oklch(26% 0.0766 82.25)",
+          "oklch(37% 0.0766 82.25)",
+          "oklch(49% 0.0766 82.25)",
+          "oklch(60% 0.0766 82.25)",
+          "oklch(72% 0.0766 82.25)",
+          "oklch(84% 0.0766 82.25)",
+          "oklch(95% 0.0766 82.25)"
+        ]
+      },
+      "green-dark": {
+        "role": "tertiary",
+        "displayName": "Evidence green · dark",
+        "tonalRamp": [
+          "oklch(15% 0.0614 160.45)",
+          "oklch(26% 0.0614 160.45)",
+          "oklch(37% 0.0614 160.45)",
+          "oklch(49% 0.0614 160.45)",
+          "oklch(60% 0.0614 160.45)",
+          "oklch(72% 0.0614 160.45)",
+          "oklch(84% 0.0614 160.45)",
+          "oklch(95% 0.0614 160.45)"
+        ]
+      },
+      "amber-dark": {
+        "role": "tertiary",
+        "displayName": "Caution amber · dark",
+        "tonalRamp": [
+          "oklch(15% 0.0766 82.25)",
+          "oklch(26% 0.0766 82.25)",
+          "oklch(37% 0.0766 82.25)",
+          "oklch(49% 0.0766 82.25)",
+          "oklch(60% 0.0766 82.25)",
+          "oklch(72% 0.0766 82.25)",
+          "oklch(84% 0.0766 82.25)",
+          "oklch(95% 0.0766 82.25)"
+        ]
+      },
+      "coral-dark": {
+        "role": "tertiary",
+        "displayName": "Expiry rose · dark",
+        "tonalRamp": [
+          "oklch(15% 0.0793 13.06)",
+          "oklch(26% 0.0793 13.06)",
+          "oklch(37% 0.0793 13.06)",
+          "oklch(49% 0.0793 13.06)",
+          "oklch(60% 0.0793 13.06)",
+          "oklch(72% 0.0793 13.06)",
+          "oklch(84% 0.0793 13.06)",
+          "oklch(95% 0.0793 13.06)"
+        ]
+      },
+      "line-dark": {
+        "role": "neutral",
+        "displayName": "Rule · dark",
+        "tonalRamp": [
+          "oklch(15% 0.0398 249.97)",
+          "oklch(26% 0.0398 249.97)",
+          "oklch(37% 0.0398 249.97)",
+          "oklch(49% 0.0398 249.97)",
+          "oklch(60% 0.0398 249.97)",
+          "oklch(72% 0.0398 249.97)",
+          "oklch(84% 0.0398 249.97)",
+          "oklch(95% 0.0398 249.97)"
+        ]
+      },
+      "soft-line-dark": {
+        "role": "neutral",
+        "displayName": "Soft rule · dark",
+        "tonalRamp": [
+          "oklch(15% 0.0457 250.17)",
+          "oklch(26% 0.0457 250.17)",
+          "oklch(37% 0.0457 250.17)",
+          "oklch(49% 0.0457 250.17)",
+          "oklch(60% 0.0457 250.17)",
+          "oklch(72% 0.0457 250.17)",
+          "oklch(84% 0.0457 250.17)",
+          "oklch(95% 0.0457 250.17)"
+        ]
+      },
+      "directory-bg": {
+        "role": "neutral",
+        "displayName": "Topic directory",
+        "tonalRamp": [
+          "oklch(15% 0.0070 219.56)",
+          "oklch(26% 0.0070 219.56)",
+          "oklch(37% 0.0070 219.56)",
+          "oklch(49% 0.0070 219.56)",
+          "oklch(60% 0.0070 219.56)",
+          "oklch(72% 0.0070 219.56)",
+          "oklch(84% 0.0070 219.56)",
+          "oklch(95% 0.0070 219.56)"
+        ]
+      },
+      "utility-bg": {
+        "role": "primary",
+        "displayName": "Utility navy",
+        "tonalRamp": [
+          "oklch(15% 0.0625 255.85)",
+          "oklch(26% 0.0625 255.85)",
+          "oklch(37% 0.0625 255.85)",
+          "oklch(49% 0.0625 255.85)",
+          "oklch(60% 0.0625 255.85)",
+          "oklch(72% 0.0625 255.85)",
+          "oklch(84% 0.0625 255.85)",
+          "oklch(95% 0.0625 255.85)"
+        ]
+      },
+      "utility-text": {
+        "role": "neutral",
+        "displayName": "Utility ink",
+        "tonalRamp": [
+          "oklch(15% 0.0042 236.50)",
+          "oklch(26% 0.0042 236.50)",
+          "oklch(37% 0.0042 236.50)",
+          "oklch(49% 0.0042 236.50)",
+          "oklch(60% 0.0042 236.50)",
+          "oklch(72% 0.0042 236.50)",
+          "oklch(84% 0.0042 236.50)",
+          "oklch(95% 0.0042 236.50)"
+        ]
+      },
+      "utility-muted": {
+        "role": "neutral",
+        "displayName": "Utility supporting ink",
+        "tonalRamp": [
+          "oklch(15% 0.0237 246.08)",
+          "oklch(26% 0.0237 246.08)",
+          "oklch(37% 0.0237 246.08)",
+          "oklch(49% 0.0237 246.08)",
+          "oklch(60% 0.0237 246.08)",
+          "oklch(72% 0.0237 246.08)",
+          "oklch(84% 0.0237 246.08)",
+          "oklch(95% 0.0237 246.08)"
+        ]
+      },
+      "utility-link": {
+        "role": "primary",
+        "displayName": "Utility links",
+        "tonalRamp": [
+          "oklch(15% 0.0779 251.64)",
+          "oklch(26% 0.0779 251.64)",
+          "oklch(37% 0.0779 251.64)",
+          "oklch(49% 0.0779 251.64)",
+          "oklch(60% 0.0779 251.64)",
+          "oklch(72% 0.0779 251.64)",
+          "oklch(84% 0.0779 251.64)",
+          "oklch(95% 0.0779 251.64)"
+        ]
+      },
+      "utility-teal": {
+        "role": "secondary",
+        "displayName": "Utility teal",
+        "tonalRamp": [
+          "oklch(15% 0.0679 185.36)",
+          "oklch(26% 0.0679 185.36)",
+          "oklch(37% 0.0679 185.36)",
+          "oklch(49% 0.0679 185.36)",
+          "oklch(60% 0.0679 185.36)",
+          "oklch(72% 0.0679 185.36)",
+          "oklch(84% 0.0679 185.36)",
+          "oklch(95% 0.0679 185.36)"
+        ]
+      },
+      "utility-gold": {
+        "role": "tertiary",
+        "displayName": "Utility gold",
+        "tonalRamp": [
+          "oklch(15% 0.0726 86.02)",
+          "oklch(26% 0.0726 86.02)",
+          "oklch(37% 0.0726 86.02)",
+          "oklch(49% 0.0726 86.02)",
+          "oklch(60% 0.0726 86.02)",
+          "oklch(72% 0.0726 86.02)",
+          "oklch(84% 0.0726 86.02)",
+          "oklch(95% 0.0726 86.02)"
+        ]
+      },
+      "utility-line": {
+        "role": "neutral",
+        "displayName": "Utility divider",
+        "tonalRamp": [
+          "oklch(15% 0.0492 250.95)",
+          "oklch(26% 0.0492 250.95)",
+          "oklch(37% 0.0492 250.95)",
+          "oklch(49% 0.0492 250.95)",
+          "oklch(60% 0.0492 250.95)",
+          "oklch(72% 0.0492 250.95)",
+          "oklch(84% 0.0492 250.95)",
+          "oklch(95% 0.0492 250.95)"
+        ]
+      },
+      "dialog-backdrop": {
+        "role": "neutral",
+        "displayName": "Search backdrop",
+        "tonalRamp": [
+          "oklch(15% 0.0276 270.40)",
+          "oklch(26% 0.0276 270.40)",
+          "oklch(37% 0.0276 270.40)",
+          "oklch(49% 0.0276 270.40)",
+          "oklch(60% 0.0276 270.40)",
+          "oklch(72% 0.0276 270.40)",
+          "oklch(84% 0.0276 270.40)",
+          "oklch(95% 0.0276 270.40)"
+        ]
+      },
+      "directory-bg-dark": {
+        "role": "neutral",
+        "displayName": "Topic directory · dark",
+        "tonalRamp": [
+          "oklch(15% 0.0434 249.67)",
+          "oklch(26% 0.0434 249.67)",
+          "oklch(37% 0.0434 249.67)",
+          "oklch(49% 0.0434 249.67)",
+          "oklch(60% 0.0434 249.67)",
+          "oklch(72% 0.0434 249.67)",
+          "oklch(84% 0.0434 249.67)",
+          "oklch(95% 0.0434 249.67)"
+        ]
+      },
+      "utility-bg-dark": {
+        "role": "primary",
+        "displayName": "Utility navy · dark",
+        "tonalRamp": [
+          "oklch(15% 0.0386 255.65)",
+          "oklch(26% 0.0386 255.65)",
+          "oklch(37% 0.0386 255.65)",
+          "oklch(49% 0.0386 255.65)",
+          "oklch(60% 0.0386 255.65)",
+          "oklch(72% 0.0386 255.65)",
+          "oklch(84% 0.0386 255.65)",
+          "oklch(95% 0.0386 255.65)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "General page titles; article titles use the observed 1.18 line-height override."
+      },
+      "wordmark": {
+        "displayName": "Publication wordmark",
+        "purpose": "Protected English 44px system-sans masthead at 750 weight; responsive sizes and the fixed 26px footer are in the component snippet.",
+        "observedVariants": [
+          {
+            "name": "tablet",
+            "maxWidth": "1100px",
+            "fontSize": "36px"
+          },
+          {
+            "name": "phone",
+            "maxWidth": "720px",
+            "fontSize": "30px",
+            "letterSpacing": "-0.03em"
+          },
+          {
+            "name": "narrow-phone",
+            "maxWidth": "380px",
+            "fontSize": "27px"
+          },
+          {
+            "name": "footer",
+            "fontSize": "26px",
+            "letterSpacing": "-0.7px",
+            "purpose": "All breakpoints."
+          }
+        ]
+      },
+      "headline": {
+        "displayName": "Lead headline",
+        "purpose": "Ranked lead at 36px, 29px phone, 27px narrow phone."
+      },
+      "title": {
+        "displayName": "Story title",
+        "purpose": "Standard feed headlines; further-story columns use the observed 24px/1.25 variant and 23px at 720px.",
+        "observedVariants": [
+          {
+            "name": "editorial-column",
+            "fontSize": "24px",
+            "lineHeight": 1.25
+          },
+          {
+            "name": "editorial-column-phone",
+            "maxWidth": "720px",
+            "fontSize": "23px",
+            "lineHeight": 1.25
+          }
+        ]
+      },
+      "section": {
+        "displayName": "Section title",
+        "purpose": "English section headings use system sans at 650 weight; the compact briefing section uses the separate 23px/600 role."
+      },
+      "homepage-title": {
+        "displayName": "Homepage title",
+        "purpose": "Compact Latest technology news title in 700-weight system sans; Bangla keeps its script-specific font architecture."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "System sans for interface and supporting text."
+      },
+      "prose": {
+        "displayName": "Reading prose",
+        "purpose": "Article and methodology prose at 66ch."
+      },
+      "summary": {
+        "displayName": "Preview summary",
+        "purpose": "Feed previews; lead summary uses 18px."
+      },
+      "label": {
+        "displayName": "Metadata",
+        "purpose": "Meaningful labels, times, and source information; no decorative eyebrow primitive."
+      },
+      "button": {
+        "displayName": "Action",
+        "purpose": "Default button text; appearance and ticker use 14px."
+      },
+      "fact-value": {
+        "displayName": "Fact value",
+        "purpose": "Meaningfully labelled source-reported numeric values. Lead/feed previews omit canonical Source-reported labels before their one/two-value limits; detail evidence retains every original number."
+      },
+      "bangla-body": {
+        "displayName": "Bangla body",
+        "purpose": "Script-appropriate local font fallback and generous leading."
+      },
+      "micro": {
+        "displayName": "Compact metadata",
+        "purpose": "Edition, headline playback, and briefing support labels at 13px."
+      },
+      "data-label": {
+        "displayName": "Semantic source label",
+        "purpose": "Existing meaningful source-type labels use ui-monospace with SFMono-Regular and Consolas fallbacks; this does not establish a decorative eyebrow primitive."
+      },
+      "briefing-headline": {
+        "displayName": "Briefing headline",
+        "purpose": "Compact four-story briefing headlines at 20px/1.3."
+      },
+      "briefing-section": {
+        "displayName": "Briefing section",
+        "purpose": "English briefing section heading at 23px/1.3, 600-weight system sans."
+      },
+      "footer-wordmark": {
+        "displayName": "Footer wordmark",
+        "purpose": "Protected English publication name at 26px at every breakpoint."
+      },
+      "headline-phone": {
+        "displayName": "Phone lead headline",
+        "purpose": "29px lead headline at 720px and below; 27px at 380px."
+      },
+      "wordmark-phone": {
+        "displayName": "Phone masthead",
+        "purpose": "30px publication wordmark at 720px and below; 27px at 380px."
+      }
+    },
+    "shadows": [
+      {
+        "name": "search-dialog-light",
+        "value": "0 16px 48px rgb(26 24 45 / .12)",
+        "purpose": "Native search dialog in light appearance; reporting surfaces remain flat."
+      },
+      {
+        "name": "search-dialog-dark",
+        "value": "0 16px 48px rgb(0 0 0 / .3)",
+        "purpose": "Native search dialog in dark appearance."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-out",
+        "value": "cubic-bezier(0.23,1,0.32,1)",
+        "purpose": "Button press, navigation underline, and headline reveal."
+      },
+      {
+        "name": "duration-press",
+        "value": "160ms",
+        "purpose": "Pointer button press and navigation underline."
+      },
+      {
+        "name": "button-press",
+        "value": "scale(.97)",
+        "purpose": "Active pointer press only; keyboard focus remains stable."
+      },
+      {
+        "name": "category-hover",
+        "value": "160ms ease",
+        "purpose": "Fine-pointer topic-row background transition; shared structural rules remain steady and reporting surfaces remain flat."
+      },
+      {
+        "name": "focus-headline-interval",
+        "value": "8000ms",
+        "purpose": "Ranked headlines advance in eight-second steps only while playing; label/content hover, visible keyboard focus, hidden tabs, offscreen placement, open search, and reduced motion pause. Playback controls remain usable under the pointer."
+      },
+      {
+        "name": "focus-reveal",
+        "value": "220ms cubic-bezier(0.23,1,0.32,1); opacity .85 to 1",
+        "purpose": "Automatic changes enter through opacity only inside the stable headline slot. Requested Previous/Next changes are immediate; reduced motion disables entry."
+      },
+      {
+        "name": "focus-progress",
+        "value": "8s linear forwards; scaleX(0) to scaleX(1)",
+        "purpose": "Two-pixel progress meter synchronized with the headline timer; accent, brand-secondary, indigo, then accent. Pausing preserves elapsed progress."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "transition:none; animation:none",
+        "purpose": "Global reduced-motion treatment; automatic headline changes stop while Previous/Next remain usable."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "edition-stack",
+        "value": "1100px"
+      },
+      {
+        "name": "container-medium",
+        "value": "1000px"
+      },
+      {
+        "name": "phone",
+        "value": "720px"
+      },
+      {
+        "name": "narrow-phone",
+        "value": "380px"
+      },
+      {
+        "name": "focus-single-line-min",
+        "value": "721px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Outline action",
+      "kind": "button",
+      "refersTo": "button-default",
+      "description": "Default outlined action with pressed and disabled states; minimum 44px target.",
+      "html": "<button class=\"ds-button\" type=\"button\" aria-pressed=\"false\">Save story</button>",
+      "css": ".ds-button{font-family:var(--font-sans,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif);font-size:15px;line-height:1.6;color:var(--text,#182b43);background:transparent;border:1px solid var(--line,#c0c9cf);border-radius:4px;min-height:44px;min-width:44px;padding:8px 12px;cursor:pointer;transition:transform 160ms cubic-bezier(.23,1,.32,1)}.ds-button:hover{border-color:var(--accent,#235aa0);color:var(--accent,#235aa0)}.ds-button[aria-pressed=\"true\"]{color:var(--accent,#235aa0);background:var(--secondary,#e7ecee);border-color:var(--accent,#235aa0)}.ds-button:disabled{opacity:.5;cursor:default}.ds-button:focus-visible{outline:3px solid var(--accent,#235aa0);outline-offset:3px}.ds-button:active:not(:disabled):not(:focus-visible){transform:scale(.97)}@media(prefers-reduced-motion:reduce){.ds-button{transition:none}}"
+    },
+    {
+      "name": "Search field",
+      "kind": "input",
+      "refersTo": "input-search",
+      "description": "Reading-surface search input; the application supplies its visible label and native dialog.",
+      "html": "<input class=\"ds-search-input\" type=\"search\" name=\"q\" aria-label=\"Search stories\" autocomplete=\"off\" maxlength=\"200\" placeholder=\"Models, APIs, research, releases…\">",
+      "css": ".ds-search-input{font-family:var(--font-sans,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif);font-size:18px;line-height:1.6;color:var(--text,#182b43);background:var(--surface,#fcfbf7);border:1px solid var(--line,#c0c9cf);border-radius:4px;min-height:44px;padding:8px 12px;max-width:100%;caret-color:var(--accent,#235aa0)}.ds-search-input::placeholder{color:var(--muted,#566474);opacity:1}.ds-search-input:focus-visible{outline:3px solid var(--accent,#235aa0);outline-offset:3px}"
+    },
+    {
+      "name": "Primary navigation",
+      "kind": "nav",
+      "refersTo": "nav-primary",
+      "description": "Plain category links with a blue current-page rule and fine-pointer hover emphasis.",
+      "html": "<nav class=\"ds-navigation\" aria-label=\"Main navigation\"><a class=\"ds-nav-link\" href=\"#\" aria-current=\"page\">Today</a><a class=\"ds-nav-link\" href=\"#\">AI</a><a class=\"ds-nav-link\" href=\"#\">Chips</a><a class=\"ds-nav-link\" href=\"#\">Security</a><a class=\"ds-nav-link\" href=\"#\">Free credit</a></nav>",
+      "css": ".ds-navigation{display:flex;align-items:center;gap:28px;font-family:var(--font-sans,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif);font-size:15px;color:var(--text,#182b43)}.ds-nav-link{position:relative;display:flex;align-items:center;min-height:44px;min-width:44px;border-bottom:2px solid transparent;color:inherit;text-decoration:none}.ds-nav-link::after{content:\"\";position:absolute;bottom:-2px;left:0;right:0;height:2px;background:var(--accent,#235aa0);transform:scaleX(0);transform-origin:left;transition:transform 160ms cubic-bezier(.23,1,.32,1)}.ds-nav-link[aria-current=\"page\"]{font-weight:600;color:var(--accent,#235aa0)}.ds-nav-link[aria-current=\"page\"]::after{transform:scaleX(1)}.ds-nav-link:focus-visible{outline:3px solid var(--accent,#235aa0);outline-offset:3px}.ds-nav-link:focus-visible::after{transition:none}@media(hover:hover) and (pointer:fine){.ds-nav-link:hover{color:var(--accent,#235aa0)}.ds-nav-link:hover::after{transform:scaleX(1)}}@media(max-width:720px){.ds-navigation{gap:0;flex-wrap:wrap;justify-content:space-between;font-size:14px}.ds-nav-link{padding-inline:4px}}@media(prefers-reduced-motion:reduce){.ds-nav-link::after{transition:none}}"
+    },
+    {
+      "name": "Labelled measurement",
+      "kind": "chip",
+      "refersTo": "chip-fact",
+      "description": "A meaningfully labelled value from the current local publication. Story previews omit generic canonical Source-reported labels; complete numeric evidence remains on detail pages.",
+      "html": "<span class=\"ds-fact\"><strong class=\"ds-fact-value\">128GB</strong><span class=\"ds-fact-label\"> Memory</span></span>",
+      "css": ".ds-fact{display:inline-block;background:var(--secondary,#e7ecee);color:var(--text,#182b43);border:1px solid var(--soft-line,#d8dfe2);padding:4px 8px;font:14px/1.5 ui-monospace,monospace;font-variant-numeric:tabular-nums}.ds-fact-value{color:var(--accent,#235aa0);font-size:16px;font-weight:600}.ds-fact-label{font-family:var(--font-sans,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif);font-size:14px;line-height:1.5;color:var(--muted,#566474)}"
+    },
+    {
+      "name": "Story preview",
+      "kind": "card",
+      "refersTo": "story-preview",
+      "description": "Static story-preview structure. Sample copy illustrates the component, not a new reporting claim.",
+      "html": "<article class=\"ds-story\"><div class=\"ds-story-meta\"><a class=\"ds-story-category\" href=\"#\">AI</a><a class=\"ds-story-evidence\" href=\"#\">Primary confirmed</a><time class=\"ds-story-time\">2h ago</time></div><h3 class=\"ds-story-title\"><a href=\"#\">A source-backed technology update</a></h3><p class=\"ds-story-summary\">A short summary keeps the available evidence within reach.</p><div class=\"ds-story-footer\"><div class=\"ds-story-links\"><a href=\"#\">Details</a><a href=\"#\">Original source</a></div><button class=\"ds-story-save\" type=\"button\" aria-pressed=\"false\">Save</button></div><p class=\"ds-story-source\">Official source · 1 source</p></article>",
+      "css": ".ds-story{background:var(--surface,#fcfbf7);color:var(--text,#182b43);border:1px solid var(--line,#c0c9cf);padding:24px;min-width:0;font-family:var(--font-sans,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif)}.ds-story-meta{display:flex;align-items:center;flex-wrap:wrap;gap:8px;font-size:14px;line-height:1.5;margin-bottom:8px}.ds-story a{color:inherit;text-decoration:none}.ds-story-category{display:inline-flex;align-items:center;min-height:44px;min-width:44px;font-weight:600}.ds-story-evidence{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:4px 6px;color:var(--green,#24664d)!important;text-decoration:underline!important;text-decoration-color:var(--line,#c0c9cf)!important;text-underline-offset:3px}.ds-story-evidence::before{content:\"\";width:5px;height:5px;border:1px solid currentColor;border-radius:50%;flex-shrink:0}.ds-story-time{color:var(--muted,#566474);font-variant-numeric:tabular-nums}.ds-story-title{font:600 21px/1.3 Georgia,serif;margin:0 0 12px;overflow-wrap:break-word;text-wrap:pretty}.ds-story-summary{font-size:16px;line-height:1.7;margin:0 0 16px;max-width:66ch;overflow-wrap:break-word}.ds-story-footer{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;border-top:1px solid var(--soft-line,#d8dfe2);margin-top:16px;padding-top:8px}.ds-story-links{display:flex;flex-wrap:wrap;gap:20px;font-size:15px}.ds-story-links a{display:inline-flex;align-items:center;min-height:44px}.ds-story-links a:first-child{color:var(--accent,#235aa0)}.ds-story-save{font-family:var(--font-sans,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif);font-size:15px;line-height:1.6;color:inherit;background:transparent;border:0;border-radius:4px;min-height:44px;min-width:44px;padding:8px 12px;cursor:pointer;transition:transform 160ms cubic-bezier(.23,1,.32,1)}.ds-story-save:hover{color:var(--accent,#235aa0)}.ds-story-save[aria-pressed=\"true\"]{color:var(--accent,#235aa0);background:var(--secondary,#e7ecee)}.ds-story-save:active:not(:focus-visible){transform:scale(.97)}.ds-story-source{font-size:14px;line-height:1.5;color:var(--muted,#566474);margin:4px 0 0}.ds-story a:focus-visible,.ds-story-save:focus-visible{outline:3px solid var(--accent,#235aa0);outline-offset:3px}@media(hover:hover) and (pointer:fine){.ds-story:hover{border-color:var(--accent,#235aa0)}.ds-story-title a:hover{color:var(--accent,#235aa0);text-decoration:underline;text-decoration-thickness:1px}.ds-story-links a:hover{color:var(--accent,#235aa0);text-decoration:underline}}@media(max-width:720px){.ds-story{padding:20px}}@media(prefers-reduced-motion:reduce){.ds-story-save{transition:none}}"
+    },
+    {
+      "name": "Topic directory row",
+      "kind": "nav",
+      "refersTo": "category-tile",
+      "description": "Unboxed topic icon row on the cool directory field: category, description, actual count, and Browse link, separated by a shared rule.",
+      "html": "<div class=\"ds-directory\"><a class=\"ds-category-tile\" href=\"#\"><span class=\"ds-category-topic\"><svg class=\"ds-topic-icon\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M8 4v3M16 4v3M8 17v3M16 17v3M4 8h3M17 8h3M4 16h3M17 16h3M7 7h10v10H7Z M10 10h4v4h-4Z\"/></svg><span class=\"ds-category-label\">AI</span></span><span class=\"ds-category-description\">Models, tools and AI releases</span><span class=\"ds-category-footer\"><span>38 stories</span><span class=\"ds-category-open\">Browse →</span></span></a></div>",
+      "css": ".ds-directory{padding:24px;background:var(--directory-bg,#eaf0f2);color:var(--text,#182b43);font-family:var(--font-sans,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif)}.ds-category-tile{display:flex;flex-direction:column;gap:8px;padding:16px 4px;border:0;border-bottom:1px solid var(--line,#c0c9cf);border-radius:0;background:transparent;color:inherit;text-decoration:none;font-size:14px;min-width:0}.ds-category-topic{display:flex;align-items:center;gap:10px}.ds-topic-icon{flex-shrink:0;color:var(--brand-secondary,#216a6b)}.ds-category-label{display:block;font-size:18px;font-weight:600;line-height:1.35}.ds-category-description{color:var(--muted,#566474);font-size:14px;line-height:1.5}.ds-category-footer{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;margin-top:auto;padding-top:4px;font-size:13px;color:var(--muted,#566474)}.ds-category-open{color:var(--accent,#235aa0);font-weight:600}.ds-category-tile:focus-visible{outline:3px solid var(--accent,#235aa0);outline-offset:3px}@media(hover:hover) and (pointer:fine){.ds-category-tile{transition:background-color 160ms ease,border-color 160ms ease}.ds-category-tile:hover{background:var(--featured,#e9f0f4);color:var(--accent,#235aa0)}.ds-category-tile:hover .ds-category-open{text-decoration:underline}}@media(max-width:720px){.ds-directory{padding:20px 16px}.ds-category-tile{padding:14px 0;gap:6px}.ds-category-topic{gap:8px}.ds-topic-icon{width:20px;height:20px}.ds-category-label{font-size:16px}.ds-category-footer{gap:4px}.ds-category-open{margin-left:auto}}@media(max-width:380px){.ds-category-tile{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 12px}.ds-category-description{grid-column:1}.ds-category-footer{grid-column:2;grid-row:1/3;flex-direction:column;align-items:flex-end;justify-content:center;padding:0}}@media(prefers-reduced-motion:reduce){.ds-category-tile{transition:none}}"
+    },
+    {
+      "name": "Tools and trackers band",
+      "kind": "custom",
+      "refersTo": "tools-band",
+      "description": "High-contrast navy utility field with labelled tracker fields and always-available destinations; no duplicated offer or model teaser.",
+      "html": "<section class=\"ds-tools\" lang=\"en\"><header class=\"ds-tools-heading\"><h2>Tools &amp; trackers</h2><p>Track offers, model releases and their official terms.</p></header><div class=\"ds-tools-grid\"><aside class=\"ds-tool ds-tool-credit\"><h3><svg class=\"ds-tool-icon\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3 8h18v4H3ZM5 12v9h14v-9M12 8v13M12 8H8a3 3 0 1 1 3-3l1 3Zm0 0h4a3 3 0 1 0-3-3l-1 3Z\"/></svg>Free credit tracker</h3><p>Offers and trials, with eligibility and limits.</p><ul class=\"ds-tool-fields\"><li>Eligibility</li><li>Expiry</li><li>Official terms</li></ul><a href=\"#\">Check credit offers →</a></aside><aside class=\"ds-tool\"><h3><svg class=\"ds-tool-icon\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M8 4v3M16 4v3M8 17v3M16 17v3M4 8h3M17 8h3M4 16h3M17 16h3M7 7h10v10H7Z M10 10h4v4h-4Z\"/></svg>Model release tracker</h3><p>Compare source-reported specifications and known limits.</p><ul class=\"ds-tool-fields\"><li>Context window</li><li>Access</li><li>Pricing</li></ul><a href=\"#\">Explore model releases →</a></aside></div></section>",
+      "css": ".ds-tools{padding:32px;background:var(--utility-bg,#142b49);color:var(--utility-text,#f3f6f8);font-family:var(--font-sans,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif)}.ds-tools-heading{margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--utility-line,#496079)}.ds-tools-heading h2{font:650 25px/1.3 var(--font-sans,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif);letter-spacing:-.015em;margin:0}.ds-tools-heading p{margin:6px 0 0;color:var(--utility-muted,#c0cedb);font-size:15px;line-height:1.6}.ds-tools-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:32px}.ds-tool{display:flex;flex-direction:column;align-items:flex-start;min-width:0;padding:0;border:0}.ds-tool+.ds-tool{border-left:1px solid var(--utility-line,#496079);padding-left:32px}.ds-tool h3{display:flex;align-items:center;gap:12px;font:600 22px/1.3 var(--font-sans,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif);margin:0 0 12px;color:var(--utility-teal,#96d8cf)}.ds-tool-credit h3{color:var(--utility-gold,#ead29e)}.ds-tool-icon{flex-shrink:0;color:inherit}.ds-tool p{font-size:16px;line-height:1.6;color:var(--utility-muted,#c0cedb);margin:0 0 12px;max-width:45ch}.ds-tool-fields{display:flex;flex-wrap:wrap;gap:6px 16px;list-style:none;padding:0;margin:0 0 12px;color:var(--utility-muted,#c0cedb);font-size:14px;line-height:1.6}.ds-tool-fields li+li{border-left:1px solid var(--utility-line,#496079);padding-left:16px}.ds-tool a{display:inline-flex;align-items:center;min-height:44px;min-width:44px;padding-block:8px;margin-top:auto;color:var(--utility-link,#a8d1ff);font-size:15px;line-height:1.6;font-weight:600;text-decoration:underline;text-underline-offset:4px}.ds-tool a:hover{text-decoration-thickness:2px}.ds-tool a:focus-visible{outline:3px solid var(--utility-link,#a8d1ff);outline-offset:3px}@media(max-width:720px){.ds-tools{padding:24px 20px}.ds-tools-grid{grid-template-columns:minmax(0,1fr);gap:24px}.ds-tool+.ds-tool{padding:24px 0 0;border-left:0;border-top:1px solid var(--utility-line,#496079)}.ds-tool h3{font-size:20px;gap:10px}}"
+    },
+    {
+      "name": "In focus headline strip",
+      "kind": "custom",
+      "refersTo": "news-focus",
+      "description": "Initialized four-headline visual state with position, controls, and synchronized eight-second meter. news-focus.ts supplies stepped rotation, 220ms opacity-only automatic entry, immediate manual changes, pause causes and remaining-time preservation; without JavaScript controls stay hidden.",
+      "html": "<section class=\"ds-focus\" lang=\"en\" aria-label=\"In focus\" data-ready=\"true\" data-mode=\"rotating\" data-motion=\"running\" data-manual-pause=\"false\"><div class=\"ds-focus-label\"><strong>In focus</strong><span title=\"Automatically advances every eight seconds.\">Playing</span></div><div class=\"ds-focus-content\"><div class=\"ds-focus-headline\"><a class=\"ds-focus-link\" href=\"#\" title=\"A source-backed technology update\">A source-backed technology update</a></div><span class=\"ds-focus-position\" aria-label=\"Headline 1 of 4\">1 / 4</span><span class=\"ds-focus-meter\" aria-hidden=\"true\"><span class=\"ds-focus-progress\"></span></span></div><div class=\"ds-focus-controls\"><button class=\"ds-focus-step\" type=\"button\" aria-label=\"Previous headline\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" aria-hidden=\"true\"><path d=\"m14 6-6 6 6 6\"/></svg></button><button class=\"ds-focus-toggle\" type=\"button\" aria-label=\"Pause headline rotation\" aria-pressed=\"false\"><svg class=\"ds-pause-icon\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M8 5v14M16 5v14\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"/></svg><svg class=\"ds-resume-icon\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"m8 5 11 7-11 7Z\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linejoin=\"round\"/></svg><span>Pause</span></button><button class=\"ds-focus-step\" type=\"button\" aria-label=\"Next headline\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" aria-hidden=\"true\"><path d=\"m10 6 6 6-6 6\"/></svg></button></div></section>",
+      "css": ".ds-focus{display:grid;grid-template-columns:120px minmax(0,1fr) auto;align-items:center;gap:16px;margin-top:20px;padding:8px 16px;min-width:0;background:var(--featured,#e9f0f4);color:var(--text,#182b43);border:1px solid var(--line,#c0c9cf);border-radius:4px;font-family:var(--font-sans,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif)}.ds-focus-label{min-width:0}.ds-focus-label strong{display:block;color:var(--accent,#235aa0);font-size:14px;line-height:1.5;font-weight:600}.ds-focus-label span{display:block;color:var(--muted,#566474);font-size:13px;line-height:1.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ds-focus-content{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:4px 12px;min-width:0}.ds-focus-position{font-size:13px;color:var(--muted,#566474);font-variant-numeric:tabular-nums;white-space:nowrap}.ds-focus-meter{grid-column:1/-1;height:2px;background:var(--line,#c0c9cf);overflow:hidden}.ds-focus-progress{display:block;width:100%;height:100%;background:var(--accent,#235aa0);transform:scaleX(0);transform-origin:left}.ds-focus[data-ready=\"true\"][data-mode=\"rotating\"] .ds-focus-progress{animation:ds-focus-progress 8s linear forwards;animation-play-state:paused}.ds-focus[data-ready=\"true\"][data-motion=\"running\"] .ds-focus-progress{animation-play-state:running}.ds-focus-controls{display:flex;align-items:center;gap:4px;visibility:hidden}.ds-focus[data-ready=\"true\"] .ds-focus-controls{visibility:visible}.ds-focus[data-mode=\"static\"] .ds-focus-controls,.ds-focus[data-mode=\"static\"] .ds-focus-meter{display:none}.ds-focus-headline{overflow:hidden;min-width:0}.ds-focus-headline:has(.ds-focus-link:focus-visible){outline:3px solid var(--accent,#235aa0);outline-offset:3px}.ds-focus-link{min-height:44px;display:flex;align-items:center;font-size:15px;line-height:1.5;font-weight:500;overflow-wrap:anywhere;color:inherit;text-decoration:none}.ds-focus-link:hover{color:var(--accent,#235aa0);text-decoration:underline}.ds-focus-link.ds-is-entering{animation:ds-focus-reveal 220ms cubic-bezier(.23,1,.32,1)}.ds-focus-step,.ds-focus-toggle{min-height:44px;min-width:44px;border:1px solid var(--line,#c0c9cf);border-radius:4px;background:transparent;color:inherit;padding:8px;font-family:var(--font-sans,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif);font-size:14px;line-height:1.6;cursor:pointer;transition:transform 160ms cubic-bezier(.23,1,.32,1)}.ds-focus-step{display:grid;place-items:center;width:44px}.ds-focus-toggle{display:flex;align-items:center;justify-content:center;gap:6px;width:84px}.ds-focus-step:hover,.ds-focus-toggle:hover{border-color:var(--accent,#235aa0);color:var(--accent,#235aa0)}.ds-focus-toggle[aria-pressed=\"true\"]{color:var(--accent,#235aa0);background:var(--secondary,#e7ecee);border-color:var(--accent,#235aa0)}.ds-focus-step:disabled,.ds-focus-toggle:disabled{opacity:.5;cursor:default}.ds-focus-step:active:not(:disabled):not(:focus-visible),.ds-focus-toggle:active:not(:disabled):not(:focus-visible){transform:scale(.97)}.ds-focus-link:focus-visible,.ds-focus-step:focus-visible,.ds-focus-toggle:focus-visible{outline:3px solid var(--accent,#235aa0);outline-offset:3px}.ds-resume-icon{display:none}.ds-focus[data-manual-pause=\"true\"] .ds-resume-icon{display:block}.ds-focus[data-manual-pause=\"true\"] .ds-pause-icon{display:none}@keyframes ds-focus-reveal{from{opacity:.85}to{opacity:1}}@keyframes ds-focus-progress{0%{transform:scaleX(0);background:var(--accent,#235aa0)}33%{background:var(--brand-secondary,#216a6b)}66%{background:var(--indigo,#515da0)}100%{transform:scaleX(1);background:var(--accent,#235aa0)}}@media(min-width:721px){.ds-focus-link{display:block;line-height:44px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}}@media(max-width:720px){.ds-focus{grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;padding:8px 12px 12px;margin-top:16px}.ds-focus-content{grid-column:1/-1;grid-row:2}.ds-focus-controls{grid-column:2;grid-row:1}.ds-focus-headline{height:52px}.ds-focus-link{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;min-height:44px;line-height:1.7}}@media(prefers-reduced-motion:reduce){.ds-focus-link,.ds-focus-step,.ds-focus-toggle,.ds-focus-progress{transition:none!important;animation:none!important}}"
+    },
+    {
+      "name": "Appearance choices",
+      "kind": "button",
+      "refersTo": "appearance",
+      "description": "Explicit Light/Dark choices retain both labels at every width; Appearance is visible above 1100px. The app synchronizes mutually exclusive aria-pressed states and persists selection.",
+      "html": "<div class=\"ds-appearance\" role=\"group\" aria-label=\"Appearance\"><span class=\"ds-appearance-label\" aria-hidden=\"true\">Appearance</span><button class=\"ds-appearance-option\" type=\"button\" data-theme=\"light\" aria-pressed=\"true\" aria-label=\"Light theme\"><svg viewBox=\"0 0 24 24\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"4\"/><path d=\"M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5\"/></svg><span>Light</span></button><button class=\"ds-appearance-option\" type=\"button\" data-theme=\"dark\" aria-pressed=\"false\" aria-label=\"Dark theme\"><svg viewBox=\"0 0 24 24\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" aria-hidden=\"true\"><path d=\"M20.5 14.5A8.5 8.5 0 0 1 9.5 3.5a8.5 8.5 0 1 0 11 11Z\"/></svg><span>Dark</span></button></div>",
+      "css": ".ds-appearance{display:flex;padding:2px;gap:2px;border:1px solid var(--line,#c0c9cf);border-radius:6px;background:var(--bg,#f4f2eb);flex-shrink:0}.ds-appearance-label{align-self:center;padding-inline:10px 8px;font:400 13px/1.6 var(--font-sans,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif);color:var(--muted,#566474)}.ds-appearance-option{display:flex;align-items:center;justify-content:center;gap:6px;border:0;border-radius:4px;min-height:44px;min-width:44px;padding:8px 10px;font-family:var(--font-sans,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif);font-size:14px;line-height:1.6;background:transparent;color:var(--muted,#566474);cursor:pointer;transition:transform 160ms cubic-bezier(.23,1,.32,1)}.ds-appearance-option:hover{color:var(--accent,#235aa0)}.ds-appearance-option[aria-pressed=\"true\"]{background:var(--accent,#235aa0);color:var(--bg,#f4f2eb)}.ds-appearance-option:focus-visible{outline:3px solid var(--accent,#235aa0);outline-offset:3px}.ds-appearance-option:active:not(:disabled):not(:focus-visible){transform:scale(.97)}.ds-appearance-option:disabled{opacity:.5;cursor:default}@media(max-width:1100px){.ds-appearance-label{display:none}}@media(max-width:720px){.ds-appearance-option{padding-inline:8px}}@media(max-width:380px){.ds-appearance-option svg{display:none}}@media(prefers-reduced-motion:reduce){.ds-appearance-option{transition:none}}"
+    },
+    {
+      "name": "Publication wordmark",
+      "kind": "custom",
+      "refersTo": "wordmark",
+      "description": "Protected English 44px system-sans lettering at 750 weight with an authored two-page folio; responsive masthead sizes and a fixed 26px footer coexist. Techline Today remains provisional.",
+      "html": "<span class=\"ds-wordmark notranslate\" lang=\"en\" translate=\"no\"><svg class=\"ds-brand-mark\" viewBox=\"0 0 32 32\" fill=\"none\" aria-hidden=\"true\"><path d=\"M3 5h20v23H3Z\" stroke=\"currentColor\" stroke-width=\"2\"/><path d=\"M23 9h6v19h-6M8 11h10\" stroke=\"var(--brand-secondary,#216a6b)\" stroke-width=\"2\"/><path d=\"M8 16h10M8 21h6\" stroke=\"currentColor\" stroke-width=\"2\"/></svg><span>Techline <span class=\"ds-wordmark-ending\">Today</span></span></span>",
+      "css": ".ds-wordmark{display:inline-flex;align-items:center;gap:12px;color:var(--navy,#142b49);font:750 44px/1.08 var(--font-sans,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif);letter-spacing:-.04em;white-space:nowrap}.ds-wordmark-ending{color:var(--brand-secondary,#216a6b)}.ds-brand-mark{width:34px;height:34px;flex-shrink:0;color:var(--navy,#142b49)}@media(max-width:1100px){.ds-wordmark{font-size:36px}}@media(max-width:720px){.ds-wordmark{font-size:30px;gap:8px;letter-spacing:-.03em}.ds-brand-mark{width:26px;height:26px}}@media(max-width:380px){.ds-wordmark{font-size:27px}.ds-brand-mark{width:24px;height:24px}}.ds-wordmark.ds-wordmark-small{font-size:26px;letter-spacing:-.7px}.ds-wordmark-small .ds-brand-mark{width:24px;height:24px}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The technology news desk",
+    "overview": "A recognizable publication built around readable reporting, restrained structure, and useful evidence. Navy lettering anchors the identity, blue identifies interaction, and a small teal second voice distinguishes the masthead. Warm reading surfaces, a cool topic directory, and a navy utility field give each kind of content a clear place. Headlines and source information carry the page.\n\nThe system is editorial and compact, with a strong system-sans masthead and English section titles, serif reporting headlines, plain controls, thin rules, and mostly flat surfaces. The working name remains provisional; its lettering and protected English presentation describe the current artifact, not legal clearance. The owner-directed homepage composition lives in its surface brief rather than becoming a template for every page.",
+    "keyCharacteristics": [
+      "Strong sans-serif publication lettering with serif reporting and plain, readable controls.",
+      "Warm light surfaces and layered navy dark surfaces.",
+      "Clear distinctions between a topic directory, editorial columns, and a navy tools field.",
+      "Visible evidence, source links, and meaningful unknowns.",
+      "Observable, controlled playback in a stable headline slot."
+    ],
+    "rules": [
+      {
+        "name": "The Semantic Accent Rule",
+        "body": "Keep blue for interaction, teal for the identity's second voice, and status colors attached to their meaning. Do not reuse expiry rose as masthead color.",
+        "section": "colors"
+      },
+      {
+        "name": "The Reading Measure Rule",
+        "body": "Keep prose at the existing 66ch measure and preserve script-specific line height; do not squeeze Bangla copy into English leading.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat Reporting Rule",
+        "body": "Keep reporting and navigation surfaces flat. Use the existing dialog shadow for protected search focus.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Stable Reading Rule",
+        "body": "Motion belongs in the controlled In focus slot; the original ranked stories, headline colors, facts, and numbers stay stationary.",
+        "section": "components"
+      }
+    ],
+    "dos": [
+      "**Do** use the same semantic CSS properties for both appearances and preserve visible current-state labels.",
+      "**Do** retain the 66ch prose measure, script-aware font stacks, and explicit English fallback.",
+      "**Do** distinguish navigation, story previews, and source-backed tool records.",
+      "**Do** keep keyboard focus, original-source links, meaningful status metadata, and action feedback visible.",
+      "**Do** give rotating headlines a stationary alternative, visible playback state, and Previous/Pause/Next controls; preserve remaining time on pause and manual navigation under reduced motion."
+    ],
+    "donts": [
+      "**Don't** add gradients, glow, promotional imagery, or rose-led identity treatment to this publication.",
+      "**Don't** turn provider names, evidence states, or real edition status into decorative marketing badges.",
+      "**Don't** export inherited eyebrow styling as a decorative primitive; preserve meaningful provider, evidence, and edition metadata.",
+      "**Don't** replace the tools band with nested rounded cards or animate the reading canvas and original facts.",
+      "**Don't** treat the provisional brand, fixture examples, or local renders as legal clearance, production translation, or deployment evidence."
+    ]
+  }
+}

@@ -1,0 +1,18 @@
+---
+import { localeFor, t, localizedPath, localizedStory } from '../../../lib/i18n';
+import Layout from '../../../layouts/Layout.astro';
+import StoryCard from '../../../components/StoryCard.astro';
+import ExternalLink from '../../../components/ExternalLink.astro';
+import { data, date, storyById } from '../../../lib/data';
+export function getStaticPaths() { return data.digests.map(digest => ({params:{period:digest.period_type,key:digest.id},props:{digest}})); }
+const {digest} = Astro.props;
+const stories = digest.story_ids.map(id => storyById.get(id)!);
+const release = stories.find(story => ['ai', 'dev-apis', 'open-source'].includes(story.category));
+const opportunity = data.offers.find(offer => offer.story_id && digest.story_ids.includes(offer.story_id));
+const locale = localeFor(Astro.url.pathname);
+const ui = (key: string) => t(locale, key);
+const href = (path: string) => localizedPath(path, locale);
+const readingStories = stories.map(story => localizedStory(story,locale));
+const readingRelease = release && localizedStory(release,locale);
+---
+<Layout title={`${ui(digest.period_type)} ${ui("digest")} · ${digest.id}`}><section class="page-intro"><p class="eyebrow">{ui(digest.period_type)} {ui("edition")} / {ui(digest.status)}</p><h1>{digest.id}</h1><p lang="en">{digest.summary}</p><p class="small">{date(digest.period_start,false,locale)} {ui("to")} {date(digest.period_end,false,locale)} {ui("(end exclusive)")} · {ui("Updated")} {date(digest.generated_at,true,locale)}</p></section>{locale==='bn' && <p class="translation-note">{ui("Edition notes remain in English; stories use available Bangla translations.")}</p>}<section class="feed-section"><div class="feed-heading"><h2>{ui("Top five developments")}</h2></div><div class="story-grid">{stories.slice(0,5).map(story => <StoryCard story={story}/>)}</div></section><section class="prose"><h2>{ui("What changed")}</h2><ul>{digest.what_changed.map(change => <li lang="en">{change}</li>)}</ul>{!digest.what_changed.length && <p>{ui("No newly collected changes were recorded during this period.")}</p>}<h2>{ui("Model & tool highlight")}</h2>{release ? <p lang={readingRelease!.language}><a href={href(`/story/${release.slug}/`)}>{readingRelease!.headline}</a> {readingRelease!.why_it_matters}</p> : <p>{ui("No model or developer-tool update was collected for this edition.")}</p>}<h2>{ui("Free opportunity")}</h2>{opportunity ? <p><ExternalLink href={opportunity.official_source_url}>{opportunity.title}</ExternalLink> {opportunity.value_text}. {ui("Current status:")} {ui(opportunity.status)}. <a href={href("/freebies/")}>{ui("Review eligibility and terms")}</a>.</p> : <p>{ui("No source-backed offer was linked to this edition.")}</p>}<h2>{ui("Watch next")}</h2>{digest.watch_next.length ? <ul>{digest.watch_next.map(event => <li lang="en">{event.text} {event.source_ids.map(id => <ExternalLink href={data.sources[id]!.original_url}>{data.sources[id]!.publisher}</ExternalLink>)}</li>)}</ul> : <p>{ui("No source-confirmed future event was supplied for this edition.")}</p>}<h2>{ui("By category")}</h2>{Object.entries(digest.top_by_category).map(([category,ids]) => <div><h3>{ui(data.categories[category as keyof typeof data.categories].label)}</h3><ul>{ids.map(id => <li><a href={href(`/story/${storyById.get(id)!.slug}/`)}>{localizedStory(storyById.get(id)!,locale).headline}</a></li>)}</ul></div>)}<h2>{ui("Every development in this edition")}</h2><ol>{readingStories.map(story => <li lang={story.language}><a href={href(`/story/${story.slug}/`)}>{story.headline}</a></li>)}</ol></section></Layout>

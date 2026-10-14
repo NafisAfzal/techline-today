@@ -1,0 +1,60 @@
+name: pull-request-ci
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+env:
+  PIPELINE_AI_ENABLED: 'false'
+  SITE_NOINDEX: 'true'
+  WRANGLER_SEND_METRICS: 'false'
+  ASTRO_TELEMETRY_DISABLED: '1'
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+      - run: npm install --global pnpm@10.33.1
+      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7 (peeled commit)
+        with:
+          version: '0.12.22'
+          python-version: '3.13'
+      - run: pnpm install --frozen-lockfile
+      - run: uv sync --frozen
+      - run: uv run ruff check pipeline
+      - run: uv run pytest
+      - run: uv run python -m pipeline --mode fixture
+      - run: uv run python -m pipeline --validate
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm audit:dependencies
+      - run: pnpm verify:docs
+      - run: pnpm verify:repository
+      - run: pnpm build
+      - run: pnpm security
+      - run: pnpm exec playwright install --with-deps chromium firefox webkit
+      - run: pnpm test:e2e
+      - run: pnpm verify:site
+      - run: pnpm performance
+      - run: pnpm deploy:check
+      - name: Dependency scan (Python)
+        run: uv export --frozen --no-hashes --format requirements-txt --output-file /tmp/pipeline-requirements.txt && uvx pip-audit==2.10.1 -r /tmp/pipeline-requirements.txt
+      - name: Upload failing browser traces
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: browser-traces
+          path: test-results/
+          retention-days: 3

@@ -1,0 +1,33 @@
+---
+import { localeFor, t, localizedPath, localizedStory, contentLanguage } from '../lib/i18n';
+import type { Story } from '../../../../packages/contracts';
+import { data, original, evidenceLabels, age } from '../lib/data';
+import { previewLine, readingSummary } from '../lib/editorial';
+import ExternalLink from './ExternalLink.astro';
+import Headline from './Headline.astro';
+interface Props { story: Story; variant?: 'lead' | 'feed' }
+const {story: canonicalStory, variant = 'feed'} = Astro.props;
+const source = original(canonicalStory);
+const Heading = variant === 'lead' ? 'h2' : 'h3';
+const locale = localeFor(Astro.url.pathname);
+const ui = (key: string) => t(locale, key);
+const href = (path: string) => localizedPath(path, locale);
+const story = localizedStory(canonicalStory, locale);
+const lang = contentLanguage(canonicalStory, locale);
+const leadPoints = readingSummary(story).filter(text => text !== previewLine(story)).slice(0, 2);
+// Generic extraction labels do not explain a measurement in a short preview.
+// Preserve the canonical values and complete detail evidence unchanged.
+const previewNumbers = story.key_numbers.filter((_, index) => canonicalStory.key_numbers[index]?.label !== 'Source-reported');
+---
+<article class={`story-card ${variant === 'lead' ? 'lead-card' : ''}`} data-variant={variant} data-story={story.id} data-category={story.category} data-published={story.published_at} data-importance={story.importance_score_internal} data-pagefind-ignore>
+  <div class="story-meta"><a class="category-tag" href={href(`/category/${story.category}/`)}>{ui(data.categories[story.category].label)}</a><a href={href("/about/#evidence")} class={`evidence ${story.evidence_state}`}>{ui(evidenceLabels[story.evidence_state])}</a><time datetime={story.published_at}>{age(story.published_at, locale)}</time></div>
+  <Heading lang={lang}><a href={href(`/story/${story.slug}/`)} data-astro-prefetch><Headline text={story.headline}/></a></Heading>
+  <p class="story-summary" lang={lang}>{previewLine(story)}</p>
+  {variant === 'lead' && source.excerpt && leadPoints.length > 0 && <ul class="lead-points" lang={lang}>{leadPoints.map(text => <li>{text}</li>)}</ul>}
+  {variant === 'lead' && source.excerpt && <p class="why"><strong>{ui(story.ai_metadata.generation_mode === 'extractive' ? "Before you act" : "Why it matters")}</strong> <span lang={lang}>{story.why_it_matters}</span></p>}
+  {previewNumbers.length > 0 && <div class="chips" lang={lang}>{previewNumbers.slice(0,variant==='lead'?1:2).map(number => <span title={number.context}><strong>{number.value}</strong><span class="chip-label"> {number.label}</span></span>)}</div>}
+  {locale === 'bn' && !canonicalStory.translations?.bn && <p class="translation-note">{ui('Bangla unavailable for this story. Showing English.')}</p>}
+  <div class="card-footer"><div class="card-links"><a class="control-link" href={href(`/story/${story.slug}/`)}>{ui("Details")}<span aria-hidden="true">→</span></a><ExternalLink href={source.original_url} label={`${ui("Original source")}: ${story.headline}`}>{ui("Original source")}</ExternalLink></div><div class="story-actions"><button type="button" data-bookmark={story.id} aria-pressed="false" data-story-title={story.headline} aria-label={`${ui("Save story")}: ${story.headline}`}>{ui("Save")}</button></div></div>
+  <p class="source-signal"><span lang="en">{source.publisher}</span> · {story.source_ids.length} {ui(story.source_ids.length===1?'source':'sources')}{!source.excerpt && ` · ${ui('Headline evidence only')}`}</p>
+  <p class="storage-status action-feedback" data-action-slot role="status" aria-atomic="true"></p>
+</article>

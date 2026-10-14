@@ -1,0 +1,9 @@
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.zip binary
+*.wasm binary
+# Unified diff context lines intentionally prefix blank lines with a space.
+*.patch whitespace=-blank-at-eol

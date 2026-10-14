@@ -1,0 +1,34 @@
+# Free inference assessment — 2026-10-14
+
+**Recommendation: launch with deterministic extraction.** No inference account was connected, no key was requested, no billing was enabled and no provider call was made. Existing adapters remain useful for future controlled experiments. A coding-agent login or developer subscription is not evidence of reusable production API entitlement.
+
+## Verified options and limits
+
+| Option | Official evidence | Decision |
+|---|---|---|
+| Gemini Developer API | [Pricing](https://ai.google.dev/gemini-api/docs/pricing) currently lists `gemini-3.8-flash` standard input/output as free-tier eligible; [rate limits](https://ai.google.dev/gemini-api/docs/rate-limits) direct users to active project/model limits in AI Studio. No universal numeric RPM/TPM/RPD entitlement is established for this owner. Bangladesh appears in [available regions](https://ai.google.dev/gemini-api/docs/available-regions). | Candidate for an owner-approved offline quality experiment, not this public news launch. Do not attach billing or select a paid-only model. |
+| OpenRouter explicit `:free` catalog entry | [Free variants](https://openrouter.ai/docs/guides/routing/model-variants/free), [limits](https://openrouter.ai/docs/api_reference/limits), [official constants](https://github.com/OpenRouterTeam/docs/blob/main/snippets/exports/constants.mdx) and [pricing](https://openrouter.ai/pricing) currently specify **20 requests/minute and 50 requests/day for a no-purchase account**. The 1,000/day tier requires a $10 credit purchase and is outside authorization. Account counters are available from `GET /api/v1/key`; actual model availability/context/output limits vary. | Secondary experiment only after selecting one exact eligible model/provider and reviewing its license/data policy. Do not buy credits to raise limits or silently use paid routing. |
+| Workers AI / other adapters | Existing Cloudflare, Groq and generic adapters are present; no account/model entitlement was inspected. | No blanket free-production recommendation. Leave models/keys unset and recheck exact official terms when an actual use case is approved. |
+
+Gemini's [terms](https://ai.google.dev/gemini-api/terms) are material to this globally accessible reader: unpaid inputs/outputs may be used to improve products and may receive human review; age, API-client audience and region requirements apply, including paid-services provisions for API clients offered in specified European jurisdictions. Whether a backend-only editorial workflow fits those provisions needs provider/qualified review. We do not assume a general-audience free Gemini-powered portal is permitted. Neither generated-output ownership language nor structured JSON proves factual accuracy or source-submission rights.
+
+OpenRouter [privacy](https://openrouter.ai/privacy/) and [provider selection](https://openrouter.ai/docs/guides/routing/provider-selection) distinguish the router from downstream providers. Retention/training and commercial-use conditions are model/provider-specific; a universal zero-retention claim is unsupported. Requests should require supported parameters, disable unauthorized fallback and use `data_collection: deny` where available; filtering can leave no eligible free endpoint. That means extraction fallback, not a privacy-policy relaxation or paid route. Availability from the owner's region and actual account quotas remain unverified.
+
+No native Bangla quality comparison or credentialed structured-output test occurred. Gemini supports a [JSON Schema subset](https://ai.google.dev/gemini-api/docs/structured-output); the current adapter requests JSON and validates locally, rather than claiming full provider-side schema enforcement. OpenRouter compatibility depends on the selected endpoint. Model context/output caps must be read for that exact catalog entry before experimentation.
+
+## Small, useful enrichment design
+
+| Task | Eligible input and result | Fallback |
+|---|---|---|
+| Three-bullet summary / significance | New or changed, prose-backed, rights-approved evidence; bounded source IDs and excerpts; structured summary with mapped claims and explicit uncertainty | Current extractive summary and Before you act guidance |
+| Category disambiguation | Ambiguous title plus adequate evidence; choose from existing category IDs with a supported reason | Deterministic title-first classifier |
+| Bangla translation | Validated canonical story, approved submission rights and native-review candidate; preserve claims, names, numeric tokens, dates and uncertainty | Explicit English fallback |
+| Digest preparation | Validated story IDs/facts only, bounded selected edition | Existing deterministic digest |
+
+Retain the current AIRouter; no new provider SDK or pipeline rewrite is needed. Cache summaries by evidence, actual prompt/schema/policy, locale and configured model IDs. This pass adds configured model IDs to summary cache identity; translation has its own canonical/prompt cache. Model aliases can change upstream, so record the returned concrete version when available and re-review behavior before treating a new version as interchangeable.
+
+Proposed experiment ceiling, **not an implemented production quota**: at most five new eligible stories/run, one summary plus one translation each, four runs/day = 40 attempted calls/day before retries. Reserve a shared 40-call daily allowance including retries, no automatic provider rotation, conservative token caps and no free-credit purchases. With 150+ stories, complete backfill can take days and native review takes additional time. Process priority and content hashes, not the full corpus each refresh.
+
+The existing implementation has per-provider call reservations, output caps, timeout/retry/circuit-breaker checks, numeric/citation validation and extraction fallback. It does **not** yet implement a verified shared monetary ceiling, durable cross-run quota accounting or an exact free-model entitlement gate. `config/source-rights.json` does not authorize submitting even the permitted publication sources to an AI service (`ai_submission_allowed=false`). The runner now enforces that source-submission policy for summary and translation requests, including local live runs. Production release gates additionally reject inference. These controls must be implemented and independently reviewed before enabling automated AI or Bangla publication; this document does not activate them.
+
+Before a future experiment: record exact provider/model/license/region/data policy, verify no billing account or paid fallback, check actual quota privately, approve the source-submission basis, use mocked failure cases first, then evaluate a small authorized corpus for factual fidelity and natural Bangla with a native editor. Record rejected outputs and cost/quota provenance without retaining keys or sensitive prompt data in public caches.

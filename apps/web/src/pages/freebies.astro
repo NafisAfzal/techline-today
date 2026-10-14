@@ -1,0 +1,16 @@
+---
+import { localeFor, t, localizedPath } from '../lib/i18n';
+import Layout from '../layouts/Layout.astro';
+import ExternalLink from '../components/ExternalLink.astro';
+import TrackerValue from '../components/TrackerValue.astro';
+import { data, date } from '../lib/data';
+const active = data.offers.filter(offer => offer.status !== 'expired');
+const expired = data.offers.filter(offer => offer.status === 'expired');
+const locale = localeFor(Astro.url.pathname);
+const ui = (key: string) => t(locale, key);
+const href = (path: string) => localizedPath(path, locale);
+---
+<Layout title={ui("Free credit tracker")}><section class="page-intro"><h1>{ui("Free credit, with the fine print.")}</h1><p>{ui("Developer APIs, student credits and trials. Eligibility, billing requirements and expiry stay visible. Unknown terms remain unknown.")}</p></section>
+  {!active.length && <div class="empty-state"><h2>{ui("No verified offers yet.")}</h2><p>{ui("Offers appear after their official terms have been reviewed. We never infer a free tier from a headline.")}</p><a href={href("/category/freebies/")}>{ui("Browse developer opportunity reports →")}</a></div>}
+  {[{title:'Available & under review', offers:active},{title:'Expired offer archive',offers:expired}].map(group => group.offers.length > 0 && <section aria-label={ui(group.title)}><h2 class="archive-heading">{ui(group.title)}</h2>{locale === 'bn' && <p class="translation-note">{ui('Tracker details are shown in their verified English wording.')}</p>}<div class="tracker-grid">{group.offers.map(offer => <article class="tracker-card"><div class="tracker-heading"><span class={`badge ${offer.status}`}>{ui(offer.status)}</span><p class="eyebrow">{offer.provider}</p><h3 class="tracker-title"><span lang="en">{offer.title}</span></h3></div><div class="tracker-body"><dl><dt>{ui("Allowance")}</dt><dd><span lang="en">{offer.value_text}</span></dd><dt>{ui("Eligibility")}</dt><dd><TrackerValue value={offer.eligibility.join('; ')}/></dd><dt>{ui("Regions")}</dt><dd><TrackerValue value={offer.regions.join('; ')}/></dd><dt>{ui("Card required")}</dt><dd><TrackerValue value={offer.card_required===null?null:offer.card_required?'Yes':'No'} missing={ui("Not supplied; check official terms")}/></dd><dt>{ui("Starts")}</dt><dd><TrackerValue value={offer.starts_at?date(offer.starts_at,true):null}/></dd><dt>{ui("Expiry")}</dt><dd><TrackerValue value={offer.expires_at?date(offer.expires_at,true):null} missing={ui("Not supplied; recheck terms")}/></dd><dt>{ui("Last verified")}</dt><dd>{date(offer.last_verified_at,true,locale)}</dd></dl><h4>{ui("Claim steps")}</h4><ol>{offer.claim_steps.map(step => <li><span lang="en">{step}</span></li>)}</ol><p><span lang="en">{offer.integration_notes}</span></p><ExternalLink href={offer.official_source_url}>{ui("Official offer terms")}</ExternalLink></div></article>)}</div></section>)}
+</Layout>
