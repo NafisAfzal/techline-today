@@ -1,15 +1,14 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import crypto from 'node:crypto';
+import { inlineCspHashes } from './csp.mjs';
 const root = path.resolve('apps/web/dist');
 function files(directory) { return fs.readdirSync(directory,{withFileTypes:true}).flatMap(entry => entry.isDirectory() ? files(path.join(directory,entry.name)) : [path.join(directory,entry.name)]); }
 const scripts = new Set(); const styles = new Set();
 for (const file of files(root).filter(file => file.endsWith('.html'))) {
   const html = fs.readFileSync(file,'utf8');
-  for (const match of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/g)) {
-    if (!/\bsrc=/.test(match[1]) && match[2]) scripts.add(`'sha256-${crypto.createHash('sha256').update(match[2]).digest('base64')}'`);
-  }
-  for (const match of html.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>/g)) styles.add(`'sha256-${crypto.createHash('sha256').update(match[1]).digest('base64')}'`);
+  const hashes = inlineCspHashes(html);
+  for (const hash of hashes.scripts) scripts.add(hash);
+  for (const hash of hashes.styles) styles.add(hash);
 }
 const analytics = Boolean(process.env.PUBLIC_CLOUDFLARE_WEB_ANALYTICS_TOKEN);
 const csp = `default-src 'self'; script-src 'self' 'wasm-unsafe-eval' ${[...scripts].join(' ')}${analytics ? ' https://static.cloudflareinsights.com' : ''}; style-src 'self' ${[...styles].join(' ')}; img-src 'self' data:; font-src 'self'; connect-src 'self'${analytics ? ' https://cloudflareinsights.com' : ''}; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests`;

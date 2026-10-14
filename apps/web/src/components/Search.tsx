@@ -1,5 +1,6 @@
 import { t, localizedPath, type Locale } from '../lib/i18n';
 import { useEffect, useRef, useState } from 'react';
+import { searchExcerptText } from '../lib/search-excerpt';
 type Result = { url: string; title: string; excerpt: string; searchable?:string; language?:string };
 type Pagefind = { search: (query: string) => Promise<{results: {data: () => Promise<{url:string;meta:{title:string;description?:string;language?:string};excerpt:string}>}[]}> };
 export default function Search({locale='en'}: {locale?:Locale}) {
@@ -51,7 +52,7 @@ export default function Search({locale='en'}: {locale?:Locale}) {
           const pagefind = await import(/* @vite-ignore */ moduleUrl) as Pagefind;
           if (cancelled) return;
           const search = await pagefind.search(query);
-          found = await Promise.all(search.results.slice(0, 8).map(async result => { const item = await result.data(); return {url:item.url, title:item.meta.title, language:item.meta.language, excerpt:(item.meta.description || item.excerpt).replace(/<[^>]+>/g, '')}; }));
+          found = await Promise.all(search.results.slice(0, 8).map(async result => { const item = await result.data(); return {url:item.url, title:item.meta.title, language:item.meta.language, excerpt:item.meta.description || searchExcerptText(item.excerpt)}; }));
         } catch {
           if (cancelled) return;
           fallbackIndex.current ??= fetch(locale==='bn'?'/data/search-bn.json':'/data/search.json').then(async response => {

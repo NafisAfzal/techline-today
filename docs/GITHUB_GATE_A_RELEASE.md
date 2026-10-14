@@ -1,6 +1,6 @@
 # GitHub Gate A release
 
-Release verification in progress on 2026-10-14. The owner authorized public GitHub publication to **NafisAfzal/techline-today**, reviewed corrective commits and safe hosted CI. Cloudflare publication, recurring ingestion, paid inference and backup uploads remain unauthorized.
+Release verification began on 2026-10-14 and continues on 2026-10-15 (BDT). The owner authorized public GitHub publication to **NafisAfzal/techline-today**, reviewed corrective commits and safe hosted CI. Cloudflare publication, recurring ingestion, paid inference and backup uploads remain unauthorized.
 
 ## Independent recovery
 
@@ -18,7 +18,23 @@ The Gate A guard now requires content review and independent restoration. The in
 
 ## Verification status
 
-All local engineering gates passed. Public repository creation, published revision, hosted CI and GitHub rendering are still pending.
+The initial local gates passed and the reviewed source was published at [NafisAfzal/techline-today](https://github.com/NafisAfzal/techline-today), public, default branch `main`. Initial release commit: `79314797679e52769cbe4e209d904bd611f2ad84`. The first push occurred with Actions disabled. GitHub recognizes MIT; anonymous browser checks confirmed README text, both inline screenshots, table, code blocks and the rendered Mermaid SVG. The six gallery images retain their reviewed hashes and attribution.
+
+[Initial hosted CI](https://github.com/NafisAfzal/techline-today/actions/runs/38611351828) passed every check, including 144 Python tests, 97 Vitest tests, 130 fixture browser tests, lint/types/build/docs/security/dependency scans, Lighthouse and Wrangler dry-run. [Initial CodeQL](https://github.com/NafisAfzal/techline-today/actions/runs/38611357825) completed for both languages but raised three high-severity pattern warnings. A green analysis job alone did not close the publication audit.
+
+## CodeQL corrective review
+
+| Finding | Review and correction |
+|---|---|
+| `js/bad-tag-filter`, postbuild | The regex extracted CSP hashes from generated HTML rather than sanitizing input. Replace it with standards-based HTML parsing that handles case, quoted attributes and normalized line endings. |
+| `js/incomplete-multi-character-sanitization`, search | React already rendered excerpts as escaped text. Replace regex stripping with inert-template text extraction for Pagefind highlights; retain plain descriptions literally. Never mount the parsed fragment. |
+| `js/incomplete-sanitization`, local preview | A one-shot replacement could retain duplicate upgrade directives. Parse directives and remove every actual upgrade directive while preserving other policy terms. |
+
+Six new unit regressions and two browser cases passed locally. The browser cases verify escaped output, no script/style insertion or execution, no resource fetching from the inert fragment, and preservation of literal metadata. Lint and Astro's 58-file typecheck passed; Vitest now has **103 passing tests**. The full fixture suite passed **132 tests**, and the restored live edition passed all **18 mobile tests**, rights/site/security checks and another Wrangler dry-run. The corrected live build contains 307 assets, 5,190,192 bytes, initial JS 96,574 bytes gzip and unchanged CSS 39,107 bytes / 8,911 bytes gzip. All existing budgets remain intact.
+
+The pinned parser stays in development/local-preview tooling, with no new browser dependency. Visual markup, styles and approved screenshots are preserved. The corrected prospective source tree contains **280 files**; private recovery/data artifacts remain excluded. Hosted corrective CI and CodeQL rescanning are pending, so Gate A is not yet complete. No alert was dismissed and no security check was disabled to obtain a passing result.
+
+## Initial local verification
 
 | Local gate | Result |
 |---|---|
