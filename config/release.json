@@ -15,7 +15,7 @@
   "public_files_reviewed": true,
   "preview_approved": false,
   "preview_verified": false,
-  "hosted_ci_verified": false,
+  "hosted_ci_verified": true,
   "free_plan_verified": false,
   "zero_spend_verified": false,
   "preview_site_url": null,
