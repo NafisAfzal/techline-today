@@ -47,9 +47,11 @@ test('evidence links behave consistently in brief, cards, detail and saved view'
 test('search handles debounce, stale queries, clearing and localized no-results',async({page})=>{
   await page.route('**/pagefind/**',route=>route.abort());
   let indexRequests=0;
+  let releaseIndex!:()=>void;
+  const heldIndex=new Promise<void>(resolve=>{releaseIndex=resolve;});
   await page.route('**/data/search-bn.json',async route=>{
     indexRequests++;
-    await new Promise(resolve=>setTimeout(resolve,250));
+    await heldIndex;
     await route.continue();
   });
   await page.goto('/bn/');await page.locator('.search-trigger').click();
@@ -57,6 +59,7 @@ test('search handles debounce, stale queries, clearing and localized no-results'
   await input.fill('Meridian');
   await expect.poll(()=>indexRequests).toBe(1);
   await input.fill('zzzz-no-match');
+  releaseIndex();
   await expect(page.locator('.search-status')).toHaveText('কোনো ফল পাওয়া যায়নি। অন্য শব্দ দিয়ে খুঁজুন।');
   await expect(page.locator('.search-results a')).toHaveCount(0);
   expect(indexRequests).toBe(1);
@@ -115,12 +118,17 @@ test('saved downloads are bounded and reused when read state changes',async({pag
   const ids=snapshot.stories.map((story:{id:string})=>story.id);
   await page.addInitScript(ids=>localStorage.setItem('ti:v1:bookmarks',JSON.stringify(ids)),ids);
   let active=0,maxActive=0,downloads=0;
+  let releaseBatch!:()=>void;
+  const heldBatch=new Promise<void>(resolve=>{releaseBatch=resolve;});
   await page.route('**/data/stories/*.json',async route=>{
     active++;downloads++;maxActive=Math.max(maxActive,active);
-    await new Promise(resolve=>setTimeout(resolve,100));
+    if(downloads<=8) await heldBatch;
     await route.continue();active--;
   });
-  await page.goto('/saved/');await expect(page.locator('[data-story]')).toHaveCount(ids.length);
+  await page.goto('/saved/');
+  await expect.poll(()=>active).toBe(Math.min(8,ids.length));
+  releaseBatch();
+  await expect(page.locator('[data-story]')).toHaveCount(ids.length);
   expect(maxActive).toBeGreaterThan(1);expect(maxActive).toBeLessThanOrEqual(8);
   expect(downloads).toBe(ids.length);
   await page.locator('[data-read]').first().click();await expect(page.locator('[data-read]').first()).toHaveAttribute('aria-pressed','true');

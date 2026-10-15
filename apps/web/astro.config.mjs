@@ -3,8 +3,8 @@ import react from '@astrojs/react';
 import sitemap from '@astrojs/sitemap';
 import tailwind from '@tailwindcss/vite';
 import { siteUrl } from '../../scripts/site-url.mjs';
-import fs from 'node:fs';
-const snapshot = JSON.parse(fs.readFileSync(new URL('../../content/generated/snapshot.json', import.meta.url), 'utf8'));
+import { readSnapshot } from '../../scripts/read-snapshot.mjs';
+const snapshot = readSnapshot(new URL('../../content/generated/snapshot.json', import.meta.url));
 const translated = new Set(snapshot.stories.filter(story=>story.translations?.bn).map(story=>story.slug));
 function publicPage(page) {
   const pathname = new URL(page).pathname;

@@ -1,0 +1,12 @@
+---
+import type { Story } from '../../../../packages/contracts';
+import { localeFor, t } from '../lib/i18n';
+import { data } from '../lib/data';
+import { preprint } from '../lib/trust';
+interface Props { story: Story }
+const { story } = Astro.props;
+const locale = localeFor(Astro.url.pathname);
+const ui = (key: string) => t(locale, key);
+---
+{preprint(story, data.sources) && <span class="content-indicator" title={ui('arXiv preprint: peer review has not been established from the collected metadata.')}>{ui('Preprint')}</span>}
+{locale === 'bn' && !story.translations?.bn && <span class="content-indicator" data-language-fallback aria-label={ui('Bangla unavailable for this story. Showing English.')}>{ui('English content')}</span>}

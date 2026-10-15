@@ -3,12 +3,17 @@ import fs from 'node:fs';
 import { spawn } from 'node:child_process';
 import { chromium } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+import { periodStart } from '../apps/web/src/lib/filters.ts';
 
 const snapshot = JSON.parse(fs.readFileSync('content/generated/snapshot.json', 'utf8'));
 assert.equal(snapshot.mode, 'live', 'Run live ingestion and build first');
 assert(snapshot.stories.length > 0);
 assert(snapshot.stories.every(story => !story.is_demo));
 const story = snapshot.stories[0];
+const applicability = {
+  pagination: snapshot.stories.length > 24 ? {status:'exercised'} : {status:'not-applicable',reason:'Edition has at most 24 stories; pagination cannot be exercised.'},
+  offers: snapshot.offers.length ? {status:'exercised'} : {status:'not-applicable',reason:'No offers in this edition; empty state is checked instead.'},
+};
 const detail = `/story/${story.slug}/`;
 const base = 'http://127.0.0.1:4323';
 const server = spawn(process.execPath, ['scripts/preview.mjs'], {env: {...process.env, PORT: '4323'}, stdio: 'ignore'});
@@ -48,8 +53,10 @@ try {
     assert.equal(await page.locator('.story-grid [data-story]').count(), Math.min(120, snapshot.stories.length));
     await page.reload();
     await page.getByRole('button', {name:'Today', exact:true}).click();
-    assert.equal(await page.locator('.story-grid [data-story]').count(), Math.min(120, snapshot.stories.length));
+    const start = periodStart('today', new Date().toISOString());
+    assert.equal(await page.locator('.story-grid [data-story]:visible').count(), snapshot.stories.slice(0,120).filter(item => Date.parse(item.published_at) >= start).length);
   }
+  if (snapshot.stories.length <= 24) assert.equal(await page.locator('.story-grid [data-story]').count(), snapshot.stories.length);
   await page.goto(base + detail);
   assert.equal(await page.locator('h1').textContent(), story.headline);
   const original = page.getByRole('link', {name: 'Read the original source'});
@@ -88,6 +95,10 @@ try {
     const link = page.locator('a').filter({hasText: 'Official offer terms'});
     assert((await link.evaluateAll(elements => elements.map(element => element.getAttribute('href')))).includes(offer.official_source_url));
   }
+  if (!snapshot.offers.length) {
+    await page.goto(base + '/freebies/');
+    assert((await page.locator('.empty-state').textContent()).includes('No verified offers yet.'));
+  }
   for (const theme of ['light', 'dark']) {
     for (const route of ['/', detail, '/freebies/', '/models/']) {
       await page.goto(base + route);
@@ -100,14 +111,15 @@ try {
     assert.equal((await fetch(base + route)).status, 200);
   }
   assert.deepEqual(errors, []);
-  fs.mkdirSync('.cache/audit', {recursive:true});
+  const artifacts = process.env.TECHLINE_ARTIFACT_DIR || '.cache/audit';
+  fs.mkdirSync(artifacts, {recursive:true});
   await page.goto(base);
   await page.evaluate(() => {document.documentElement.dataset.theme = 'light';});
   await page.setViewportSize({width:1280,height:960});
-  await page.screenshot({path:'.cache/audit/desktop.png'});
+  await page.screenshot({path:`${artifacts}/desktop.png`});
   await page.setViewportSize({width:390,height:844});
-  await page.screenshot({path:'.cache/audit/mobile.png'});
-  console.log(JSON.stringify({status: 'passed', mode: snapshot.mode, stories: snapshot.stories.length, offers: snapshot.offers.length, widths: [320,390,834,1280,1366,1440], accessibility: 'warm and dark', consoleErrors: errors.length}, null, 2));
+  await page.screenshot({path:`${artifacts}/mobile.png`});
+  console.log(JSON.stringify({status: 'passed', mode: snapshot.mode, stories: snapshot.stories.length, offers: snapshot.offers.length, applicability, widths: [320,390,834,1280,1366,1440], accessibility: 'warm and dark', consoleErrors: errors.length}, null, 2));
 } finally {
   await browser?.close();
   server.kill();

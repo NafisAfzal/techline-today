@@ -29,6 +29,7 @@ test('five authored Bangla examples preserve numbers, technical names and source
     await expect(page.locator('link[hreflang="en"]')).toHaveAttribute('href',new RegExp(`/story/${story.slug}/$`));
     await expect(page.locator('link[hreflang="bn"]')).toHaveAttribute('href',new RegExp(`/bn/story/${story.slug}/$`));
     await expect(page.locator('.translation-note')).toContainText('মূল প্রমাণ');
+    await expect(page.locator('[data-language-fallback]')).toHaveCount(0);
     const citation=page.locator('.citation').first();await citation.click();
     await expect(page.locator((await citation.getAttribute('href'))!)).toBeVisible();
   }

@@ -1,0 +1,31 @@
+---
+import { data, date } from '../lib/data';
+import { localeFor, t, localizedPath } from '../lib/i18n';
+import { coverage } from '../../../../scripts/coverage.mjs';
+const locale = localeFor(Astro.url.pathname);
+const ui = (key: string) => t(locale, key);
+const state = coverage(data);
+const format = (count: number) => new Intl.NumberFormat(locale).format(count);
+---
+<aside class="coverage-status container" aria-label={ui('Coverage and freshness')} data-coverage data-collected={data.last_successful_fetch_at}>
+  <p>{ui('Limited source coverage. Publication dates and collection times are separate.')} <a href={localizedPath('/about/#coverage', locale)}>{ui('Coverage policy')}</a></p>
+  <p class="small" data-collection-stale hidden={!state.collectionStale}>{ui('Collection is overdue. This is a retained edition; check original sources for updates.')}</p>
+  <details><summary class="small">{ui('Coverage and freshness')}</summary>
+  <p class="small">{ui('Research & technical analysis')}: {format(state.counts.research)} · {ui('News & official announcements')}: {format(state.counts['current-news'])} · {ui('Reference material')}: {format(state.counts.reference)}. {ui('Last successful collection')}: <time datetime={data.last_successful_fetch_at}>{date(data.last_successful_fetch_at, true, locale)} BDT</time>.</p>
+  <p class="small">{ui('Outside freshness window')}: {ui('Research & technical analysis')} {format(state.stale.research)} · {ui('News & official announcements')} {format(state.stale['current-news'])} · {ui('Reference material')} {format(state.stale.reference)}.</p>
+  <p class="small">{ui('Freshness assessed at')}: <time datetime={state.asOf}>{date(state.asOf, true, locale)} BDT</time>. {ui('A successful collection may include unchanged sources or failures in other feeds.')}</p>
+  </details>
+</aside>
+<script>
+  for (const notice of document.querySelectorAll<HTMLElement>('[data-coverage]')) {
+    const update = () => {
+      const collected = Date.parse(notice.dataset.collected || '');
+      const line = notice.querySelector<HTMLElement>('[data-collection-stale]');
+      if (line) line.hidden = Number.isFinite(collected) && Date.now() - collected <= 24 * 3600000;
+    };
+    update();
+    window.addEventListener('pageshow', update);
+    document.addEventListener('visibilitychange', update);
+    window.setInterval(update, 60000);
+  }
+</script>

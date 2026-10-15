@@ -5,7 +5,10 @@ import StoryCard from '../components/StoryCard.astro';
 import Headline from '../components/Headline.astro';
 import NewsFocus from '../components/NewsFocus.astro';
 import TopicIcon from '../components/TopicIcon.astro';
-import { data, categoryEntries, evidenceLabels, age, original } from '../lib/data';
+import ContentIndicators from '../components/ContentIndicators.astro';
+import { data, categoryEntries, evidenceLabels, date, original } from '../lib/data';
+import { trustExplanation } from '../lib/trust';
+import { coverage } from '../../../../scripts/coverage.mjs';
 import { prominentStories } from '../lib/editorial';
 const canonicalStories = prominentStories(data.stories, data.sources);
 const lead = canonicalStories[0];
@@ -14,16 +17,18 @@ const furtherStories = canonicalStories.slice(5,8);
 const locale = localeFor(Astro.url.pathname);
 const ui = (key: string) => t(locale, key);
 const href = (path: string) => localizedPath(path, locale);
+const current = coverage(data);
 const briefing = canonicalBriefing.map(story => localizedStory(story,locale));
 const categoryDescriptions:Record<string,string>={ai:'Models, tools and AI releases',research:'Papers, findings and evaluation','dev-apis':'Developer tools and platforms',freebies:'Credit, trials and free access','jobs-skills':'Learning and career opportunities',chips:'Processors and computing hardware',devices:'Consumer technology and devices',security:'Vulnerabilities, patches and privacy','open-source':'Projects, releases and communities'};
 ---
-<Layout title={ui("Latest technology news")}>
+<Layout title={ui("Technology news & research")}>
   <NewsFocus stories={canonicalStories}/>
-  <section class="intro"><h1>{ui("Latest technology news")}</h1><p class="intro-copy">{ui("Source-backed technology updates.")}</p></section>
+  <section class="intro"><h1>{ui("Technology news & research")}</h1><p class="intro-copy">{ui(current.currentNews.length ? 'Source-backed technology updates.' : 'Research and reference. No current news.')}</p></section>
   <div class="edition-grid">
   {lead ? <section aria-label={ui("Lead story")} class="lead-section"><StoryCard story={lead} variant="lead"/></section> : <section class="empty-state"><h2>{ui("The next edition is on its way.")}</h2><p>{ui("Validated updates will appear after the next successful collection.")}</p><a class="control-link" href={href("/digests/")}>{ui("Browse previous digests →")}</a></section>}
-  {briefing.length > 0 && <section class="briefing" id="briefing" aria-labelledby="briefing-title"><div class="section-top"><h2 id="briefing-title">{ui("Also important now")}</h2><a class="control-link" href={href('/all/')}>{ui('All stories')} <span aria-hidden="true">→</span></a></div>{locale==='bn' && canonicalBriefing.some(story=>!story.translations?.bn) && <p class="translation-note">{ui("Some stories are shown in English until a Bangla translation is available.")}</p>}<ol>{briefing.map(story => <li data-variant="briefing"><div><div class="briefing-meta"><span>{ui(data.categories[story.category].label)}</span><a href={href('/about/#evidence')} class={`evidence ${story.evidence_state}`}>{ui(evidenceLabels[story.evidence_state])}</a><time datetime={story.published_at}>{age(story.published_at, locale)}</time></div><h3 lang={story.language}><a href={href(`/story/${story.slug}/`)}><Headline text={story.headline}/></a></h3>{!original(story).excerpt && <p>{ui("Headline evidence only")}</p>}</div></li>)}</ol></section>}
+  {briefing.length > 0 && <section class="briefing" id="briefing" aria-labelledby="briefing-title"><div class="section-top"><h2 id="briefing-title">{ui("In this edition")}</h2><a class="control-link" href={href('/all/')}>{ui('All stories')} <span aria-hidden="true">→</span></a></div><ol>{briefing.map((story,index) => <li data-variant="briefing"><div><div class="briefing-meta"><span>{ui(data.categories[story.category].label)}</span><a href={href('/about/#evidence')} title={ui(trustExplanation(canonicalBriefing[index]!, data.sources))} class={`evidence ${story.evidence_state}`}>{ui(evidenceLabels[story.evidence_state])}</a><ContentIndicators story={canonicalBriefing[index]!}/><time datetime={story.published_at}>{date(story.published_at, false, locale)}</time></div><h3 lang={story.language}><a href={href(`/story/${story.slug}/`)}><Headline text={story.headline}/></a></h3>{!original(story).excerpt && <p>{ui("Headline evidence only")}</p>}</div></li>)}</ol></section>}
   </div>
+  <section class="news-coverage" aria-labelledby="news-title"><h2 id="news-title">{ui('News & official announcements')}</h2><p>{ui(current.currentNews.length ? 'Dated news is available in this edition. Check publication dates and coverage status.' : 'No current technology news within the freshness window. The retained research and reference material below is not breaking news.')}</p><div class="card-links"><a class="control-link" href={href('/news/')}>{ui('Browse news')}</a><a class="control-link" href={href('/category/research/')}>{ui('Research & technical analysis')}</a></div></section>
   <section class="category-index home-section" aria-labelledby="categories-title">
     <div class="section-top"><div><h2 id="categories-title">{ui("Explore by category")}</h2><p>{ui('Choose a topic to browse its stories.')}</p></div></div>
     <nav class="category-index-grid" aria-label={ui('Browse news categories')}>

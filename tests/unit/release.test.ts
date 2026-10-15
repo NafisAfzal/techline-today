@@ -48,7 +48,7 @@ describe('build provenance', () => {
 });
 describe('editorial publication guard', () => {
   const now = Date.parse('2026-10-14T00:00:00Z');
-  const snapshot = {mode:'live',last_successful_fetch_at:new Date(now).toISOString(),stories:[{id:'one',headline:'Original source headline',source_ids:['source'],importance_score_internal:.8,published_at:new Date(now).toISOString(),is_demo:false}],sources:{source:{source_class:'primary',title:'Original source headline',excerpt:'The source describes a specific change with enough collected prose to support an editorial preview and factual review.',is_demo:false}}};
+  const snapshot = {mode:'live',generated_at:new Date(now).toISOString(),last_successful_fetch_at:new Date(now).toISOString(),stories:[{id:'one',headline:'Original source headline',source_ids:['source'],importance_score_internal:.8,published_at:new Date(now).toISOString(),is_demo:false}],sources:{source:{source_class:'primary',source_type:'rss',missing_publication_time:false,published_at:new Date(now).toISOString(),fetched_at:new Date(now).toISOString(),title:'Original source headline',excerpt:'The source describes a specific change with enough collected prose to support an editorial preview and factual review.',is_demo:false}}};
   it('accepts a fresh evidence-backed live edition', () => expect(editorialQuality(snapshot,{production:true,now}).errors).toEqual([]));
   it('rejects fixtures and stale live content', () => {
     expect(editorialQuality({...snapshot,mode:'fixture'},{production:true,now}).errors.length).toBeGreaterThan(0);

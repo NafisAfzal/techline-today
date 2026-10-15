@@ -6,6 +6,8 @@ import Layout from '../../layouts/Layout.astro';
 import ExternalLink from '../../components/ExternalLink.astro';
 import { data, date } from '../../lib/data';
 import type { Story, SourceItem } from '../../../../../packages/contracts';
+import { preprint, showSignificance } from '../../lib/trust';
+import { preprintNotice, limitationsUnknown } from '../../../../../scripts/coverage.mjs';
 export function getStaticPaths() { return data.archive_index.map(entry => ({params:{month:entry.key},props:{entry}})); }
 const {entry} = Astro.props;
 const archiveDirectory = data.mode === 'fixture' ? '.cache/fixture-archives' : 'content/archives';
@@ -14,4 +16,4 @@ const locale = localeFor(Astro.url.pathname);
 const ui = (key: string) => t(locale, key);
 const href = (path: string) => localizedPath(path, locale);
 ---
-<Layout title={`Archive · ${entry.key}`}><section class="page-intro"><p class="eyebrow">{ui("Monthly archive")}</p><h1>{entry.key}</h1><p>{ui("Compacted story records. Summaries and verification timestamps reflect their original collection.")}</p><a href={href(`/data/archives/${entry.key}.json`)}>{ui("Download structured archive →")}</a></section>{locale==='bn' && <p class="translation-note">{ui("Archived records retain their verified English wording.")}</p>}<div class="tracker-grid">{archive.stories.map(story => <article class="tracker-card" lang="en"><p class="eyebrow">{story.category} / {date(story.published_at)}</p><h2>{story.headline}</h2><ul>{story.summary_bullets.map(bullet => <li>{bullet}</li>)}</ul><p>{story.why_it_matters}</p>{story.source_ids.map(id => <ExternalLink href={archive.sources[id]!.original_url}>{archive.sources[id]!.publisher}</ExternalLink>)}<p class="small">{ui("Last verified")} {date(story.last_verified_at,true,locale)}</p></article>)}</div></Layout>
+<Layout title={`Archive · ${entry.key}`}><section class="page-intro"><p class="eyebrow">{ui("Monthly archive")}</p><h1>{entry.key}</h1><p>{ui("Compacted story records. Summaries and verification timestamps reflect their original collection.")}</p><a href={href(`/data/archives/${entry.key}.json`)}>{ui("Download structured archive →")}</a></section>{locale==='bn' && <p class="translation-note">{ui("Archived records retain their verified English wording.")}</p>}<div class="tracker-grid">{archive.stories.map(story => <article class="tracker-card" lang="en"><p class="eyebrow">{story.category} / {date(story.published_at)}</p><h2>{story.headline}</h2><ul>{story.summary_bullets.map(bullet => <li>{bullet}</li>)}</ul>{preprint(story,archive.sources) && <p>{ui(preprintNotice)} {ui(limitationsUnknown)}</p>}{showSignificance(story) && <p>{story.why_it_matters}</p>}{story.source_ids.map(id => <ExternalLink href={archive.sources[id]!.original_url}>{archive.sources[id]!.publisher}</ExternalLink>)}<p class="small">{ui("Last verified")} {date(story.last_verified_at,true,locale)}</p></article>)}</div></Layout>

@@ -1,0 +1,12 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Feed from '../components/Feed.astro';
+import { data } from '../lib/data';
+import { rankedStories } from '../lib/editorial';
+import { localeFor, t, localizedPath } from '../lib/i18n';
+import { contentKind } from '../../../../scripts/coverage.mjs';
+const locale = localeFor(Astro.url.pathname);
+const ui = (key: string) => t(locale, key);
+const stories = rankedStories(data.stories.filter(story => contentKind(story, data.sources) === 'current-news'));
+---
+<Layout title={ui('News & official announcements')}><section class="page-intro"><h1>{ui('News & official announcements')}</h1><p>{ui('Dated reporting and official announcements. Research and reference documents are listed separately; an old publication stays old when collected again.')}</p></section>{stories.length ? <Feed stories={stories.slice(0,120)}/> : <section class="empty-state" data-empty-news><h2>{ui('No current-news coverage in this edition.')}</h2><p>{ui('No additional feeds have been activated. Browse the retained research or follow the cited original sources.')}</p><a class="control-link" href={localizedPath('/category/research/', locale)}>{ui('Research & technical analysis')}</a></section>}</Layout>

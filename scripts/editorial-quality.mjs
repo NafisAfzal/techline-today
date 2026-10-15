@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import { pathToFileURL } from 'node:url';
+import { coverage } from './coverage.mjs';
 
 export function editorialQuality(snapshot, { production = false, now = Date.now() } = {}) {
   const errors = [], warnings = [];
@@ -15,6 +16,10 @@ export function editorialQuality(snapshot, { production = false, now = Date.now(
   const duplicateTitles = names.length - new Set(names).size;
   const ageHours = (now - Date.parse(snapshot.last_successful_fetch_at)) / 3600000;
   const translated = ranked.filter(story => story.translations?.bn).length;
+  const freshness = coverage(snapshot, now);
+  if (freshness.invalidTimestamps.length) errors.push(`Invalid or future timestamps: ${freshness.invalidTimestamps.join(', ')}.`);
+  if (!freshness.currentNews.length) warnings.push('No current technology news within 72 hours; show the limited-coverage state.');
+  if (freshness.collectionStale) warnings.push('Last successful collection is outside the 24-hour window.');
   if (missingReferences.length) errors.push(`${missingReferences.length} stories have missing source references.`);
   if (duplicateTitles) warnings.push(`${duplicateTitles} repeated normalized titles require editorial review.`);
   if (headlineOnly.length) warnings.push(`${headlineOnly.length} headline-only stories remain explicitly limited.`);
@@ -23,10 +28,10 @@ export function editorialQuality(snapshot, { production = false, now = Date.now(
     if (snapshot.mode !== 'live' || ranked.some(story => story.is_demo) || Object.values(snapshot.sources).some(source => source.is_demo)) errors.push('Synthetic content cannot be published.');
     if (!Number.isFinite(ageHours) || ageHours > 24 || ageHours < -1/6) errors.push('Live collection is outside the 24-hour freshness window.');
     if (eligible.length < Math.min(5, ranked.length) || !eligible.length) errors.push('Insufficient prose-backed front-page stories.');
-    if (!eligible.some(story => now - Date.parse(story.published_at) <= 72 * 3600000)) errors.push('No prose-backed story has been published within 72 hours.');
+    if (!eligible.some(story => freshness.currentNews.includes(story.id))) errors.push('No prose-backed current technology news has a validated publication timestamp within 72 hours. Research and reference documents do not satisfy this gate.');
     if (ranked.some(story => story.translations?.bn?.review_status === 'fixture-reviewed')) errors.push('Fixture translations cannot be published.');
   }
-  return { mode: snapshot.mode, stories: ranked.length, proseBacked: eligible.length, headlineOnly: headlineOnly.length, translatedBangla: translated, duplicateTitles, collectionAgeHours: Number(ageHours.toFixed(2)), errors, warnings };
+  return { mode: snapshot.mode, stories: ranked.length, proseBacked: eligible.length, headlineOnly: headlineOnly.length, translatedBangla: translated, duplicateTitles, collectionAgeHours: Number(ageHours.toFixed(2)), freshness, errors, warnings };
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

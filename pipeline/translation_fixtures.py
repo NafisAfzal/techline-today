@@ -3,6 +3,7 @@ from pipeline.models import TranslationContent
 from pipeline.translation import canonical_content
 
 PHRASES = {
+    "Significance has not been assessed from the collected evidence.": "সংগৃহীত প্রমাণ থেকে গুরুত্ব মূল্যায়ন করা হয়নি।",
     "Meridian releases an open multimodal model for local development": "নিজের কম্পিউটারে ব্যবহারের জন্য open multimodal model প্রকাশ করেছে Meridian",
     "Meridian publishes open weights for its multimodal model.": "Meridian তাদের multimodal model-এর weights সবার জন্য উন্মুক্ত করেছে।",
     "The model card lists a 128K context window.": "model card অনুযায়ী, context window হলো 128K।",

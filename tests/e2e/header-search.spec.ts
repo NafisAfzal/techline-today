@@ -1,7 +1,8 @@
 import { expect, test } from '@playwright/test';
 
-test('header controls stay named, visible and separate through intermediate widths', async ({ page }) => {
-  for (const width of [320, 390, 720, 721, 768, 800, 834, 900, 1000, 1001, 1024, 1100, 1101, 1280, 1366, 1440]) for (const route of ['/', '/bn/']) {
+for (const width of [320, 390, 720, 721, 768, 800, 834, 900, 1000, 1001, 1024, 1100, 1101, 1280, 1366, 1440]) {
+test(`header controls stay named, visible and separate at ${width}px`, async ({ page }) => {
+  for (const route of ['/', '/bn/']) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto(route);
     const group = page.getByRole('group', { name: route === '/' ? 'Appearance' : 'থিম', exact: true });
@@ -41,6 +42,7 @@ test('header controls stay named, visible and separate through intermediate widt
     }
   }
 });
+}
 
 test('desktop search accepts a query before opening and restores keyboard focus on Escape', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 960 });

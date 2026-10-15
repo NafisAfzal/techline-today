@@ -1,6 +1,8 @@
 import math
 import re
 
+from pipeline.dedupe import cluster_category
+
 
 def novelty(items, previous_sources):
     if any(item.id not in previous_sources for item in items):
@@ -9,13 +11,14 @@ def novelty(items, previous_sources):
 
 
 def rank(items, config, categories, now, novelty_score=1):
+    category = cluster_category(items)
     latest = max(item.published_at for item in items)
     strength = max({"primary": 1, "independent": .8, "aggregator": .35, "community": .15}[item.source_class] for item in items)
     groups = {item.source_independence_group for item in items if item.source_class in ("primary", "independent")}
     signals = {
         "recency": math.exp(-max(0, (now - latest).total_seconds()) / 86400),
         "source_strength": strength, "cross_source_support": min(1, max(0, len(groups) - 1) / 2),
-        "novelty": max(0, min(1, novelty_score)), "category_relevance": categories[items[0].category]["priority"],
+        "novelty": max(0, min(1, novelty_score)), "category_relevance": categories[category]["priority"],
         "community_signal": min(.5 if strength < .5 else 1, math.log1p(max(i.community_score for i in items)) / 8),
     }
     if all(item.missing_publication_time for item in items):
@@ -24,7 +27,7 @@ def rank(items, config, categories, now, novelty_score=1):
     release = any(item.source_class == "primary" and (item.source_type == "github_releases" or re.search(r"\b(releases?|introduc\w*|launch\w*|announc\w*|open[- ]sourc\w*)\b", item.title, re.I)) for item in items)
     if release:
         score += config["boosts"]["primary_product_release"]
-    if items[0].category == "security" and strength >= .8:
+    if category == "security" and strength >= .8:
         score += config["boosts"]["critical_security_update"]
     if strength < .5:
         score *= 1 - config["penalties"]["community_only_unverified"]

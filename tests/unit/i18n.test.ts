@@ -31,4 +31,10 @@ describe('static localization',()=>{
     expect(storyCount(1,'en')).toBe('1 story');expect(storyCount(2,'bn')).toBe('২টি খবর');
     expect(t('bn','Browse digests →')).toBe('সংকলন দেখুন →');
   });
+  it('keeps new language, trust and freshness indicators in readable Bangla',()=>{
+    for (const key of ['English content','Primary source','Preprint','Coverage and freshness','Technology news & research','supported']) {
+      expect(t('bn',key)).toMatch(/[\u0980-\u09ff]/u);
+    }
+    for (const value of Object.values(bn)) expect(value).not.toMatch(/\?{2,}|\uFFFD/u);
+  });
 });

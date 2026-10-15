@@ -2,6 +2,7 @@
 import '../styles/global.css';
 import Search from '../components/Search';
 import Wordmark from '../components/Wordmark.astro';
+import CoverageStatus from '../components/CoverageStatus.astro';
 import { data, categoryEntries, date } from '../lib/data';
 import { localeFor, t, localizedPath, withoutLocale, brandName } from '../lib/i18n';
 import { indexingBlocked } from '../../../../scripts/site-url.mjs';
@@ -37,7 +38,7 @@ if (analyticsToken && !/^[a-f0-9]{32}$/i.test(analyticsToken)) throw new Error('
 </head>
 <body>
   <a href="#main" class="skip-link">{ui('Skip to content')}</a>
-  <div class="edition-status" role="region" aria-label={ui("Edition information")}><div class="container edition-bar"><span>{ui('The dispatch')} · {date(data.generated_at,false,locale)}</span><span>{ui('Updated')} <time datetime={data.generated_at}>{date(data.generated_at,true,locale)} BDT</time></span></div></div>
+  <div class="edition-status" role="region" aria-label={ui("Edition information")}><div class="container edition-bar"><span>{ui('The dispatch')} · {date(data.generated_at,false,locale)}</span><span>{ui('Edition created')} <time datetime={data.generated_at}>{date(data.generated_at,true,locale)} BDT</time></span></div></div>
   <header class="site-header">
     <div class="container masthead"><a class="brand" href={href('/')} aria-label={`${brandName} ${locale==='bn'?'প্রথম পাতা':'home'}`}><Wordmark/><span class="brand-tagline">{ui('Technology News & Insights')}</span></a>
       <div class="header-actions">
@@ -60,7 +61,7 @@ if (analyticsToken && !/^[a-f0-9]{32}$/i.test(analyticsToken)) throw new Error('
       </div>
     </div>
     <nav class="category-nav container" aria-label={ui('Main navigation')}>
-      {[['/','Today'],['/category/ai/','AI'],['/category/chips/','Chips'],['/category/security/','Security'],['/freebies/','Free credit']].map(([url,label]) => <a class={label==='Chips'?'nav-chips':label==='Security'?'nav-security':undefined} href={href(url!)} aria-current={pathname===url?'page':undefined}>{ui(label!)}</a>)}
+      {[['/','Home'],['/category/ai/','AI'],['/category/chips/','Chips'],['/category/security/','Security'],['/freebies/','Free credit']].map(([url,label]) => <a class={label==='Chips'?'nav-chips':label==='Security'?'nav-security':undefined} href={href(url!)} aria-current={pathname===url?'page':undefined}>{ui(label!)}</a>)}
       <details class="more-nav"><summary>{ui('More')}</summary><div class="more-menu">
         <a class="compact-chips" href={href('/category/chips/')} aria-current={pathname==='/category/chips/'?'page':undefined}>{ui('Chips')}</a>
         <a class="compact-security" href={href('/category/security/')} aria-current={pathname==='/category/security/'?'page':undefined}>{ui('Security')}</a>
@@ -72,6 +73,7 @@ if (analyticsToken && !/^[a-f0-9]{32}$/i.test(analyticsToken)) throw new Error('
   </header>
   {data.mode === 'fixture' && <aside class="demo-notice container" aria-label={ui('Demonstration notice')}><strong>{ui('Demonstration edition.')}</strong> {ui('All stories, model releases and offers in this edition are synthetic test fixtures, not live news.')}</aside>}
   <main id="main" class="container" tabindex="-1"><slot/></main>
+  <CoverageStatus/>
   <footer class="container site-footer"><div><a class="footer-brand" href={href('/')} aria-label={`${brandName} ${locale==='bn'?'প্রথম পাতা':'home'}`}><Wordmark small/></a><p>{ui('A little context goes a long way.')}</p><p class="small">{ui('Collected periodically. Sources always within reach.')}</p></div><nav aria-label={ui('Footer')}><a href={href('/about/')}>{ui('Methodology & source policy')}</a><a href={href('/settings/')}>{ui('Reading preferences')}</a>{data.archive_index.length>0 && <a href={href('/archives/')}>{ui('Archives')}</a>}<a href="/rss.xml">{ui('RSS feed')} ↗</a></nav><p class="small">{ui('No account. No behavioral profiling.')}<br/>{ui('Your reading list stays on your device.')}</p></footer>
   <script>import '../lib/browser';</script>
   {analyticsToken && <script is:inline defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon={JSON.stringify({token:analyticsToken})}></script>}
