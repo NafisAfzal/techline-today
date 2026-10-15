@@ -4,7 +4,7 @@
 
 Techline Today turns RSS and API updates into a readable edition: what changed, what the source actually supports, and where to read more. It combines an Astro reader with a Python pipeline for normalization, deduplication, classification and conservative summaries.
 
-Built independently by **Nafis Afzal**. Original software is **MIT licensed**. The owner has authorized public GitHub publication subject to release checks. Cloudflare preview and production still require separate authorization. [Release gates](docs/RELEASE_APPROVAL_GATE.md).
+Built independently by **Nafis Afzal**. Original software is **MIT licensed**. The source is public in this repository; Cloudflare preview and production await separate release gates. [Release verification](docs/GITHUB_GATE_A_RELEASE.md).
 
 ![Techline Today light homepage, captured locally from the permitted live-source edition](docs/assets/launch/home-light-1366.jpg)
 
@@ -124,7 +124,7 @@ Astro 7, React 19, TypeScript, Tailwind CSS, Pagefind, Python, Pydantic and http
 
 Reader preferences stay in browser storage. Analytics is off. Fetching uses public-DNS checks/pinning and response limits; source text is escaped and treated as untrusted input. Strict CSP and response headers ship with static assets. [Security policy](.github/SECURITY.md).
 
-Current limits include narrow rights-approved coverage, imperfect clustering/classification, no production Bangla corpus, no physical-device proof, and unfinished hosted verification. The source/data backup has been restored from an independently stored Google Drive download; clean-machine account recovery remains untested. The build-only cache-policy mitigation requires reassessment by **2026-11-03**. These are tracked engineering limits, not hidden behind clean dependency-audit output.
+Current limits include narrow rights-approved coverage, imperfect clustering/classification, no production Bangla corpus, no physical-device proof, and unfinished Cloudflare preview/rollback verification. The source/data backup has been restored from an independently stored Google Drive download; clean-machine account recovery remains untested. The build-only cache-policy mitigation requires reassessment by **2026-11-03**. These are tracked engineering limits, not hidden behind clean dependency-audit output.
 
 Next priorities are hosted preview/rollback checks, recurring independent recovery drills, source-by-source coverage expansion and native-reviewed Bangla experiments. AI enrichment is optional and must earn its place through evidence quality, measurable benefit and zero-paid-spend controls.
 

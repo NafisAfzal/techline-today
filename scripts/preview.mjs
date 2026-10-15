@@ -2,7 +2,7 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { createGzip } from 'node:zlib';
-import { previewCsp } from './csp.mjs';
+import { headerRuleMatches, previewCsp } from './csp.mjs';
 const root = path.resolve('apps/web/dist');
 if (!fs.existsSync(root)) throw new Error('Build the site before previewing.');
 const rules = []; let current;
@@ -20,7 +20,7 @@ const server = http.createServer((request,response) => {
   let status=200;
   if (!fs.existsSync(target)) {target=path.join(root,pathname.startsWith('/bn/')?'bn/404.html':'404.html'); status=404;}
   const headers={'Content-Type':types[path.extname(target)] || 'application/octet-stream'};
-  for (const rule of rules) if (rule.pattern === '/*' || pathname.startsWith(rule.pattern.replace('*',''))) Object.assign(headers,rule.headers);
+  for (const rule of rules) if (headerRuleMatches(pathname, rule.pattern)) Object.assign(headers,rule.headers);
   // HSTS/upgrading apply to HTTPS deployment; local HTTP must remain available to Playwright and developers.
   if (headers['Content-Security-Policy']) headers['Content-Security-Policy']=previewCsp(headers['Content-Security-Policy']);
   const acceptsGzip=(request.headers['accept-encoding'] || '').split(',').some(value=>value.trim().split(';')[0]==='gzip' && !/;\s*q=0(?:\.0*)?\s*$/.test(value));

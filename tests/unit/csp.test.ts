@@ -1,8 +1,24 @@
 import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
-import { inlineCspHashes, previewCsp } from '../../scripts/csp.mjs';
+import { headerRuleMatches, inlineCspHashes, previewCsp } from '../../scripts/csp.mjs';
 
 const hash = (text:string) => "'sha256-" + createHash('sha256').update(text).digest('base64') + "'";
+describe('local preview header rules', () => {
+  it('matches global and directory wildcard rules at their boundaries', () => {
+    expect(headerRuleMatches('/news/story/', '/*')).toBe(true);
+    expect(headerRuleMatches('/_astro/app.js', '/_astro/*')).toBe(true);
+    expect(headerRuleMatches('/_astro-other/app.js', '/_astro/*')).toBe(false);
+  });
+  it('requires an exact match for paths without a trailing wildcard', () => {
+    expect(headerRuleMatches('/feed.xml', '/feed.xml')).toBe(true);
+    expect(headerRuleMatches('/feed.xml-extra', '/feed.xml')).toBe(false);
+  });
+  it('does not broaden malformed or embedded wildcard patterns', () => {
+    expect(headerRuleMatches('/private/data', '/**')).toBe(false);
+    expect(headerRuleMatches('/private/data', '/*/data')).toBe(false);
+    expect(headerRuleMatches('/private/data', '/**/*')).toBe(false);
+  });
+});
 describe('browser-compatible inline CSP hashes', () => {
   it('handles mixed-case tags and greater-than characters in quoted attributes', () => {
     const result = inlineCspHashes('<SCRIPT data-label="x > y">window.fixture=1;</SCRIPT><STYLE>.fixture { color: red; }</STYLE>');

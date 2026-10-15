@@ -20,3 +20,7 @@ export function previewCsp(policy) {
     directive && directive.split(/\s+/, 1)[0].toLowerCase() !== 'upgrade-insecure-requests'
   ).join('; ');
 }
+
+export function headerRuleMatches(pathname, pattern) {
+  return pattern.endsWith('/*') ? pathname.startsWith(pattern.slice(0, -1)) : pathname === pattern;
+}

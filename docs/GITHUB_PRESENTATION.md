@@ -1,5 +1,7 @@
 # GitHub presentation proposal
 
+> This is the original preparation proposal. [The public repository](https://github.com/NafisAfzal/techline-today) now exists; [Gate A results](GITHUB_GATE_A_RELEASE.md) record actual metadata, commits, hosted checks and remaining hosting work. No public website URL is configured.
+
 Verified 2026-10-14 with existing read-only GitHub CLI access: personal account **NafisAfzal**, numeric ID 119227215. Its repository list contains no `techline-today` and no matching project to reuse. There are no current remotes or reachable commits in this local unborn-main repository. Account display name is not used as ownership evidence.
 
 Proposed address: **https://github.com/NafisAfzal/techline-today**. No repository was created or pushed. Exact slug remains subject to owner acceptance of the preliminary brand screen.
