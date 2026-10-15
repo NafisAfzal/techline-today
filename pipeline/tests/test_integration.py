@@ -23,6 +23,12 @@ async def test_full_pipeline_schema_and_reuse(tmp_path,monkeypatch,now):
     assert {story.category for story in snapshot.stories} == set(snapshot.categories)
     again=await runner.run('fixture',output,now)
     assert [story.id for story in again.stories]==[story.id for story in snapshot.stories]
+    # Novelty intentionally changes after the initial seed. A further identical
+    # run must be byte-stable once that state has settled.
+    permuted_items = list(reversed(runner.fixture_data(now)))
+    monkeypatch.setattr(runner, 'fixture_data', lambda time: permuted_items)
+    steady = await runner.run('fixture',output,now)
+    assert steady.model_dump_json() == again.model_dump_json()
     assert read_json(tmp_path/'content/generated/run-report.json')['cached_summaries']==len(snapshot.stories)
     original_items = runner.fixture_data(now)
     monkeypatch.setattr(runner, 'fixture_data', lambda time: [item.model_copy(update={'fetched_at': time}) for item in original_items])

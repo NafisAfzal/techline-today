@@ -72,6 +72,7 @@ async def test_disabled_feed_cannot_survive_through_retained_summary_or_history(
         id="gemini", model="mock", daily_call_limit=10, generate_structured=forbidden_call)])
     candidate = await runner.run("live", output, now)
     assert calls == []
+    assert candidate.stories and all(not story.translations for story in candidate.stories)
     assert {source.source_registry_id for source in candidate.sources.values()} == {"arxiv"}
     assert "Restricted legacy wording" not in candidate.model_dump_json()
     state = json.loads((tmp_path / ".cache/state-live.json").read_text(encoding="utf-8"))

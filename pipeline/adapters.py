@@ -20,6 +20,10 @@ class RSSAdapter:
         data = await fetcher.get(source.endpoint, source, accept=("application/rss+xml", "application/atom+xml", "application/xml", "text/xml", "text/plain"))
         if data is None:
             return None
+        # feedparser expands internal entities. RSS/Atom evidence needs no DTD;
+        # reject declarations before parsing, including UTF-16/32 ASCII markup.
+        if re.search(br"<!\s*(?:DOCTYPE|ENTITY)\b", data.replace(b"\x00", b""), re.I):
+            raise ValueError("RSS DTD and entity declarations are not permitted")
         parsed = feedparser.parse(data)
         if parsed.bozo and not parsed.entries:
             raise ValueError("Malformed or empty feed response")

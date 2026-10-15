@@ -58,3 +58,7 @@ See [EDITORIAL_STYLE.md](EDITORIAL_STYLE.md), [TESTING.md](TESTING.md) and [IMPL
 ## Release verification, 2026-10-14
 
 The production corpus has no available Bangla story translations. AI/translation calls require explicit `PIPELINE_AI_ENABLED=true`, configured providers and separate owner budget approval. The safe proposed launch is English reporting with a Bangla interface and truthful English fallback. Three-engine responsive/device simulation includes both scripts, themes and native-field sizing; physical phones and native-reader review remain unverified. [Current evidence](RELEASE_VALIDATION.md).
+
+## Wave 1 fallback indicator
+
+Untranslated Bangla-route cards, briefing rows, saved records and article headers carry a compact localized English-content indicator. Its accessible label explains that no Bangla translation is available. Article details retain the full fallback notice and English `lang` tag; translated fixture records omit the indicator. Source rights, provider opt-in, translation validators, fallback canonical/noindex and sitemap exclusion are preserved. This is interface transparency, not production translation readiness.

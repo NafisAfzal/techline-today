@@ -1,11 +1,11 @@
 import { expect, test } from '@playwright/test';
 
 const widths=[320,390,834,1280,1366,1440];
-test('readable typography, comfortable controls, contrast and no overflow across responsive routes',async({page})=>{
+for(const width of widths) {
+test(`readable typography, comfortable controls and no overflow at ${width}px`,async({page})=>{
   await page.goto('/');
   const detail=await page.locator('[data-variant="lead"] h2 a').getAttribute('href');
   const routes=['/','/all/','/category/ai/','/category/chips/',detail!,'/digests/','/models/','/freebies/','/saved/','/settings/','/about/','/archives/','/missing-page/'];
-  for(const width of widths) {
     await page.setViewportSize({width,height:900});
     for(const route of routes) {
       await page.goto(route);
@@ -24,8 +24,8 @@ test('readable typography, comfortable controls, contrast and no overflow across
       });
       expect(failures,`${route} at ${width}px`).toEqual({overflow:false,tiny:[],small:[]});
     }
-  }
 });
+}
 
 test('computed text and visible brand contrast in both themes, including More and saved states',async({page})=>{
   for(const theme of ['light','dark']) {
@@ -72,7 +72,7 @@ test('lead, briefing and feed have distinct semantics and labelled mobile facts'
 
 test('primary navigation and More are keyboard and touch usable; credit routes are distinct',async({page})=>{
   await page.goto('/');const nav=page.getByRole('navigation',{name:'Main navigation'});
-  await expect(nav.locator(':scope > a')).toHaveText(['Today','AI','Chips','Security','Free credit']);
+  await expect(nav.locator(':scope > a')).toHaveText(['Home','AI','Chips','Security','Free credit']);
   const more=nav.locator('summary');await more.focus();await page.keyboard.press('Enter');
   await expect(nav.getByRole('link',{name:'Research',exact:true})).toBeVisible();
   await expect(nav.getByRole('link',{name:'Freebie stories',exact:true})).toHaveAttribute('href','/category/freebies/');

@@ -119,6 +119,17 @@ async def test_no_provider_english_fallback_and_fixture_isolation(now):
     assert not story.translations and report["unavailable"] == 1
 
 
+async def test_denied_submission_never_calls_capable_translation_provider(now):
+    story = example(now)
+    provider = TranslationProvider(translated_fixture(story).model_dump())
+    routing, settings = router([provider])
+    assert settings["translation"]["enabled"]
+    report, cache = await translate_stories([story], routing, settings, {},
+        Path("prompts/story_translation.md"), now, eligible_story_ids=set())
+    assert provider.calls == 0 and not story.translations and not cache
+    assert report["unavailable"] == 1
+
+
 async def test_valid_provider_translation_is_cached_without_further_calls(now):
     story = example(now)
     provider = TranslationProvider(translated_fixture(story).model_dump())

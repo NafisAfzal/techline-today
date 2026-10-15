@@ -5,6 +5,7 @@ export interface KeyNumber { value: string; label: string; context: string; sour
 export interface SourceItem {
   id: string; source_registry_id: string; original_url: string; canonical_url: string; title: string;
   publisher: string; source_class: string; published_at: string; fetched_at: string; excerpt: string; language: string;
+  source_type?: string; source_independence_group?: string; missing_publication_time?: boolean;
 }
 export interface StoryTranslation {
   language: 'bn'; canonical_hash: string; cache_key: string; provider: string; model: string;

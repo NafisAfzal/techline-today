@@ -448,6 +448,10 @@ button:active:not(:disabled):not(:focus-visible) { transform:scale(.97); }
 .detail-content details>summary::after { content:'+'; font:20px/1 var(--font-sans); flex-shrink:0; }
 .detail-content details[open]>summary::after { content:'−'; }
 .detail-content details[open] { padding-bottom:16px; }
+.coverage-status { padding-top:var(--space-3); padding-bottom:var(--space-3); border-bottom:1px solid var(--line); }
+.coverage-status p { margin:var(--space-1) 0; }
+.content-indicator { color:var(--muted); font-size:var(--fs-micro); line-height:1.5; border:1px solid var(--line); border-radius:4px; padding:2px var(--space-2); }
+.news-coverage { margin-bottom:var(--space-6); }
 .search-results a:focus-visible { background:var(--secondary); }
 @media(hover:hover) and (pointer:fine) {
   .search-trigger:hover,.language-control a:hover { background:var(--secondary); border-radius:4px; }

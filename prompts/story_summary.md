@@ -22,6 +22,9 @@ Requirements:
 - If only a headline is available, say so plainly. Do not manufacture an explanation from general knowledge.
 - Keep each summary bullet concise and useful; do not repeat the headline in every bullet.
 - Use why_it_matters to explain a supported consequence or a clear limit of the available evidence. Separate interpretation from fact.
+- If significance is unassessed, use exactly: Significance has not been assessed from the collected evidence.
+- A primary source establishes provenance, not independent corroboration. Do not imply independent replication or peer review without explicit evidence.
+- Include every REQUIRED_EDITORIAL_LIMITATION verbatim. Unknown paper limitations stay unassessed; do not invent criticisms.
 - Output only the requested JSON schema.
 - Every key fact must list one or more `source_ids`.
 - If sources conflict, record the conflict in `limitations`.

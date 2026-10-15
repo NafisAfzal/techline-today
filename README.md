@@ -14,7 +14,7 @@ Built independently by **Nafis Afzal**. Original software is **MIT licensed**. T
 
 Technology announcements arrive across research feeds, vendor blogs and release notes, with uneven detail and repeated coverage. Readers need a short path from a headline to its evidence. This project makes those boundaries visible: source classes, original links, limited excerpts, verification dates, uncertainty and correction history stay attached to a story.
 
-Ranking is an editorial ordering, not a truth score. A headline-only record says so. Extractive guidance is labelled **Before you act**. The implementation does not claim independent experiments, complete source coverage or real-time reporting.
+Ranking is an editorial ordering, not a truth score. A headline-only record says so. Unassessed significance is omitted from previews; source provenance does not imply independent corroboration or peer review. The implementation does not claim independent experiments, complete source coverage or real-time reporting.
 
 ## The reader
 
@@ -37,7 +37,7 @@ flowchart TD
     N --> D[Deduplicate and group evidence]
     D --> C[Classify and rank]
     C --> E[Source-grounded extraction]
-    C -. explicit opt-in .-> A[Optional AI enrichment]
+    C -. explicit opt-in .-> A[AI and translation - disabled by rights policy and release gate]
     Q[Quota reservations and content cache] -.-> A
     A --> G[Evidence and content quality gates]
     E --> G
@@ -51,6 +51,8 @@ flowchart TD
 Python fetches bounded HTTPS responses from configured hosts. Canonical URLs and stable IDs support deduplication; source classes, dates and evidence remain explicit. Pydantic/JSON Schema and citation/numeric checks reject invalid candidates before replacement. Article pages retain source links, attribution, license information and update history. [Engineering overview](docs/ENGINEERING_OVERVIEW.md).
 
 The default release collection is intentionally narrow: **arXiv descriptive metadata under CC0** and **attributed Cloudflare documentation under CC BY 4.0**. Other adapters remain available in the source, but feeds with unresolved reuse terms are disabled. Their retained records and old screenshots are excluded from the public candidate. News and third-party material are outside the project's MIT grant. [Content policy](docs/CONTENT_RIGHTS_REVIEW.md).
+
+The portal keeps news/official announcements separate from research and reference material. The current permitted edition has no current-news coverage. Publication freshness uses validated dates; collection alone never makes a retained paper new. [Wave 1 contract and review](docs/POST_AUDIT_WAVE1_REMEDIATION.md).
 
 ## AI and Bangla: precise scope
 

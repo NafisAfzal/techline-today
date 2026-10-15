@@ -10,6 +10,17 @@ def numeric_tokens(text):
     return {match.lower().replace(",", "").replace(" ", "") for match in NUMBERS.findall(text)}
 
 
+PREPRINT_NOTICE = "arXiv preprint: peer review has not been established from the collected metadata."
+LIMITATIONS_UNKNOWN = "Paper limitations have not been assessed from the collected abstract."
+SIGNIFICANCE_UNKNOWN = "Significance has not been assessed from the collected evidence."
+
+
+def editorial_limitations(items):
+    if any(item.source_type == "arxiv" or item.source_registry_id == "arxiv" for item in items):
+        return [PREPRINT_NOTICE, LIMITATIONS_UNKNOWN]
+    return []
+
+
 def evidence_state(items):
     if any(item.source_class == "primary" for item in items):
         return "primary-confirmed"
@@ -62,7 +73,7 @@ def conflicts(items):
     return sorted(set(limitations))
 
 
-def validate_summary(summary, items):
+def validate_summary(summary, items, *, generated=False):
     sources = {item.id: item for item in items}
     evidence = " ".join(item.title + " " + item.excerpt for item in items)
     allowed_numbers = numeric_tokens(evidence)
@@ -73,6 +84,12 @@ def validate_summary(summary, items):
             raise ValueError("Unsupported numeric claim")
         if re.search(r"\b(best|unprecedented|revolutionary|guaranteed|confirmed)\b", text, re.I) and text.lower() not in evidence.lower():
             raise ValueError("Unsupported certainty or superlative")
+        if re.search(r"\bpeer[- ]reviewed\b", text, re.I) and text.casefold() not in evidence.casefold():
+            raise ValueError("Unsupported peer-review claim")
+    # Legacy snapshots remain readable. New generated summaries must carry the
+    # policy caveats; these describe unknowns, not invented paper criticisms.
+    if generated and not set(editorial_limitations(items)) <= set(summary.limitations):
+        raise ValueError("Preprint review status and unassessed limitations must be exposed")
     for fact in [*summary.key_facts, *summary.claim_map, *summary.key_numbers]:
         if not set(fact.source_ids) <= sources.keys():
             raise ValueError("Unknown claim source")

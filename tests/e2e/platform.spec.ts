@@ -4,7 +4,7 @@ test('briefing, details, evidence and safe original link',async({page})=>{
   const errors:string[]=[];page.on('pageerror',error=>errors.push(error.message));
   const response=await page.goto('/');
   expect(response?.headers()['content-security-policy']).toContain("frame-ancestors 'none'");
-  await expect(page.getByRole('heading',{name:'Also important now'})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'In this edition'})).toBeVisible();
   await expect(page.getByLabel('Demonstration notice')).toBeVisible();
   await page.locator('#briefing h3 a').first().click();
   await expect(page.getByRole('heading',{name:'Summary',exact:true})).toBeVisible();
