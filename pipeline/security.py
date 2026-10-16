@@ -11,7 +11,7 @@ from httpcore._backends.anyio import AnyIOBackend
 
 from pipeline.models import is_public_address, safe_url
 
-SOURCE_TRANSFORM_VERSION = "7"
+SOURCE_TRANSFORM_VERSION = "9"
 
 
 def public_addresses(addresses: list[str]) -> list[str]:

@@ -7,6 +7,8 @@
     "huggingface": {"publication": "exclude", "reason": "Blog/feed excerpt and derivative-summary reuse basis unresolved."},
     "google_research": {"publication": "exclude", "reason": "Specific Research blog reuse basis unresolved."},
     "github_releases": {"publication": "exclude", "reason": "Release-note licensing scope needs repository-specific review."},
-    "hacker_news": {"publication": "exclude", "reason": "User post/excerpt reuse basis unresolved."}
+    "hacker_news": {"publication": "exclude", "reason": "User post/excerpt reuse basis unresolved."},
+    "kubernetes": {"publication": "exclude", "reason": "Per-item origin and reuse rights remain unresolved. Every parsed item is held for local review; no approvals authorized. Site documentation CC BY scope and guest/mirror rights need owner decisions.", "license": "CC-BY-4.0", "license_url": "https://creativecommons.org/licenses/by/4.0/", "scope": "Potential attributed excerpts/adaptations only after affirmative per-item evidence and owner policy; no images. No automatic eligibility from footer or missing markers.", "ai_submission_allowed": false},
+    "cisa_kev": {"publication": "exclude", "reason": "Disabled local advisory pilot only. Independent audit records explicit CC0 database grant at https://www.cisa.gov/sites/default/files/licenses/kev/license.txt; staging and owner publication decisions remain open.", "license": "CC0-1.0", "license_url": "https://creativecommons.org/publicdomain/zero/1.0/", "scope": "CISA advisory metadata only; catalog-addition and remediation dates remain date-only. No seals/logos, endorsement or third-party linked content; explicit reservation text quarantined, absent markers do not prove third-party clearance.", "ai_submission_allowed": false}
   }
 }

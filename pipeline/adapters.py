@@ -1,14 +1,51 @@
 import base64
 import json
 import re
+from string import Formatter
 from typing import Protocol
-from urllib.parse import urlencode, urlsplit
+from urllib.parse import quote, urlencode, urlsplit
 from urllib.robotparser import RobotFileParser
+from xml.etree import ElementTree
 
 import feedparser
 from bs4 import BeautifulSoup
 
-from pipeline.normalize import clean_text
+from pipeline.models import safe_url
+from pipeline.normalize import clean_text, validate_cve_id
+
+
+def render_template(template, item, *, url=False):
+    values = {}
+    for _, field, spec, conversion in Formatter().parse(template):
+        if field is None:
+            continue
+        if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", field) or spec or conversion:
+            raise ValueError("Only simple template fields are accepted")
+        value = item.get(field)
+        if value is None or not isinstance(value, (str, int, float, bool)):
+            raise ValueError("Missing or non-scalar template field")
+        if url and str(value) in (".", ".."):
+            raise ValueError("URL dot segments are forbidden")
+        values[field] = quote(str(value), safe="") if url else str(value)
+    return template.format(**values)
+
+
+def template_url(template, item, source):
+    if not source.template_url_origin:
+        raise ValueError("URL template origin is required")
+    origin = urlsplit(safe_url(source.template_url_origin))
+    # A replacement field can never participate in the origin, even if its
+    # current value happens to be the expected host. Recheck at runtime too.
+    literal = urlsplit(template)
+    if (origin.hostname not in source.allowed_hosts or origin.path not in ("", "/")
+            or origin.query or origin.fragment
+            or literal.scheme != "https" or literal.netloc != origin.netloc):
+        raise ValueError("URL template origin mismatch")
+    result = render_template(template, item, url=True)
+    parts = urlsplit(safe_url(result))
+    if (parts.scheme, parts.netloc) != (origin.scheme, origin.netloc):
+        raise ValueError("URL template changed origin")
+    return result
 
 
 class SourceAdapter(Protocol):
@@ -24,12 +61,33 @@ class RSSAdapter:
         # reject declarations before parsing, including UTF-16/32 ASCII markup.
         if re.search(br"<!\s*(?:DOCTYPE|ENTITY)\b", data.replace(b"\x00", b""), re.I):
             raise ValueError("RSS DTD and entity declarations are not permitted")
+        # Bound expensive feedparser work, not just the returned list. The
+        # byte ceiling still bounds XML parsing; malformed/legacy feeds retain
+        # feedparser's established recovery behavior. Never expand a DTD.
+        try:
+            root = ElementTree.fromstring(data)  # noqa: S314 - DTD/entities rejected above
+            changed = False
+            for parent in (root, *(child for child in root if child.tag.rsplit("}", 1)[-1] == "channel")):
+                entries = [child for child in parent if child.tag.rsplit("}", 1)[-1] in ("item", "entry")]
+                if len(entries) > source.fetch_policy.max_items:
+                    retained = set(entries[:source.fetch_policy.max_items])
+                    parent[:] = [child for child in parent
+                                 if child.tag.rsplit("}", 1)[-1] not in ("item", "entry") or child in retained]
+                    changed = True
+            if changed:
+                data = ElementTree.tostring(root, encoding="utf-8")
+        except ElementTree.ParseError:
+            pass
         parsed = feedparser.parse(data)
         if parsed.bozo and not parsed.entries:
             raise ValueError("Malformed or empty feed response")
         return [{"url": entry.link, "title": entry.title, "text": entry.get("summary", ""),
                  "published_at": entry.get("published") or entry.get("updated"), "external_id": entry.get("id"),
                  "author": entry.get("author"), "language": parsed.feed.get("language", "en"),
+                 "canonical_urls": [link.get("href", "") for link in entry.get("links", [])
+                                    if link.get("rel") == "canonical"],
+                 "rights": entry.get("rights"), "license": entry.get("license") or next(
+                     (link.get("href") for link in entry.get("links", []) if link.get("rel") == "license"), None),
                  "tags": [tag.get("term", "") for tag in entry.get("tags", [])]}
                 for entry in parsed.entries[:source.fetch_policy.max_items] if entry.get("link") and entry.get("title")]
 
@@ -81,7 +139,26 @@ class JSONAdapter:
         if not isinstance(payload, list):
             raise ValueError("JSON adapter item path must resolve to an array")
         fields = {"url": "url", "title": "title", "text": "summary", "published_at": "published_at", **source.field_map}
-        return [{field: item.get(key) for field, key in fields.items()} for item in payload[:source.fetch_policy.max_items]]
+        items = []
+        for item in payload[:source.fetch_policy.max_items]:
+            if not isinstance(item, dict):
+                items.append({"_validation_error": "JSON item must be an object"})
+                continue
+            mapped = {field: item.get(key) for field, key in fields.items()}
+            if source.identifier_format == "cve":
+                try:
+                    validate_cve_id(mapped.get("external_id"))
+                except ValueError:
+                    mapped["_validation_error"] = "Invalid CVE identifier"
+            for field, template in source.field_templates.items():
+                try:
+                    if field == "url" and mapped.get("_validation_error"):
+                        raise ValueError("Invalid identifier cannot form a URL")
+                    mapped[field] = template_url(template, item, source) if field == "url" else render_template(template, item)
+                except (KeyError, IndexError, ValueError, TypeError):
+                    mapped[field] = None
+            items.append(mapped)
+        return items
 
 
 class GitHubDocumentAdapter:

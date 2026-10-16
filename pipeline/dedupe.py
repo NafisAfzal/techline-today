@@ -28,7 +28,8 @@ def deduplicate(items):
     for item in sorted(items, key=lambda item: (item.source_class != "primary", -item.fetched_at.timestamp(), item.id, item.content_hash)):
         identity = item.canonical_url
         external = (item.source_registry_id, item.external_id) if item.external_id else identity
-        title = (item.source_independence_group, " ".join(re.findall(r"\w+", item.title.lower())), item.published_at.date().isoformat())
+        evidence_date = item.advisory.catalog_added_on if item.advisory else item.published_at.date()
+        title = (item.source_independence_group, " ".join(re.findall(r"\w+", item.title.lower())), evidence_date.isoformat())
         if identity in keys or external in keys or title in keys:
             continue
         keys.update((identity, external, title))
