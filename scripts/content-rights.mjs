@@ -8,6 +8,9 @@ export function contentRightsErrors(snapshot, policy = rights) {
   const errors = [];
   if (snapshot.mode !== 'live') return ['Publication requires live content.'];
   for (const source of Object.values(snapshot.sources || {})) {
+    // Local observation provenance has no trusted publication attestation.
+    // Legacy public SourceItem records retain their established schema/policy.
+    if (source.internal_only === true || Object.hasOwn(source, 'provenance')) errors.push('Local-only provenance evidence is present.');
     if (source.is_demo || policy[source.source_registry_id]?.publication !== 'allow') errors.push('Excluded or synthetic source evidence is present.');
     if (source.rights_review != null || source.advisory != null || source.editorial_kind === 'security-advisory') errors.push('Local-only review/advisory evidence is present.');
   }
@@ -32,6 +35,7 @@ export function verifyContentRights(root = 'apps/web/dist') {
       const payload = JSON.parse(fs.readFileSync(file, 'utf8'));
       const visit = value => {
         if (!value || typeof value !== 'object') return;
+        if (value.internal_only === true || Object.hasOwn(value, 'provenance')) errors.push('Build JSON contains local-only provenance evidence.');
         if (value.is_demo === true || (value.source_registry_id && rights[value.source_registry_id]?.publication !== 'allow')) errors.push('Build JSON contains excluded or synthetic evidence.');
         if (value.rights_review != null || value.advisory != null || value.editorial_kind === 'security-advisory') errors.push('Build JSON contains local-only review/advisory evidence.');
         Object.values(value).forEach(visit);

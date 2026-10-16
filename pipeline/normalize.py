@@ -12,6 +12,10 @@ from pipeline.rights import INCOMPATIBLE_RIGHTS_MARKERS, assess_rights
 TRACKING = {"fbclid", "gclid", "mc_cid", "mc_eid", "ref", "ref_src", "utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content"}
 
 
+class RightsRejection(ValueError):
+    """Collection succeeded, but the explicit per-item rights guard denied reuse."""
+
+
 def release_text(markdown: str) -> str:
     """Keep release prose, never render Markdown or expose raw tracking/link syntax."""
     text = re.sub(r"!\[[^\]\n]*\]\([^\s)]*\)", "", markdown)
@@ -160,7 +164,7 @@ def normalize(raw: dict, source, now: datetime) -> SourceItem:
     rights_review = assess_rights(raw, source, canonical, corpus) if source.rights_review_required else None
     if getattr(source, "rights_guard", False):
         if rights_review is None and any(marker in corpus.lower() for marker in INCOMPATIBLE_RIGHTS_MARKERS):
-            raise ValueError("Incompatible per-item rights marker; item quarantined")
+            raise RightsRejection("Incompatible per-item rights marker; item quarantined")
     item_id = "src_" + hashlib.sha256((source.id + canonical).encode()).hexdigest()[:20]
     return SourceItem(
         id=item_id, source_registry_id=source.id, canonical_url=canonical, original_url=original,

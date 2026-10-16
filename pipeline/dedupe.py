@@ -1,4 +1,5 @@
 import hashlib
+import json
 import math
 import re
 from collections import Counter
@@ -25,7 +26,9 @@ def cosine(left: set[str], right: set[str], idf: dict[str, float]) -> float:
 def deduplicate(items):
     unique = []
     keys = set()
-    for item in sorted(items, key=lambda item: (item.source_class != "primary", -item.fetched_at.timestamp(), item.id, item.content_hash)):
+    for item in sorted(items, key=lambda item: (
+            item.source_class != "primary", -item.fetched_at.timestamp(), item.id, item.content_hash,
+            json.dumps(item.model_dump(mode="json"), sort_keys=True, ensure_ascii=False))):
         identity = item.canonical_url
         external = (item.source_registry_id, item.external_id) if item.external_id else identity
         evidence_date = item.advisory.catalog_added_on if item.advisory else item.published_at.date()
