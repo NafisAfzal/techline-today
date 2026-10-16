@@ -2,8 +2,8 @@
 
 import hashlib
 import json
+import shutil
 from datetime import timedelta
-from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
 import httpx
@@ -20,6 +20,16 @@ from pipeline.tests.test_pilot_sources import KEV_ITEMS, fetch_with, kev_source,
 def post(**changes):
     return {"url": "https://kubernetes.io/blog/test/", "title": "A Kubernetes engineering update",
             "text": "A factual engineering update.", "published_at": "2026-10-02T10:00:00Z", **changes}
+
+
+@pytest.fixture
+async def synthetic_snapshot(tmp_path, monkeypatch, now):
+    # Clean checkouts do not contain the ignored owner snapshot. Build a valid
+    # synthetic edition with the existing pipeline, isolated from owner data.
+    for folder in ("config", "prompts"):
+        shutil.copytree(runner.ROOT / folder, tmp_path / folder)
+    monkeypatch.setattr(runner, "ROOT", tmp_path)
+    return await runner.run("fixture", tmp_path / "content/generated/snapshot.json", now)
 
 
 @pytest.mark.parametrize(("changes", "reason"), [
@@ -208,8 +218,8 @@ def test_bare_dates_remain_unknown_publication_times(now, value):
     assert parse_date(value, now)[1] is True
 
 
-def test_public_snapshot_cannot_contain_local_review_or_advisory(now):
-    canonical = json.loads(Path("content/generated/snapshot.json").read_text(encoding="utf-8"))
+def test_public_snapshot_cannot_contain_local_review_or_advisory(now, synthetic_snapshot):
+    canonical = synthetic_snapshot.model_dump(mode="json")
     review = normalize(post(), kubernetes_source(), now)
     canonical["sources"][review.id] = review.model_dump(mode="json")
     with pytest.raises(ValueError, match="Local-only"):
@@ -275,7 +285,7 @@ async def test_cached_review_and_advisory_cannot_reenter_collection(now, monkeyp
         assert report["sources"][0]["status"] == "unchanged"
 
 
-async def test_kev_collection_remains_local_and_cannot_enter_snapshot(now, tmp_path):
+async def test_kev_collection_remains_local_and_cannot_enter_snapshot(now, tmp_path, synthetic_snapshot):
     source = kev_source(enabled=True)
     async with httpx.AsyncClient(transport=httpx.MockTransport(lambda request: httpx.Response(
             200, json={"vulnerabilities": KEV_ITEMS}))) as client:
@@ -286,7 +296,7 @@ async def test_kev_collection_remains_local_and_cannot_enter_snapshot(now, tmp_p
     assert report["sources"][0]["advisory_items"] == 2
     raw = await fetch_with(lambda request: httpx.Response(200, json={"vulnerabilities": KEV_ITEMS}), source)
     item = normalize(raw[0], source, now)
-    canonical = json.loads(Path("content/generated/snapshot.json").read_text(encoding="utf-8"))
+    canonical = synthetic_snapshot.model_dump(mode="json")
     canonical["sources"][item.id] = item.model_dump(mode="json")
     with pytest.raises(ValueError, match="Local-only"):
         Snapshot.model_validate(canonical)
