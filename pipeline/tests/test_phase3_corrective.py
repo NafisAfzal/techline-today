@@ -10,6 +10,7 @@ import pytest
 
 from pipeline import pilot_staging as staging
 from pipeline import review_governance as governance
+from pipeline import runner
 from pipeline.adapters import ADAPTERS
 from pipeline.dedupe import deduplicate
 from pipeline.models import Snapshot, SourceItem, SourceRegistry
@@ -329,8 +330,26 @@ def test_dedupe_ties_choose_same_payload(now):
     assert a[0].model_dump() == b[0].model_dump()
 
 
-def test_canonical_live_edition_compatibility():
-    data = json.loads((ROOT / "content/generated/snapshot.json").read_text(encoding="utf-8"))
+async def test_canonical_live_edition_compatibility(tmp_path, monkeypatch, now):
+    # Owner snapshots are ignored and absent from clean checkouts. Exercise the
+    # same legacy live schema with isolated synthetic data, never owner content.
+    for folder in ("config", "prompts"):
+        shutil.copytree(ROOT / folder, tmp_path / folder)
+    monkeypatch.setattr(runner, "ROOT", tmp_path)
+    path = tmp_path / "content/generated/snapshot.json"
+    fixture = await runner.run("fixture", path, now)
+    payload = fixture.model_dump(mode="json")
+    payload["mode"] = "live"
+    template = payload["stories"][0]
+    payload["stories"].extend({**template, "id": f"story_legacy_{index}", "slug": f"legacy-{index}"}
+                              for index in range(37 - len(payload["stories"])))
+    for story in payload["stories"]:
+        story["is_demo"] = False
+        story["translations"] = {}
+    for record in [*payload["sources"].values(), *payload["offers"], *payload["model_releases"]]:
+        record["is_demo"] = False
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    data = json.loads(path.read_text(encoding="utf-8"))
     snapshot = Snapshot.model_validate(data)
     assert snapshot.mode == "live" and len(snapshot.stories) == 37
     assert all(not item.is_demo for item in snapshot.sources.values())
