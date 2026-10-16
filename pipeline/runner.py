@@ -28,6 +28,7 @@ from pipeline.models import (
 )
 from pipeline.normalize import discovery_relevant, normalize
 from pipeline.ranking import novelty, rank
+from pipeline.rights import merge_review_queue, review_record
 from pipeline.security import SafeFetcher, public_transport
 from pipeline.storage import atomic_json, compact, read_json, validate_snapshot, write_schemas
 from pipeline.translation import translate_stories
@@ -53,8 +54,13 @@ def is_model_announcement(headline):
                 and re.search(r"\b(model|llm|weights)\b", headline, re.I))
 
 
-async def collect(registry, fetcher, now, previous_items, report, since):
+async def collect(registry, fetcher, now, previous_items, report, since, *, review_queue=None):
+    local_only = {source.id for source in registry
+                  if source.rights_review_required or source.editorial_kind == "security-advisory"}
+    previous_items = [item for item in previous_items
+                      if item.publication_eligible and item.source_registry_id not in local_only]
     previous_ids = {item.id for item in previous_items}
+    reviews = []
     async def fetch_one(source):
         result = {"id": source.id, "status": "failed", "items": 0}
         try:
@@ -68,6 +74,13 @@ async def collect(registry, fetcher, now, previous_items, report, since):
             for item in raw:
                 try:
                     normalized = normalize(item, source, now)
+                    if normalized.rights_review is not None:
+                        reviews.append(review_record(normalized))
+                        result["rights_quarantined"] = result.get("rights_quarantined", 0) + 1
+                        continue
+                    if not normalized.publication_eligible:
+                        result["advisory_items"] = result.get("advisory_items", 0) + 1
+                        continue
                     if not discovery_relevant(normalized.title, normalized.excerpt, source.discovery_keywords):
                         result["filtered_items"] = result.get("filtered_items", 0) + 1
                         continue
@@ -93,6 +106,8 @@ async def collect(registry, fetcher, now, previous_items, report, since):
 
     results = await asyncio.gather(*(fetch_one(source) for source in registry if source.enabled))
     report["sources"] = [status for _, status in results]
+    if reviews:
+        merge_review_queue(review_queue or ROOT / ".cache/rights-review.json", reviews)
     if not results or not any(status["status"] in ("success", "unchanged") for _, status in results):
         raise ValueError("All configured sources failed; previous snapshot preserved")
     return [item for items, _ in results for item in items]
@@ -125,13 +140,17 @@ async def run(mode, output, now=None):
     old_items = [SourceItem.model_validate(item) for item in state["items"]] if mode == "live" else []
     registry = SourceRegistry.model_validate(config("sources")).sources
     active_registry = {source.id for source in registry if source.enabled}
+    local_only_registry = {source.id for source in registry
+                           if source.rights_review_required or source.editorial_kind == "security-advisory"}
     if mode == "live":
         # Disabling a feed also excludes retained evidence and summaries that
         # cite it. Never reuse mixed-source wording through a surviving citation.
-        old_items = [item for item in old_items if item.source_registry_id in active_registry]
+        old_items = [item for item in old_items if item.source_registry_id in active_registry - local_only_registry
+                     and item.publication_eligible]
         state["fetch"] = {key: value for key, value in state["fetch"].items() if key.split("|", 1)[0] in active_registry}
         if previous:
-            eligible = {key: item for key, item in previous.sources.items() if item.source_registry_id in active_registry}
+            eligible = {key: item for key, item in previous.sources.items()
+                        if item.source_registry_id in active_registry - local_only_registry and item.publication_eligible}
             previous = previous.model_copy(update={"sources": eligible, "stories": [story for story in previous.stories
                 if set(story.source_ids) | {key for change in story.change_log for key in change.source_ids}
                 | {key for change in story.change_log for fact in change.previous_facts for key in fact.source_ids} <= eligible.keys()]})

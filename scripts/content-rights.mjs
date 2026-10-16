@@ -9,6 +9,7 @@ export function contentRightsErrors(snapshot, policy = rights) {
   if (snapshot.mode !== 'live') return ['Publication requires live content.'];
   for (const source of Object.values(snapshot.sources || {})) {
     if (source.is_demo || policy[source.source_registry_id]?.publication !== 'allow') errors.push('Excluded or synthetic source evidence is present.');
+    if (source.rights_review != null || source.advisory != null || source.editorial_kind === 'security-advisory') errors.push('Local-only review/advisory evidence is present.');
   }
   for (const story of snapshot.stories || []) {
     if (story.is_demo || story.translations?.bn?.review_status === 'fixture-reviewed') errors.push('Synthetic story/translation is present.');
@@ -32,6 +33,7 @@ export function verifyContentRights(root = 'apps/web/dist') {
       const visit = value => {
         if (!value || typeof value !== 'object') return;
         if (value.is_demo === true || (value.source_registry_id && rights[value.source_registry_id]?.publication !== 'allow')) errors.push('Build JSON contains excluded or synthetic evidence.');
+        if (value.rights_review != null || value.advisory != null || value.editorial_kind === 'security-advisory') errors.push('Build JSON contains local-only review/advisory evidence.');
         Object.values(value).forEach(visit);
       };
       visit(payload);

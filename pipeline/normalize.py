@@ -6,7 +6,8 @@ from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from bs4 import BeautifulSoup
 
-from pipeline.models import SourceItem, safe_url
+from pipeline.models import SecurityAdvisoryDates, SourceItem, safe_url
+from pipeline.rights import INCOMPATIBLE_RIGHTS_MARKERS, assess_rights
 
 TRACKING = {"fbclid", "gclid", "mc_cid", "mc_eid", "ref", "ref_src", "utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content"}
 
@@ -67,6 +68,7 @@ def discovery_relevant(title: str, excerpt: str, keywords: list[str]) -> bool:
 
 
 def parse_date(value, now: datetime) -> tuple[datetime, bool]:
+    day_granular = isinstance(value, str) and re.fullmatch(r"\d{4}-\d{2}-\d{2}", value.strip()) is not None
     if isinstance(value, (int, float)):
         try:
             result = datetime.fromtimestamp(value, UTC)
@@ -86,6 +88,11 @@ def parse_date(value, now: datetime) -> tuple[datetime, bool]:
         result = result.replace(tzinfo=UTC)
     if result > now + timedelta(minutes=10) or result.year < 1990:
         return now, True
+    # A bare calendar date carries no clock time. Keep midnight UTC as the
+    # sortable placeholder but flag it: coverage treats flagged items as
+    # ineligible for current-news, so no exact time is ever invented.
+    if day_granular:
+        return result.astimezone(UTC), True
     return result.astimezone(UTC), False
 
 
@@ -113,7 +120,20 @@ def classify(title: str, text: str, defaults: list[str]) -> str:
     return next((category for category, pattern in body_rules if re.search(pattern, corpus)), defaults[0])
 
 
+def validate_cve_id(value):
+    # CVE Program syntax: four ASCII year digits; four sequence digits, or
+    # more with no leading zero. This validates syntax, not assignment/existence.
+    # https://www.cve.org/Resources/Media/Archives/OldWebsite/cve/identifiers/syntaxchange.html
+    if not isinstance(value, str) or not re.fullmatch(r"CVE-[0-9]{4}-(?:[0-9]{4}|[1-9][0-9]{4,})", value):
+        raise ValueError("Invalid CVE identifier")
+    return value
+
+
 def normalize(raw: dict, source, now: datetime) -> SourceItem:
+    if source.identifier_format == "cve":
+        validate_cve_id(raw.get("external_id"))
+    if raw.get("_validation_error"):
+        raise ValueError(raw["_validation_error"])
     if not raw.get("url") or not raw.get("title"):
         raise ValueError("Source URL and title are required")
     original = str(raw["url"])
@@ -121,9 +141,26 @@ def normalize(raw: dict, source, now: datetime) -> SourceItem:
     title = clean_text(str(raw["title"]), 180)
     if len(title) < 10:
         title = f"{source.name}: {title}"
-    body = str(raw.get("text", ""))
+    body = str(raw.get("text") or "")
+    if source.editorial_kind == "security-advisory" and raw.get("required_action"):
+        body += " Required action: " + str(raw["required_action"])
     excerpt = clean_text(release_text(body) if source.adapter == "github_releases" else body, 600)
-    published, missing = parse_date(raw.get("published_at"), now)
+    advisory = None
+    if source.editorial_kind == "security-advisory":
+        advisory = SecurityAdvisoryDates(catalog_added_on=raw.get("catalog_added_on", raw.get("published_at")),
+                                         remediation_due_on=raw.get("remediation_due_on"))
+        published, missing = None, True
+    else:
+        published, missing = parse_date(raw.get("published_at"), now)
+    # Inspect full transient prose and origin fields, before excerpt truncation.
+    corpus = ""
+    if source.rights_guard or source.rights_review_required:
+        corpus = clean_text(" ".join(str(raw.get(key) or "") for key in ("title", "text", "required_action", "author", "rights", "license")),
+                            source.fetch_policy.max_response_bytes)
+    rights_review = assess_rights(raw, source, canonical, corpus) if source.rights_review_required else None
+    if getattr(source, "rights_guard", False):
+        if rights_review is None and any(marker in corpus.lower() for marker in INCOMPATIBLE_RIGHTS_MARKERS):
+            raise ValueError("Incompatible per-item rights marker; item quarantined")
     item_id = "src_" + hashlib.sha256((source.id + canonical).encode()).hexdigest()[:20]
     return SourceItem(
         id=item_id, source_registry_id=source.id, canonical_url=canonical, original_url=original,
@@ -133,8 +170,9 @@ def normalize(raw: dict, source, now: datetime) -> SourceItem:
         source_class=source.source_class, source_independence_group=source.independence_group,
         language=raw.get("language", "en"), content_hash=hashlib.sha256((title + excerpt).encode()).hexdigest(),
         excerpt=excerpt, external_id=str(raw["external_id"]) if raw.get("external_id") else None,
-        category=raw.get("category") or classify(title, excerpt, source.categories),
+        category="security" if advisory else raw.get("category") or classify(title, excerpt, source.categories),
         tags=[clean_text(str(tag), 60) for tag in raw.get("tags", [])][:8],
         community_score=max(0, int(raw.get("score", 0))), missing_publication_time=missing,
         is_demo=raw.get("is_demo", False),
+        rights_review=rights_review, editorial_kind=source.editorial_kind, advisory=advisory,
     )

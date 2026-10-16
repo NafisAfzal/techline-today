@@ -1,5 +1,5 @@
 import re
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from ipaddress import ip_address
 from typing import Literal
 from urllib.parse import urlsplit
@@ -80,6 +80,17 @@ class SourceConfig(Contract):
     repositories: list[str] = Field(default_factory=list)
     item_path: str = "items"
     field_map: dict[str, str] = Field(default_factory=dict)
+    # Optional per-field format templates applied to the raw JSON item, e.g.
+    # {"url": "https://example.com/catalog?q={cveID}"}. A field whose
+    # template references a missing key resolves to None and is quarantined
+    # downstream. URL templates require a separately pinned origin.
+    field_templates: dict[str, str] = Field(default_factory=dict)
+    template_url_origin: str | None = None
+    identifier_format: Literal["cve"] | None = None
+    editorial_kind: Literal["news", "security-advisory"] = "news"
+    # Manual origin review is independent of lexical reservation screening.
+    rights_review_required: bool = False
+    rights_guard: bool = False
     html_selector: str = "main"
     html_permission: bool = False
     query_groups: list[str] = Field(default_factory=list)
@@ -95,6 +106,16 @@ class SourceConfig(Contract):
             safe_url(self.document_url)
         if urlsplit(self.endpoint).hostname not in self.allowed_hosts:
             raise ValueError("Endpoint must be allowlisted")
+        if "url" in self.field_templates and not self.template_url_origin:
+            raise ValueError("URL templates require an explicit origin")
+        if self.template_url_origin:
+            safe_url(self.template_url_origin)
+            origin = urlsplit(self.template_url_origin)
+            if (origin.hostname not in self.allowed_hosts or origin.path not in ("", "/")
+                    or origin.query or origin.fragment):
+                raise ValueError("Template origin must be an allowlisted HTTPS origin")
+        if self.editorial_kind == "security-advisory" and self.identifier_format != "cve":
+            raise ValueError("Security advisory sources require CVE identifiers")
         if self.enabled and not self.verified_at:
             raise ValueError("Enabled sources require verification date")
         if self.adapter == "html" and self.enabled and not self.html_permission:
@@ -115,6 +136,43 @@ class SourceRegistry(Contract):
         return self
 
 
+class RightsReview(Contract):
+    # There is deliberately no approval state or decision loader in this wave.
+    state: Literal["REVIEW_REQUIRED", "REJECTED"]
+    reasons: list[str] = Field(min_length=1)
+    origin_signals: list[str] = Field(default_factory=list)
+    evidence_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+    canonical_evidence_urls: list[str] = Field(default_factory=list)
+    invalid_canonical_sha256: list[str] = Field(default_factory=list)
+
+    @field_validator("canonical_evidence_urls")
+    @classmethod
+    def urls(cls, value):
+        return [safe_url(url) for url in value]
+
+
+class SecurityAdvisoryDates(Contract):
+    catalog_added_on: date
+    remediation_due_on: date | None = None
+
+    @field_validator("catalog_added_on", "remediation_due_on", mode="before")
+    @classmethod
+    def date_only(cls, value):
+        if value is None or type(value) is date:
+            return value
+        if not isinstance(value, str) or not re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}", value):
+            raise ValueError("Advisory date must be a date-only YYYY-MM-DD value")
+        try:
+            return date.fromisoformat(value)
+        except ValueError as error:
+            raise ValueError("Invalid advisory date") from error
+
+    def presentation(self):
+        return {"catalog_added": f"Added to the CISA KEV catalog on {self.catalog_added_on.isoformat()}",
+                "remediation_due": (f"CISA remediation due date: {self.remediation_due_on.isoformat()}"
+                                    if self.remediation_due_on else None)}
+
+
 class SourceItem(Contract):
     id: str
     source_registry_id: str
@@ -124,7 +182,8 @@ class SourceItem(Contract):
     publisher: str
     title: str = Field(min_length=5, max_length=180)
     author: str | None = None
-    published_at: datetime
+    # Local advisories have dates, never a fabricated publication timestamp.
+    published_at: datetime | None
     fetched_at: datetime
     source_type: str
     source_class: SourceClass
@@ -140,15 +199,34 @@ class SourceItem(Contract):
     community_score: int = Field(default=0, ge=0)
     missing_publication_time: bool = False
     is_demo: bool = False
+    rights_review: RightsReview | None = None
+    editorial_kind: Literal["news", "security-advisory"] = "news"
+    advisory: SecurityAdvisoryDates | None = None
 
     _urls = field_validator("canonical_url", "original_url")(safe_url)
 
     @field_validator("published_at", "fetched_at")
     @classmethod
     def aware(cls, value):
+        if value is None:
+            return value
         if value.tzinfo is None:
             raise ValueError("Timezone-aware timestamp required")
         return value.astimezone(UTC)
+
+    @model_validator(mode="after")
+    def publication_contract(self):
+        if self.editorial_kind == "security-advisory":
+            if not self.advisory or self.published_at is not None or not self.missing_publication_time:
+                raise ValueError("Advisory dates cannot be publication timestamps")
+        elif self.published_at is None or self.advisory is not None:
+            raise ValueError("News evidence requires a publication timestamp")
+        return self
+
+    @property
+    def publication_eligible(self):
+        # Item-level eligibility only; source rights and editorial gates still apply.
+        return self.rights_review is None and self.editorial_kind == "news"
 
 
 class Fact(Contract):
@@ -346,6 +424,8 @@ class Snapshot(Contract):
     @model_validator(mode="after")
     def relationships(self):
         from pipeline.verification import numeric_tokens, offer_status, validate_story
+        if any(not source.publication_eligible for source in self.sources.values()):
+            raise ValueError("Local-only review/advisory evidence cannot enter a published snapshot")
         ids = {story.id for story in self.stories}
         if any(key != source.id for key, source in self.sources.items()):
             raise ValueError("Source map identity mismatch")

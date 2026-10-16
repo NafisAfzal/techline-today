@@ -95,6 +95,49 @@ sources:
     terms_url: https://github.com/HackerNews/API
     verified_at: '2026-10-03'
     fetch_policy: {max_items: 25, min_interval_seconds: 0.15}
+  # Phase 2 pilot (local validation only; disabled until owner allow).
+  # Kubernetes origin/rights are not established per item by this RSS feed.
+  # Every item requires local manual review; no approvals are loaded.
+  - id: kubernetes
+    name: Kubernetes Blog
+    adapter: rss
+    source_class: primary
+    enabled: false
+    endpoint: https://kubernetes.io/feed.xml
+    allowed_hosts: [kubernetes.io]
+    categories: [open-source, dev-apis]
+    independence_group: kubernetes
+    terms_url: https://github.com/kubernetes/website
+    verified_at: '2026-10-16'
+    rights_guard: true
+    rights_review_required: true
+    fetch_policy: {max_items: 20, min_interval_seconds: 1}
+  # CISA KEV: explicit database CC0 grant recorded by independent audit.
+  # Local advisory intelligence only: catalog-addition date and remediation
+  # deadline are dates, never publication timestamps or breaking news.
+  - id: cisa_kev
+    name: CISA Known Exploited Vulnerabilities
+    adapter: json_api
+    source_class: primary
+    enabled: false
+    endpoint: https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json
+    allowed_hosts: [www.cisa.gov]
+    categories: [security]
+    independence_group: cisa
+    terms_url: https://www.cisa.gov/terms-use
+    verified_at: '2026-10-16'
+    item_path: vulnerabilities
+    identifier_format: cve
+    editorial_kind: security-advisory
+    template_url_origin: https://www.cisa.gov
+    field_map: {catalog_added_on: dateAdded, remediation_due_on: dueDate, required_action: requiredAction, external_id: cveID}
+    field_templates: {
+      url: 'https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext={cveID}',
+      title: '{cveID}: {vulnerabilityName} ({vendorProject})',
+      text: '{shortDescription}'
+    }
+    rights_guard: true
+    fetch_policy: {max_items: 30, min_interval_seconds: 2}
   - id: json_api_example
     name: Owner-approved JSON API
     adapter: json_api
