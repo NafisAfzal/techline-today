@@ -1,6 +1,10 @@
 import base64
+import hashlib
+import heapq
 import json
 import re
+from datetime import UTC, datetime
+from email.utils import parsedate_to_datetime
 from string import Formatter
 from typing import Protocol
 from urllib.parse import quote, urlencode, urlsplit
@@ -52,6 +56,27 @@ class SourceAdapter(Protocol):
     async def fetch(self, source, fetcher) -> list[dict] | None: ...
 
 
+def selection_key(timestamp, identity, payload):
+    """Newest supplied date first, missing/malformed dates last, stable ties.
+
+    Selection covers only this bounded response, never unseen upstream pages.
+    Freshness and rights eligibility are still validated downstream.
+    """
+    try:
+        if isinstance(timestamp, (int, float)) and not isinstance(timestamp, bool):
+            parsed = datetime.fromtimestamp(timestamp, UTC)
+        else:
+            try:
+                parsed = datetime.fromisoformat(str(timestamp).replace("Z", "+00:00"))
+            except ValueError:
+                parsed = parsedate_to_datetime(str(timestamp))
+        parsed = parsed.replace(tzinfo=UTC) if parsed.tzinfo is None else parsed.astimezone(UTC)
+        stamp = parsed.timestamp() if parsed.year >= 1990 else float("-inf")
+    except (ValueError, TypeError, OverflowError, OSError):
+        stamp = float("-inf")
+    return -stamp, str(identity or ""), hashlib.sha256(payload).hexdigest()
+
+
 class RSSAdapter:
     async def fetch(self, source, fetcher):
         data = await fetcher.get(source.endpoint, source, accept=("application/rss+xml", "application/atom+xml", "application/xml", "text/xml", "text/plain"))
@@ -61,25 +86,33 @@ class RSSAdapter:
         # reject declarations before parsing, including UTF-16/32 ASCII markup.
         if re.search(br"<!\s*(?:DOCTYPE|ENTITY)\b", data.replace(b"\x00", b""), re.I):
             raise ValueError("RSS DTD and entity declarations are not permitted")
-        # Bound expensive feedparser work, not just the returned list. The
-        # byte ceiling still bounds XML parsing; malformed/legacy feeds retain
-        # feedparser's established recovery behavior. Never expand a DTD.
+        # Scan the byte-bounded XML tree cheaply before expensive feedparser
+        # work. Keep the newest max_items regardless of input order.
         try:
             root = ElementTree.fromstring(data)  # noqa: S314 - DTD/entities rejected above
             changed = False
             for parent in (root, *(child for child in root if child.tag.rsplit("}", 1)[-1] == "channel")):
                 entries = [child for child in parent if child.tag.rsplit("}", 1)[-1] in ("item", "entry")]
-                if len(entries) > source.fetch_policy.max_items:
-                    retained = set(entries[:source.fetch_policy.max_items])
+                if entries:
+                    def key(entry):
+                        fields = {child.tag.rsplit("}", 1)[-1]: child for child in entry}
+                        date = next((fields[name].text for name in ("pubDate", "published", "updated")
+                                     if name in fields), None)
+                        link = fields.get("link")
+                        identity = (link.get("href") or link.text) if link is not None else None
+                        return selection_key(date, identity, ElementTree.tostring(entry, encoding="utf-8"))
+                    retained = heapq.nsmallest(source.fetch_policy.max_items, entries, key=key)
                     parent[:] = [child for child in parent
-                                 if child.tag.rsplit("}", 1)[-1] not in ("item", "entry") or child in retained]
+                                 if child.tag.rsplit("}", 1)[-1] not in ("item", "entry")] + retained
                     changed = True
             if changed:
                 data = ElementTree.tostring(root, encoding="utf-8")
-        except ElementTree.ParseError:
-            pass
+        except ElementTree.ParseError as error:
+            # Partial parser recovery cannot turn corrupt XML into empty or
+            # apparently complete successful collection.
+            raise ValueError("Malformed feed XML") from error
         parsed = feedparser.parse(data)
-        if parsed.bozo and not parsed.entries:
+        if parsed.bozo:
             raise ValueError("Malformed or empty feed response")
         return [{"url": entry.link, "title": entry.title, "text": entry.get("summary", ""),
                  "published_at": entry.get("published") or entry.get("updated"), "external_id": entry.get("id"),
@@ -140,7 +173,7 @@ class JSONAdapter:
             raise ValueError("JSON adapter item path must resolve to an array")
         fields = {"url": "url", "title": "title", "text": "summary", "published_at": "published_at", **source.field_map}
         items = []
-        for item in payload[:source.fetch_policy.max_items]:
+        for item in payload:
             if not isinstance(item, dict):
                 items.append({"_validation_error": "JSON item must be an object"})
                 continue
@@ -158,7 +191,9 @@ class JSONAdapter:
                 except (KeyError, IndexError, ValueError, TypeError):
                     mapped[field] = None
             items.append(mapped)
-        return items
+        return heapq.nsmallest(source.fetch_policy.max_items, items, key=lambda item: selection_key(
+            item.get("catalog_added_on") if source.editorial_kind == "security-advisory" else item.get("published_at"),
+            item.get("url"), json.dumps(item, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode()))
 
 
 class GitHubDocumentAdapter:
