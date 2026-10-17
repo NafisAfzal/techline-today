@@ -8,6 +8,8 @@ import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
 
+from pipeline.filesystem import confined_file
+from pipeline.generation import assert_stable, writer
 from pipeline.models import Snapshot
 
 FILES = {
@@ -24,10 +26,7 @@ def allowed(name):
 def safe_file(root, name):
     if not allowed(name):
         raise ValueError("Backup contains a non-allowlisted path")
-    target = root / name
-    if not target.resolve().is_relative_to(root.resolve()) or any(part.is_symlink() for part in [target, *target.parents] if part != root.parent):
-        raise ValueError("Backup symlinks/path traversal are forbidden")
-    return target
+    return confined_file(root, name)
 
 
 def live_snapshot(payload):
@@ -67,7 +66,13 @@ def validate_archives(directory, snapshot, names):
 
 
 def export_backup(root, destination):
-    root, destination = Path(root).resolve(), Path(destination).resolve()
+    with writer(root):
+        assert_stable(root)
+        return export_stable_backup(root, destination)
+
+
+def export_stable_backup(root, destination):
+    root, destination = Path(root).absolute(), Path(destination).absolute()
     if destination.exists():
         raise ValueError("Use a new backup directory")
     snapshot = live_snapshot(safe_file(root, "content/generated/snapshot.json").read_bytes())
@@ -98,8 +103,8 @@ def export_backup(root, destination):
 
 
 def verify_backup(directory):
-    directory = Path(directory).resolve()
-    manifest = json.loads((directory / "manifest.json").read_text(encoding="utf-8"))
+    directory = Path(directory).absolute()
+    manifest = json.loads(confined_file(directory, "manifest.json").read_text(encoding="utf-8"))
     if manifest.get("version") != 1 or manifest.get("mode") != "live" or not 1 <= len(manifest.get("files", [])) <= 1000:
         raise ValueError("Unsupported/empty backup manifest")
     names = set()
@@ -125,7 +130,7 @@ def verify_backup(directory):
 
 
 def restore_backup(directory, destination):
-    directory, destination = Path(directory).resolve(), Path(destination).resolve()
+    directory, destination = Path(directory).absolute(), Path(destination).absolute()
     manifest = verify_backup(directory)
     if destination.exists() and any(destination.iterdir()):
         raise ValueError("Restore requires an empty destination; existing data is never overwritten")

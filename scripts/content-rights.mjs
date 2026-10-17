@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 import { pathToFileURL } from 'node:url';
+import { assertGenerationStable } from './generation-state.mjs';
 
 export const rights = JSON.parse(fs.readFileSync(new URL('../config/source-rights.json', import.meta.url), 'utf8')).sources;
 export function contentRightsErrors(snapshot, policy = rights) {
@@ -23,6 +24,7 @@ export function contentRightsErrors(snapshot, policy = rights) {
 }
 
 export function verifyContentRights(root = 'apps/web/dist') {
+  assertGenerationStable();
   const snapshot = JSON.parse(fs.readFileSync('content/generated/snapshot.json', 'utf8'));
   const errors = contentRightsErrors(snapshot);
   for (const entry of snapshot.archive_index) {

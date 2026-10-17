@@ -15,6 +15,11 @@ const snapshot = {mode:'live',stories:[story],sources:{one:source},
 const now = Date.parse('2026-10-16T12:00:00Z');
 
 describe('disabled local pilot isolation', () => {
+  it.each(['research_pytorch', 'research_nodejs', 'research_rust_releases', 'research_rust_blog'])('denies %s research observations even under a hypothetical source grant', registryId => {
+    const candidate = {...snapshot, sources: {one: {...source, source_registry_id: registryId,
+      editorial_kind: 'news', advisory: null, rights_review: {state: 'REVIEW_REQUIRED'}}}};
+    expect(contentRightsErrors(candidate, {[registryId]: {publication: 'allow'}}).join(' ')).toContain('Local-only');
+  });
   it('KEV date-only advisory does not satisfy current-news or the production gate', () => {
     expect(contentKind(story, snapshot.sources)).toBe('unclassified');
     expect(coverage(snapshot, now).currentNews).toEqual([]);

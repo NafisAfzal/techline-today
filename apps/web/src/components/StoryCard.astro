@@ -2,7 +2,7 @@
 import { localeFor, t, localizedPath, localizedStory, contentLanguage } from '../lib/i18n';
 import type { Story } from '../../../../packages/contracts';
 import { data, original, evidenceLabels, date } from '../lib/data';
-import { showSignificance, trustExplanation } from '../lib/trust';
+import { showSignificance, storyDate, trustExplanation } from '../lib/trust';
 import ContentIndicators from './ContentIndicators.astro';
 import { previewLine, readingSummary } from '../lib/editorial';
 import ExternalLink from './ExternalLink.astro';
@@ -10,6 +10,7 @@ import Headline from './Headline.astro';
 interface Props { story: Story; variant?: 'lead' | 'feed' }
 const {story: canonicalStory, variant = 'feed'} = Astro.props;
 const source = original(canonicalStory);
+const displayDate = storyDate(canonicalStory, source);
 const Heading = variant === 'lead' ? 'h2' : 'h3';
 const locale = localeFor(Astro.url.pathname);
 const ui = (key: string) => t(locale, key);
@@ -22,7 +23,7 @@ const leadPoints = readingSummary(story).filter(text => text !== previewLine(sto
 const previewNumbers = story.key_numbers.filter((_, index) => canonicalStory.key_numbers[index]?.label !== 'Source-reported');
 ---
 <article class={`story-card ${variant === 'lead' ? 'lead-card' : ''}`} data-variant={variant} data-story={story.id} data-category={story.category} data-published={story.published_at} data-importance={story.importance_score_internal} data-pagefind-ignore>
-  <div class="story-meta"><a class="category-tag" href={href(`/category/${story.category}/`)}>{ui(data.categories[story.category].label)}</a><a href={href("/about/#evidence")} title={ui(trustExplanation(canonicalStory, data.sources))} class={`evidence ${story.evidence_state}`}>{ui(evidenceLabels[story.evidence_state])}</a><ContentIndicators story={canonicalStory}/><time datetime={story.published_at}>{ui(source.missing_publication_time ? 'First collected' : 'Published')} {date(story.published_at, false, locale)}</time></div>
+  <div class="story-meta"><a class="category-tag" href={href(`/category/${story.category}/`)}>{ui(data.categories[story.category].label)}</a><a href={href("/about/#evidence")} title={ui(trustExplanation(canonicalStory, data.sources))} class={`evidence ${story.evidence_state}`}>{ui(evidenceLabels[story.evidence_state])}</a><ContentIndicators story={canonicalStory}/><time datetime={displayDate.value}>{ui(displayDate.label)} {date(displayDate.value, false, locale)}</time></div>
   <Heading lang={lang}><a href={href(`/story/${story.slug}/`)} data-astro-prefetch><Headline text={story.headline}/></a></Heading>
   <p class="story-summary" lang={lang}>{previewLine(story)}</p>
   {variant === 'lead' && source.excerpt && leadPoints.length > 0 && <ul class="lead-points" lang={lang}>{leadPoints.map(text => <li>{text}</li>)}</ul>}

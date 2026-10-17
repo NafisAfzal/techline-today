@@ -9,7 +9,7 @@
   },
   "scripts": {
     "dev": "pnpm --filter @intelligence/web dev",
-    "build": "node scripts/third-party-notices.mjs --check && pnpm --filter @intelligence/web build && node scripts/postbuild.mjs && pnpm exec pagefind --site apps/web/dist && node scripts/build-provenance.mjs",
+    "build": "node scripts/build.mjs",
     "notices:generate": "node scripts/third-party-notices.mjs",
     "preview": "node scripts/preview.mjs",
     "typecheck": "pnpm --filter @intelligence/web check",

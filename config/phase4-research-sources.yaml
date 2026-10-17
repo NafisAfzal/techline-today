@@ -1,0 +1,59 @@
+# Local diagnostics only. Not imported by the production runner.
+# Accessible endpoints and repository licenses do not authorize publication.
+version: 1
+sources:
+  - id: research_pytorch
+    name: PyTorch project releases
+    adapter: github_releases
+    source_class: primary
+    enabled: false
+    endpoint: https://api.github.com
+    allowed_hosts: [api.github.com]
+    repositories: [pytorch/pytorch]
+    categories: [ai, open-source]
+    independence_group: pytorch
+    terms_url: https://github.com/pytorch/pytorch/blob/main/LICENSE
+    rights_review_required: true
+    rights_guard: true
+    fetch_policy: {max_items: 5, min_interval_seconds: 2, conditional_requests: false}
+  - id: research_nodejs
+    name: Node.js project releases
+    adapter: github_releases
+    source_class: primary
+    enabled: false
+    endpoint: https://api.github.com
+    allowed_hosts: [api.github.com]
+    repositories: [nodejs/node]
+    categories: [open-source, dev-apis]
+    independence_group: nodejs
+    terms_url: https://github.com/nodejs/node/blob/main/LICENSE
+    rights_review_required: true
+    rights_guard: true
+    fetch_policy: {max_items: 5, min_interval_seconds: 2, conditional_requests: false}
+  - id: research_rust_releases
+    name: Rust project releases
+    adapter: github_releases
+    source_class: primary
+    enabled: false
+    endpoint: https://api.github.com
+    allowed_hosts: [api.github.com]
+    repositories: [rust-lang/rust]
+    categories: [open-source, dev-apis]
+    independence_group: rust
+    terms_url: https://github.com/rust-lang/rust/blob/main/LICENSE-MIT
+    rights_review_required: true
+    rights_guard: true
+    fetch_policy: {max_items: 5, min_interval_seconds: 2, conditional_requests: false}
+  - id: research_rust_blog
+    name: Rust project blog
+    adapter: rss
+    source_class: primary
+    enabled: false
+    endpoint: https://blog.rust-lang.org/feed.xml
+    allowed_hosts: [blog.rust-lang.org]
+    categories: [open-source, dev-apis]
+    independence_group: rust
+    terms_url: https://github.com/rust-lang/blog.rust-lang.org/blob/main/README.md
+    rights_review_required: true
+    rights_guard: true
+    fetch_policy: {max_items: 5, min_interval_seconds: 2, conditional_requests: false}
