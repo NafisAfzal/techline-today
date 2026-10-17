@@ -89,6 +89,10 @@ def parse_date(value, now: datetime) -> tuple[datetime, bool]:
     else:
         return now, True
     if result.tzinfo is None:
+        # A date-only value has known calendar precision; a naive clock time
+        # has no authoritative offset. Neither can establish current news.
+        if not day_granular:
+            return now, True
         result = result.replace(tzinfo=UTC)
     if result > now + timedelta(minutes=10) or result.year < 1990:
         return now, True

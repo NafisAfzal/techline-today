@@ -17,7 +17,9 @@ export default defineConfig({
   site: siteUrl(process.env.SITE_URL).origin,
   output: 'static',
   integrations: [react(), sitemap({ filter: publicPage })],
-  vite: { plugins: [tailwind()] },
+  // Bundle Astro's cookie parser into prerender output. A bare transitive
+  // import can resolve an unrelated parent-directory cookie installation.
+  vite: { plugins: [tailwind()], resolve: { noExternal: ['cookie'] } },
   build: { inlineStylesheets: 'never' },
   prefetch: { defaultStrategy: 'hover' },
   devToolbar: { enabled: false },

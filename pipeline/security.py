@@ -11,7 +11,7 @@ from httpcore._backends.anyio import AnyIOBackend
 
 from pipeline.models import is_public_address, safe_url
 
-SOURCE_TRANSFORM_VERSION = "10"
+SOURCE_TRANSFORM_VERSION = "13"
 
 
 def public_addresses(addresses: list[str]) -> list[str]:
@@ -82,11 +82,13 @@ class SafeFetcher:
                             await asyncio.sleep(max(0, delay))
                             continue
                         response.raise_for_status()
+                        if response.headers.get("content-encoding", "identity").strip().lower() != "identity":
+                            raise ValueError("Compressed source responses are not permitted")
                         mime = response.headers.get("content-type", "").split(";")[0].lower()
                         if not any(mime == kind or mime.endswith("+" + kind.split("/")[-1]) for kind in accept):
                             raise ValueError("Unexpected source content type")
                         body = bytearray()
-                        async for chunk in response.aiter_bytes():
+                        async for chunk in response.aiter_bytes(chunk_size=65536):
                             body.extend(chunk)
                             if len(body) > source.fetch_policy.max_response_bytes:
                                 raise ValueError("Response size limit exceeded")
@@ -106,7 +108,7 @@ class SafeFetcher:
             state_key = source.id + "|" + url
             cached = self.state.get(state_key, {})
             policy_hash = hashlib.sha256((SOURCE_TRANSFORM_VERSION + source.model_dump_json()).encode()).hexdigest()
-            headers = {"User-Agent": self.user_agent, "Accept": ", ".join(accept)}
+            headers = {"User-Agent": self.user_agent, "Accept": ", ".join(accept), "Accept-Encoding": "identity"}
             if conditional and source.fetch_policy.conditional_requests and cached.get("policy_hash") == policy_hash and "item_ids" in cached:
                 if cached.get("etag"):
                     headers["If-None-Match"] = cached["etag"]

@@ -19,6 +19,8 @@ from pydantic import AfterValidator, ConfigDict, Field, StrictStr, field_validat
 
 from pipeline.models import Contract, safe_url
 from pipeline.storage import atomic_json
+from pipeline.strict_json import strict_json
+from pipeline.strict_json import unique_keys as unique_keys
 
 POLICY_VERSION = "phase3-rights-review-v1"
 MAX_LEDGER_BYTES = 2_000_000
@@ -41,23 +43,13 @@ def digest(value):
                                      separators=(",", ":"), allow_nan=False).encode()).hexdigest()
 
 
-def unique_keys(pairs):
-    result = {}
-    for key, value in pairs:
-        if key in result:
-            raise ValueError("Duplicate JSON key")
-        result[key] = value
-    return result
-
-
 def bounded_json(path, limit=MAX_LEDGER_BYTES):
     with path.open("rb") as stream:
         data = stream.read(limit + 1)
     if len(data) > limit:
         raise ValueError("Local JSON size limit exceeded")
     try:
-        return json.loads(data, object_pairs_hook=unique_keys,
-                          parse_constant=lambda value: (_ for _ in ()).throw(ValueError("Nonfinite JSON")))
+        return strict_json(data, max_bytes=limit)
     except (RecursionError, UnicodeError) as error:
         raise ValueError("Invalid bounded JSON") from error
 

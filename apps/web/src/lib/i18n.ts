@@ -1,6 +1,8 @@
-import en from '../i18n/en.json';
 import bn from '../i18n/bn.json';
 import type { Story } from '../../../../packages/contracts';
+// English keys already are their display text. Keep only actual overrides in
+// the reader bundle; the dictionary parity test guards future copy changes.
+const englishOverrides: Record<string, string> = { supported: 'Supported by cited text' };
 export type Locale = 'en' | 'bn';
 export const locales = ['en', 'bn'] as const;
 export const brandName = 'Techline Today';
@@ -13,10 +15,10 @@ export function localizedPath(pathname: string, locale: Locale) {
   return locale === 'bn' ? `/bn${path}` : path;
 }
 export function t(locale: Locale, key: string): string {
-  const dictionary: Record<string, string> = locale === 'bn' ? bn : en;
-  if (dictionary[key]) return dictionary[key];
+  const dictionary: Record<string, string> = locale === 'bn' ? bn : englishOverrides;
+  if (Object.hasOwn(dictionary, key)) return dictionary[key]!;
   const suffix = key.match(/^(.*?)(\s*[→↗])$/);
-  return suffix && dictionary[suffix[1]!.trim()] ? dictionary[suffix[1]!.trim()] + suffix[2] : key;
+  return suffix && Object.hasOwn(dictionary, suffix[1]!.trim()) ? dictionary[suffix[1]!.trim()] + suffix[2] : key;
 }
 export function storyCount(count: number, locale: Locale) {
   return locale === 'bn' ? `${new Intl.NumberFormat('bn').format(count)}টি খবর` : `${count} ${count === 1 ? 'story' : 'stories'}`;

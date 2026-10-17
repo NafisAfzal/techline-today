@@ -2,11 +2,12 @@ import json
 import os
 from pathlib import Path
 
-path = Path('content/generated/run-report.json')
+path = Path('.cache/pipeline-attempt.json')
+if not path.exists():
+    path = Path('content/generated/run-report.json')
 if path.exists():
     report = json.loads(path.read_text(encoding='utf-8'))
     report['deployment_status'] = os.getenv('DEPLOYMENT_OUTCOME') or 'not-attempted'
-    path.write_text(json.dumps(report, indent=2) + '\n', encoding='utf-8')
     lines = ['## Intelligence edition', '', f"Mode: {report['mode']} · Status: {report.get('status', 'unknown')} · Stories: {report.get('stories', 0)} · Cached summaries: {report.get('cached_summaries', 0)}",
              f"Generation: {report.get('generation_modes', {})} · Deployment: {report['deployment_status']}", '', '| Source | Status | Items |', '|---|---|---|']
     lines += [f"| {source['id']} | {source['status']} | {source['items']} |" for source in report.get('sources', [])]

@@ -93,7 +93,10 @@ try {
   const rss=await parseXml('/rss.xml');assert(!rss.error,'Malformed RSS');assert.equal(rss.items.length,Math.min(50,snapshot.stories.length));
   for(const item of rss.items) {
     const story=snapshot.stories.find(story=>story.id===item.id);assert(story,'RSS story missing');
-    assert.equal(item.title,story.headline);assert.equal(item.url,new URL(`/story/${story.slug}/`,canonicalOrigin).href);assert.equal(Date.parse(item.date),Math.floor(Date.parse(story.published_at)/1000)*1000,'RSS RFC 2822 dates retain second precision');
+    assert.equal(item.title,story.headline);assert.equal(item.url,new URL(`/story/${story.slug}/`,canonicalOrigin).href);
+    const source=snapshot.sources[story.primary_source_id || story.source_ids[0]];
+    if (source.missing_publication_time) assert(!item.date, 'Unknown publication must omit RSS pubDate');
+    else assert.equal(Date.parse(item.date),Math.floor(Date.parse(story.published_at)/1000)*1000,'RSS RFC 2822 dates retain second precision');
   }
   const sitemap=await parseXml('/sitemap-index.xml');assert(!sitemap.error && sitemap.locations.length,'Malformed sitemap index');
   let sitemapRoutes=0;

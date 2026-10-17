@@ -4,6 +4,7 @@ import shutil
 from types import SimpleNamespace
 
 import httpx
+import pytest
 
 import pipeline.runner as runner
 import pipeline.security as security
@@ -41,7 +42,8 @@ async def test_same_host_connections_are_serialized(source):
     assert maximum == 1
 
 
-async def test_disabled_feed_cannot_survive_through_retained_summary_or_history(tmp_path, monkeypatch, now):
+@pytest.mark.parametrize("deny_by", ["disabled", "rights"])
+async def test_disabled_feed_cannot_survive_through_retained_summary_or_history(tmp_path, monkeypatch, now, deny_by):
     for folder in ("config", "prompts"):
         shutil.copytree(runner.ROOT / folder, tmp_path / folder)
     monkeypatch.setattr(runner, "ROOT", tmp_path)
@@ -60,6 +62,13 @@ async def test_disabled_feed_cannot_survive_through_retained_summary_or_history(
     for item in [*payload["offers"], *payload["model_releases"]]:
         item["is_demo"] = False
     output.write_text(json.dumps(payload), encoding="utf-8")
+    if deny_by == "rights":
+        # Source enablement cannot override the authoritative reuse policy.
+        import yaml
+        registry_path = tmp_path / "config/sources.yaml"
+        registry = yaml.safe_load(registry_path.read_text(encoding="utf-8"))
+        next(source for source in registry["sources"] if source["id"] == "nvidia")["enabled"] = True
+        registry_path.write_text(yaml.safe_dump(registry), encoding="utf-8")
     async def collect(*args):
         return [SourceItem.model_validate(keep)]
     monkeypatch.setattr(runner, "collect", collect)

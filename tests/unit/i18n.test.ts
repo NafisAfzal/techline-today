@@ -6,6 +6,8 @@ import type { Story } from '../../packages/contracts';
 describe('static localization',()=>{
   it('keeps dictionaries aligned and Unicode intact',()=>{
     expect(Object.keys(en).sort()).toEqual(Object.keys(bn).sort());
+    for (const [key, value] of Object.entries(en)) expect(t('en', key)).toBe(value);
+    for (const key of ['constructor', '__proto__', 'toString']) expect(t('bn', key)).toBe(key);
     for(const value of Object.values(bn)) {expect(value.trim()).not.toBe('');expect(value).not.toMatch(/[<>\uFFFD]/);expect(value).not.toContain(String.fromCharCode(0));}
     expect(t('bn','Summary')).toBe('সারসংক্ষেপ');expect(t('en','Summary')).toBe('Summary');
   });

@@ -3,6 +3,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
+import { assertGenerationStable } from './generation-state.mjs';
 
 const sha = bytes => crypto.createHash('sha256').update(bytes).digest('hex');
 const git = (...args) => { try { return execFileSync('git', args, { encoding:'utf8', stdio:['ignore','pipe','ignore'] }); } catch { return ''; } };
@@ -16,6 +17,7 @@ function digestFiles(names, root = '.') {
   return hash.digest('hex');
 }
 export function currentProvenance(root = 'apps/web/dist') {
+  assertGenerationStable();
   const source = [...new Set(git('ls-files','--cached','--others','--exclude-standard','-z').split('\0').filter(Boolean))].filter(name => /^(?:pipeline\/|packages\/|config\/|prompts\/|schemas\/|scripts\/|\.github\/workflows\/|apps\/web\/(?:src\/|public\/|[^/]+\.(?:json|mjs|ts))|(?:package\.json|pnpm-lock\.yaml|uv\.lock|pyproject\.toml|wrangler(?:\.preview)?\.jsonc|pnpm-workspace\.yaml)$)/.test(name));
   const assets = walk(root).map(name => path.relative(root,name)).filter(name => name !== 'release-manifest.json');
   const snapshot = fs.readFileSync('content/generated/snapshot.json');

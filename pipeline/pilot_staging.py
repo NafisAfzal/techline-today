@@ -8,7 +8,6 @@ import argparse
 import asyncio
 import hashlib
 import json
-import os
 import time
 import tracemalloc
 from datetime import UTC, datetime, timedelta
@@ -403,7 +402,7 @@ async def run_staging(root=ROOT, *, scenarios=SCENARIOS, now=DEFAULT_AS_OF):
     # separators/newline, so the footprint is actual on-disk UTF-8 bytes.
     report["measurements"]["serialized_report_bytes"] = 0
     while True:
-        actual_size = len(json.dumps(report, ensure_ascii=False, separators=(",", ":")).encode()) + len(os.linesep)
+        actual_size = len(json.dumps(report, ensure_ascii=False, separators=(",", ":")).encode()) + 1
         if report["measurements"]["serialized_report_bytes"] == actual_size:
             break
         report["measurements"]["serialized_report_bytes"] = actual_size

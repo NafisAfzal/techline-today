@@ -1,42 +1,41 @@
+import io
 import json
-import os
-import tempfile
 from datetime import timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from jsonschema import Draft202012Validator, FormatChecker
 
+from pipeline.filesystem import atomic_bytes, confined_file, regular_path
 from pipeline.models import Digest, Fact, ModelRelease, Offer, Snapshot, SourceRegistry, Story
 from pipeline.verification import validate_story
 
 
 def atomic_json(path: Path, value):
-    path.parent.mkdir(parents=True, exist_ok=True)
     payload = value.model_dump(mode="json") if hasattr(value, "model_dump") else value
-    handle, temp = tempfile.mkstemp(dir=path.parent, suffix=".tmp")
-    try:
-        with os.fdopen(handle, "w", encoding="utf-8") as stream:
-            json.dump(payload, stream, ensure_ascii=False, separators=(",", ":"))
-            stream.write("\n")
-        Path(temp).replace(path)
-    finally:
-        Path(temp).unlink(missing_ok=True)
+    stream = io.StringIO()
+    json.dump(payload, stream, ensure_ascii=False, separators=(",", ":"), allow_nan=False)
+    atomic_bytes(path, (stream.getvalue() + "\n").encode())
 
 
 def read_json(path: Path, default=None):
+    path = regular_path(path)
     return json.loads(path.read_text(encoding="utf-8")) if path.exists() else default
 
 
-def write_schemas(root):
+def write_schemas(root, pending_writes=None):
     for name, model in (("story", Story), ("source-registry", SourceRegistry), ("claim", Fact), ("snapshot", Snapshot),
                         ("offer", Offer), ("model-release", ModelRelease), ("digest", Digest)):
         schema = {"$schema": "https://json-schema.org/draft/2020-12/schema", **model.model_json_schema()}
-        atomic_json(root / "schemas" / f"{name}.schema.json", schema)
+        path = root / "schemas" / f"{name}.schema.json"
+        if pending_writes is None:
+            atomic_json(path, schema)
+        else:
+            pending_writes.append((path, schema))
 
 
 def validate_snapshot(snapshot, root):
-    schema = read_json(root / "schemas/snapshot.schema.json")
+    schema = read_json(root / "schemas/snapshot.schema.json", Snapshot.model_json_schema())
     Draft202012Validator(schema, format_checker=FormatChecker()).validate(snapshot.model_dump(mode="json"))
     return Snapshot.model_validate(snapshot.model_dump(mode="json"))
 
@@ -64,7 +63,10 @@ def compact(stories, sources, root, now, config, previous_index, pending_writes=
         active = active[:config.get("max_individual_stories", 4000)]
     index = {entry["key"]: entry for entry in previous_index}
     for key, archived in groups.items():
-        path = root / config.get("archive_directory", "content/archives") / f"{key}.json"
+        directory = config.get("archive_directory", "content/archives")
+        if directory not in {"content/archives", ".cache/fixture-archives"}:
+            raise ValueError("Archive directory is not an approved output boundary")
+        path = confined_file(root, f"{directory}/{key}.json")
         previous = read_json(path, {"stories": [], "sources": {}})
         merged = {story["id"]: story for story in previous["stories"]}
         for story in archived:
