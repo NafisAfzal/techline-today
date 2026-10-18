@@ -5,8 +5,10 @@ import { siteUrl } from './site-url.mjs';
 import { verifyProvenance } from './build-provenance.mjs';
 import { verifyContentRights } from './content-rights.mjs';
 import { readSnapshot } from './read-snapshot.mjs';
+import { verifyGovernance } from './governance-preflight.mjs';
 const root=path.resolve('apps/web/dist');
 const snapshot=readSnapshot('content/generated/snapshot.json');
+verifyGovernance();
 verifyProvenance(root);
 function walk(directory) {return fs.readdirSync(directory,{withFileTypes:true}).flatMap(entry=>entry.isDirectory()?walk(path.join(directory,entry.name)):[path.join(directory,entry.name)]);}
 const files=walk(root);

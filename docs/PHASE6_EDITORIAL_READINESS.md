@@ -24,7 +24,12 @@ Five new local-first modules. No server, database, queue or paid dependency.
 All state is append-only, hash-chained JSON under `.cache/phase6/`. Each ledger
 reuses `digest` and `writer_lock` from `pipeline.review_governance`, and
 `confined_file`/`atomic_json` from the existing filesystem and storage helpers.
-Tampering, reordering and truncation are detected on every load.
+Loads check bounded JSON, chain consistency, legal prior states and identity
+continuity. These are unkeyed hashes, not signatures: someone able to rewrite the
+entire ledger can recompute them, or remove the ledger. They do not authenticate
+an actor or prove complete history. Approval remains unavailable independently
+of those hashes. Durable authenticated identity and an external history anchor
+are prerequisites for any future approval system.
 
 The public snapshot schema is unchanged. `docs/PHASE5_READINESS_PLAN.md` defers
 that migration deliberately, so the gate reads local registries instead.
@@ -42,9 +47,10 @@ grant them either:
 | Editorial | `APPROVED`, `PUBLICATION_ELIGIBLE`, `PUBLISHED` |
 | Translation | `NATIVE_REVIEW_COMPLETE`, `APPROVED_TRANSLATION`, `PUBLISHED_TRANSLATION` |
 
-Reducing exposure is never gated. Suspension, revocation, retraction, correction,
-archival and withdrawal are reachable from every non-terminal state, because they
-can only remove reader-facing claims.
+Reducing exposure does not require approval. Suspension/revocation, editorial
+retraction/correction/archival, and translation withdrawal remain available with
+their required reasons and references. Terminal withdrawal cannot be reversed
+into an approval. Actor names are recorded claims, not authenticated identities.
 
 ## Source onboarding
 
@@ -110,6 +116,33 @@ story.
 | `date_integrity` | Publication unknown, in the future, or equal to build time |
 | `language_review` | Machine translation presented as reviewed Bangla |
 
+The compatibility `require_approval=False` argument requests diagnostics only;
+it cannot suppress the authority refusal. An empty edition is not publishable.
+Neither an arbitrary reviewer name nor a recomputed hash supplies authority.
+
+### Existing build isolation
+
+Live builds and build verification invoke the local Python governance preflight.
+Before authenticated editorial authority exists, only the unchanged frozen legacy
+snapshot (`d146d528ed8b00bc4e3a1e379ceffa300f46ce5a17ee9d34e8291410e9973eb5`)
+can use the established legacy rights checks. New live snapshots fail closed;
+adding a draft to generated JSON is not a publication path. Updating this frozen
+identity requires a separately reviewed authority design and owner decision.
+
+Matching local source candidates, editorial decisions, or draft/withdrawn Bangla
+records invalidate stale generated content. Matching uses the registry id/source
+identity and story identities, including the legacy id-only form. The build
+checks before and after generation, and standalone build verification repeats
+the guard. It refuses rather than deleting stories, archives, or evidence.
+Synthetic fixture builds remain explicitly synthetic; production rights checks
+and release gates continue to reject them.
+
+This is a negative guard, not an authenticated publication system or automatic
+withdrawal of already hosted assets. Removal of local history cannot be detected
+without an independent trusted anchor. Preserve denial history and keep all
+activation/deployment blocked pending that design; do not claim that local files
+alone provide revocation durability.
+
 `evaluate_snapshot()` fails the whole edition when any story is denied, and
 `assert_publishable()` raises `PermissionError` with the specific dimensions.
 
@@ -121,7 +154,7 @@ NOT_TRANSLATED → DRAFT_TRANSLATION → LANGUAGE_REVIEW_PENDING
 ```
 
 A translation binds to an exact English source version. When the source changes
-materially — headline, bullets, significance, context or fact texts — the
+materially — including facts, limitations, numbers, claims and evidence — the
 translation returns to `LANGUAGE_REVIEW_PENDING` and its reviewer reference and
 review time are cleared. Metadata-only churn rebinds the version without
 downgrading review.
@@ -133,19 +166,35 @@ proof of native-language quality. No reviewer identity is ever invented.
 
 ## Seven-day observation evidence
 
-Only retained **live** receipts count. Synthetic runs contribute no elapsed time.
+Only retained **live** receipts contribute to the structural window. Synthetic
+runs contribute no elapsed time. Hashes, run identities, stable source coverage,
+healthy collection, UTC dates, monotonic ordering and a maximum 36-hour gap/age
+are checked; corrupt retained files are refused rather than silently omitted.
 `observation_evidence()` rejects, and reports as anomalies: future, naive and
 unparsable timestamps, duplicate observation days, overlapping runs, copied run
 evidence, and stale evidence. Missing calendar days inside the observed span are
 listed explicitly. Seven elapsed days requires eight observed days.
 
-Real elapsed time has not been manufactured. No schedule is enabled.
+Real elapsed time has not been manufactured. No schedule is enabled. Receipt
+hashes are not signatures and cannot prove a run actually occurred at its stated
+time. `elapsed_window_satisfied` describes structural consistency only;
+`provenance_verified` and `eligible` remain false until trustworthy observation
+provenance is designed. A consistent local window therefore remains INCONCLUSIVE
+for production readiness, not PASS.
 
 ## Operational readiness
 
 Sixteen dimensions resolve to `PASS`, `FAIL`, `BLOCKED` or `INCONCLUSIVE` with
 evidence. `INCONCLUSIVE` means the evidence does not exist and is never treated as
 a pass. Assessment itself never authorises publication.
+
+Pass an explicit `sources` mapping to assess freshness and revoked-source
+contamination. Category names alone cannot establish news; the public categories
+are technology topics, not a `news` enum. Missing/unknown diagnostics are not
+success, future publisher dates are not fresh news, and publisher age does not
+prove our publication delay. Snapshot health needs a schema-valid live edition
+and a trusted expected digest. Security checks need explicit false AI/schedule/
+initial-seed flags; an empty accessibility object is not a completed check.
 
 ```sh
 uv run python -m pipeline.source_onboarding report

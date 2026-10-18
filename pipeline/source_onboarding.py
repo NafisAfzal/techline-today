@@ -33,7 +33,7 @@ from pydantic import (
 
 from pipeline.filesystem import confined_file
 from pipeline.models import Contract, safe_url
-from pipeline.review_governance import digest, writer_lock
+from pipeline.review_governance import bounded_json, digest, writer_lock
 from pipeline.storage import atomic_json
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -44,12 +44,12 @@ MAX_EVENTS = 500
 # additionally reachable from any non-terminal state so a rights withdrawal can
 # never wait behind an earlier gate.
 TRANSITIONS: dict[str, frozenset[str]] = {
-    "DISCOVERED": frozenset({"TECHNICALLY_VALIDATED", "REVOKED"}),
-    "TECHNICALLY_VALIDATED": frozenset({"RIGHTS_REVIEW_REQUIRED", "REVOKED"}),
-    "RIGHTS_REVIEW_REQUIRED": frozenset({"RIGHTS_EVIDENCE_RECORDED", "REVOKED"}),
-    "RIGHTS_EVIDENCE_RECORDED": frozenset({"EDITORIAL_REVIEW_REQUIRED", "REVOKED"}),
-    "EDITORIAL_REVIEW_REQUIRED": frozenset({"ELIGIBLE_FOR_ACTIVATION", "REVOKED"}),
-    "ELIGIBLE_FOR_ACTIVATION": frozenset({"ACTIVATED", "REVOKED"}),
+    "DISCOVERED": frozenset({"TECHNICALLY_VALIDATED", "SUSPENDED", "REVOKED"}),
+    "TECHNICALLY_VALIDATED": frozenset({"RIGHTS_REVIEW_REQUIRED", "SUSPENDED", "REVOKED"}),
+    "RIGHTS_REVIEW_REQUIRED": frozenset({"RIGHTS_EVIDENCE_RECORDED", "SUSPENDED", "REVOKED"}),
+    "RIGHTS_EVIDENCE_RECORDED": frozenset({"EDITORIAL_REVIEW_REQUIRED", "SUSPENDED", "REVOKED"}),
+    "EDITORIAL_REVIEW_REQUIRED": frozenset({"ELIGIBLE_FOR_ACTIVATION", "SUSPENDED", "REVOKED"}),
+    "ELIGIBLE_FOR_ACTIVATION": frozenset({"ACTIVATED", "SUSPENDED", "REVOKED"}),
     "ACTIVATED": frozenset({"SUSPENDED", "REVOKED"}),
     "SUSPENDED": frozenset({"RIGHTS_REVIEW_REQUIRED", "REVOKED"}),
     "REVOKED": frozenset(),
@@ -139,6 +139,9 @@ class SourceCandidate(OnboardingModel):
     def aware(cls, value):
         if value is None:
             return None
+        if isinstance(value, str) and re.fullmatch(
+                r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\.[0-9]+)?(?:Z|[+-][0-9]{2}:[0-9]{2})", value):
+            value = datetime.fromisoformat(value)
         if not isinstance(value, datetime):
             raise ValueError("Timestamps require explicit ISO time and timezone")
         if value.tzinfo is None:
@@ -150,7 +153,7 @@ class SourceCandidate(OnboardingModel):
         if self.verified_on and self.verified_on < self.discovered_on:
             raise ValueError("Verification cannot precede discovery")
         if urlsplit(self.endpoint or self.website).hostname != urlsplit(self.website).hostname:
-            if self.endpoint and not self.endpoint.startswith("https://api.github.com"):
+            if self.endpoint and urlsplit(self.endpoint).hostname != "api.github.com":
                 raise ValueError("Feed endpoint must be served from the candidate website")
         permissions = {
             "reproduction_allowed": self.reproduction_allowed,
@@ -244,9 +247,15 @@ class CandidateLedger(OnboardingModel):
                 raise ValueError("Corrupted or reordered candidate ledger")
             transition = event.transition
             if event.registered:
+                if event.candidate_id in seen or any(identity == event.identity for _, identity in seen.values()):
+                    raise ValueError("Duplicate candidate registration in ledger")
                 state = "DISCOVERED"
             else:
+                if event.candidate_id not in seen:
+                    raise ValueError("Candidate transition has no registration")
                 state = seen[event.candidate_id][0]
+                if event.identity != seen[event.candidate_id][1] or transition.from_state != state:
+                    raise ValueError("Candidate identity or prior state changed in ledger")
                 if transition.to_state in AUTHORITY_GATED:
                     raise ValueError("Ledger claims an approval this project cannot authorise")
                 if transition.to_state not in TRANSITIONS[state]:
@@ -270,7 +279,7 @@ def load_ledger(root=ROOT) -> CandidateLedger:
     path = ledger_path(root)
     if not path.exists():
         return CandidateLedger()
-    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload = bounded_json(path)
     return CandidateLedger.model_validate(payload)
 
 
@@ -291,6 +300,8 @@ def evidence_digest(candidate: SourceCandidate) -> str | None:
 def register(candidate, *, actor, now, root=ROOT):
     """Append a candidate registration event. Duplicate identities are refused."""
     candidate = SourceCandidate.model_validate(candidate.model_dump(mode="json"))
+    _refuse_permission_claims(candidate)
+    plain(actor)
     ledger = load_ledger(root)
     state, identity = current_state(ledger, candidate.candidate_id)
     if state != "UNKNOWN":
@@ -309,6 +320,8 @@ def register(candidate, *, actor, now, root=ROOT):
 def transition(candidate, to_state, *, actor, now, reason, evidence=None, root=ROOT):
     """Record a lifecycle transition under the shared writer lock."""
     candidate = SourceCandidate.model_validate(candidate.model_dump(mode="json"))
+    if to_state not in {"SUSPENDED", "REVOKED"}:
+        _refuse_permission_claims(candidate)
     ledger = load_ledger(root)
     state, identity = current_state(ledger, candidate.candidate_id)
     if state == "UNKNOWN":
@@ -327,6 +340,13 @@ def transition(candidate, to_state, *, actor, now, reason, evidence=None, root=R
     evidence = list(evidence if evidence is not None else candidate.evidence)
     updated = candidate.model_copy(update={"evidence": evidence,
                                            "verified_on": candidate.verified_on or now.date()})
+    if to_state in {"SUSPENDED", "REVOKED"}:
+        updated = updated.model_copy(update={key: False for key in (
+            "reproduction_allowed", "summary_allowed", "image_allowed", "archive_retention_allowed",
+            "ai_submission_allowed")})
+        updated = updated.model_copy(update={"rights_evidence_status": "REVOKED" if to_state == "REVOKED"
+                                            else "RIGHTS_UNVERIFIED"})
+    updated = SourceCandidate.model_validate(updated.model_dump(mode="python"))
     record = TransitionRecord(from_state=state, to_state=to_state, actor=actor, at=now, reason=reason,
                               evidence_sha256=evidence_digest(updated),
                               from_candidate_sha256=digest(candidate.model_dump(mode="json")),
@@ -335,6 +355,14 @@ def transition(candidate, to_state, *, actor, now, reason, evidence=None, root=R
                "identity": candidate.identity, "previous_sha256": ledger.head_sha256, "registered": False,
                "transition": record.model_dump(mode="json"), "candidate_sha256": None}
     return _append(CandidateEvent(**payload, event_sha256=digest(payload)), now, actor, reason, updated, root=root)
+
+
+def _refuse_permission_claims(candidate):
+    if candidate.rights_evidence_status == "EVIDENCE_RECORDED" or any(
+            getattr(candidate, key) is True for key in ("reproduction_allowed", "summary_allowed",
+                                                       "image_allowed", "archive_retention_allowed",
+                                                       "ai_submission_allowed")):
+        raise AuthorityUnavailable("Permission claims require an authenticated reviewer authority")
 
 
 def _append(event, now, actor, reason, candidate=None, root=ROOT):
@@ -356,8 +384,8 @@ def candidates(root=ROOT):
     ledger = load_ledger(root)
     order, rebuilt = [], {}
     for event in ledger.events:
-        order.append(event.candidate_id)
         if event.registered:
+            order.append(event.candidate_id)
             rebuilt[event.candidate_id] = {"state": "DISCOVERED", "identity": event.identity,
                                            "last": event.model_dump(mode="json")}
         else:

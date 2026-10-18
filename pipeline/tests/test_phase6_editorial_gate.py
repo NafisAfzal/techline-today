@@ -87,6 +87,7 @@ def story(**overrides):
 
 
 RIGHTS_ALLOW = {"arxiv": {"publication": "allow", "license": "CC0-1.0",
+                          "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
                           "scope": "Descriptive metadata only: titles, abstracts, authors and identifiers."}}
 
 
@@ -291,7 +292,9 @@ def test_machine_translation_of_news_is_denied():
                     "why_it_matters": "এটি একটি কৃত্রিম যাচাইকরণ ব্যাখ্যা।",
                     "broader_summary": "কৃত্রিম বিবরণ এখানে রয়েছে এবং যাচাই করা হয়েছে।",
                     "key_fact_texts": ["কৃত্রিম তথ্য এখানে রয়েছে এবং যাচাই করা হয়েছে।"]}}})
-    rights = {"example_news": {"publication": "allow", "license": "CC-BY-4.0", "scope": "Attributed excerpts."}}
+    rights = {"example_news": {"publication": "allow", "license": "CC-BY-4.0",
+                               "license_url": "https://creativecommons.org/licenses/by/4.0/",
+                               "scope": "Attributed excerpts."}}
     result = evaluate(translated, {SID: news_source}, rights, now=NOW, build_time=NOW)
     assert result["dimensions"][0]["result"] == "ELLOWED"
     assert "translation_not_native_reviewed" in result["dimensions"][4]["reasons"]

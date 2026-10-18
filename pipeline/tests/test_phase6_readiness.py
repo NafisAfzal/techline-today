@@ -3,6 +3,8 @@
 import json
 from datetime import UTC, datetime
 
+import pytest
+
 from pipeline.readiness import (
     BLOCKED,
     FAIL,
@@ -12,6 +14,7 @@ from pipeline.readiness import (
     human_report,
     observation_evidence,
 )
+from pipeline.review_governance import digest as receipt_digest
 
 NOW = datetime(2026, 10, 19, 9, tzinfo=UTC)
 RIGHTS = {"arxiv": {"publication": "allow", "license": "CC0-1.0",
@@ -25,10 +28,10 @@ RELEASE_OK = {"approved": True, "github_publication_approved": True, "public_fil
               "ai_enabled": False, "schedule_enabled": False}
 
 
-def receipt(day, *, live=True, digest=None, run_id="run-1", hour=9):
+def receipt(day, *, live=True, digest=None, run_id=None, hour=9):
     observed = datetime(2026, 10, day, hour, tzinfo=UTC)
-    return {"version": 1, "live": live, "observed_at": observed.isoformat(),
-            "run_id": run_id, "report_sha256": digest or f"{day:02d}" * 32,
+    payload = {"version": 1, "live": live, "observed_at": observed.isoformat(),
+            "run_id": run_id or f"synthetic-run-{day}", "report_sha256": digest or f"{day:02d}" * 32,
             "receipt_sha256": "0" * 64, "collection_state": "COLLECTION_SUCCESS",
             "publication_allowed": False, "ai_submission_allowed": False,
             "sources": [{"source_id": "arxiv", "collection_state": "COLLECTION_SUCCESS",
@@ -37,6 +40,8 @@ def receipt(day, *, live=True, digest=None, run_id="run-1", hour=9):
                          "duration_seconds": 0.1, "freshness": {}, "recovery": {},
                          "transport": {"http_status_counts": {}, "terminal_error_type": None,
                                        "terminal_timeout": False, "timeout_scope": "terminal-only"}}]}
+    payload["receipt_sha256"] = receipt_digest({k: v for k, v in payload.items() if k != "receipt_sha256"})
+    return payload
 
 
 def series(days, **kwargs):
@@ -59,8 +64,9 @@ def test_synthetic_receipts_never_contribute_elapsed_time():
 
 
 def test_seven_generous_live_days_are_eligible():
-    window = observation_evidence(series(range(10, 18)), NOW)
-    assert window["eligible"] is True
+    window = observation_evidence(series(range(11, 19)), NOW)
+    assert window["elapsed_window_satisfied"] is True
+    assert window["eligible"] is False  # Structural hashes do not authenticate production provenance.
     assert window["distinct_days"] == 8
     assert window["elapsed_days"] == 7.0
 
@@ -229,12 +235,11 @@ def test_private_report_is_not_written_into_build_assets(root):
     assert "apps" not in REPORT_DIRECTORY
 
 
-def test_observation_receipt_reader_tolerates_corrupt_files(root):
+def test_observation_receipt_reader_refuses_corrupt_files(root):
     from pipeline.readiness import read_observation_receipts
     directory = root / ".cache/phase4/observations"
     directory.mkdir(parents=True)
     (directory / "2026-10-17.json").write_text(json.dumps(receipt(17)), encoding="utf-8")
     (directory / "2026-10-18.json").write_text("{not json", encoding="utf-8")
-    rows = read_observation_receipts(root)
-    assert len(rows) == 1
-    assert rows[0]["observed_at"].startswith("2026-10-17")
+    with pytest.raises(ValueError):
+        read_observation_receipts(root)

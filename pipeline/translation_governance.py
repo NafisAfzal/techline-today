@@ -25,9 +25,10 @@ from pydantic import AfterValidator, ConfigDict, Field, StrictStr, field_validat
 
 from pipeline.editorial_workflow import story_identity
 from pipeline.filesystem import confined_file
-from pipeline.models import Contract
-from pipeline.review_governance import digest, writer_lock
+from pipeline.models import Contract, Story
+from pipeline.review_governance import bounded_json, digest, writer_lock
 from pipeline.storage import atomic_json
+from pipeline.translation import canonical_hash
 
 ROOT = Path(__file__).resolve().parent.parent
 LEDGER = ".cache/phase6/translation-decisions.json"
@@ -36,7 +37,7 @@ MAX_EVENTS = 500
 BANGLA = re.compile(r"[ঀ-৿]")
 
 TRANSITIONS: dict[str, frozenset[str]] = {
-    "NOT_TRANSLATED": frozenset({"DRAFT_TRANSLATION"}),
+    "NOT_TRANSLATED": frozenset({"DRAFT_TRANSLATION", "WITHDRAWN"}),
     "DRAFT_TRANSLATION": frozenset({"LANGUAGE_REVIEW_PENDING", "WITHDRAWN"}),
     "LANGUAGE_REVIEW_PENDING": frozenset({"DRAFT_TRANSLATION", "WITHDRAWN"}),
     "NATIVE_REVIEW_COMPLETE": frozenset({"APPROVED_TRANSLATION", "LANGUAGE_REVIEW_PENDING", "WITHDRAWN"}),
@@ -100,6 +101,9 @@ class TranslationRecord(TranslationModel):
     def aware(cls, value):
         if value is None:
             return None
+        if isinstance(value, str) and re.fullmatch(
+                r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\.[0-9]+)?(?:Z|[+-][0-9]{2}:[0-9]{2})", value):
+            value = datetime.fromisoformat(value)
         if not isinstance(value, datetime) or value.tzinfo is None:
             raise ValueError("Translation timestamps require an explicit timezone")
         return value.astimezone(UTC)
@@ -112,6 +116,8 @@ class TranslationRecord(TranslationModel):
             raise ValueError("A stale translation must record why it needs re-review")
         if self.stale and self.state in {"APPROVED_TRANSLATION", "PUBLISHED_TRANSLATION"}:
             raise ValueError("A stale translation cannot hold an approved or published state")
+        if self.state in AUTHORITY_GATED and not self.last_review_at:
+            raise ValueError("Reviewed Bangla requires a recorded review time")
         return self
 
 
@@ -124,8 +130,11 @@ def make_record(story_id, *, source_version, translation_version, provider=None,
 
 def meaningful_change(previous: dict, current: dict) -> bool:
     """Reader-visible fields only. Metadata-only churn must not force re-review."""
-    keys = ("headline", "summary_bullets", "why_it_matters", "broader_summary", "key_fact_texts")
-    return any(previous.get(key) != current.get(key) for key in keys)
+    # Only explicitly operational metadata can be rebound without human re-review.
+    # Unknown/evidence fields, numbers, limitations and correction facts are material.
+    metadata = {"last_verified_at", "updated_at", "fetched_at", "build_time"}
+    return any(previous.get(key) != current.get(key) for key in previous.keys() | current.keys()
+               if key not in metadata)
 
 
 def staleness(record: TranslationRecord, current_source_version: str, previous_content: dict | None = None,
@@ -202,7 +211,7 @@ class TranslationLedger(TranslationModel):
             state = states.get(decision.story_identity, "NOT_TRANSLATED")
             if decision.to_state in AUTHORITY_GATED:
                 raise ValueError("Ledger claims native review this project cannot authorise")
-            if decision.to_state not in TRANSITIONS[state]:
+            if decision.from_state != state or decision.to_state not in TRANSITIONS[state]:
                 raise ValueError("Illegal translation transition in ledger")
             if last_at and decision.at < last_at:
                 raise ValueError("Translation decision timestamps must be monotonic")
@@ -222,7 +231,7 @@ def load_ledger(root=ROOT) -> TranslationLedger:
     path = ledger_path(root)
     if not path.exists():
         return TranslationLedger()
-    return TranslationLedger.model_validate(json.loads(path.read_text(encoding="utf-8")))
+    return TranslationLedger.model_validate(bounded_json(path))
 
 
 def record(record_obj, from_state, to_state, *, actor, now, reason, reviewer_reference=None, root=ROOT):
@@ -301,8 +310,11 @@ def integrity_findings(story, translation=None, *, locale="bn") -> list[dict]:
         add("broken_unicode", "fail", "replacement characters or mojibake detected")
     if any(unicodedata.category(char) == "Cc" for text in texts for char in text):
         add("control_characters", "fail", "control characters in translated content")
-    if translation.canonical_hash != getattr(story, "_canonical_hash", translation.canonical_hash):
-        add("translation_binding_unknown", "notice", "translation is not bound to a verified source version")
+    expected_hash = canonical_hash(story) if isinstance(story, Story) else getattr(story, "_canonical_hash", None)
+    if expected_hash is None:
+        add("translation_binding_unknown", "notice", "no canonical source version is available")
+    elif translation.canonical_hash != expected_hash:
+        add("translation_binding_mismatch", "fail", "translation does not match the current English evidence")
     if not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", story.slug):
         add("invalid_slug", "fail", "story slug is not URL safe")
     return findings

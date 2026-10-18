@@ -26,7 +26,7 @@ from pydantic import AfterValidator, ConfigDict, Field, StrictStr, field_validat
 
 from pipeline.filesystem import confined_file
 from pipeline.models import Contract
-from pipeline.review_governance import digest, writer_lock
+from pipeline.review_governance import bounded_json, digest, writer_lock
 from pipeline.storage import atomic_json
 
 ROOT = __import__("pathlib").Path(__file__).resolve().parent.parent
@@ -56,6 +56,13 @@ TRANSITIONS: dict[str, frozenset[str]] = {
 }
 
 AUTHORITY_GATED = frozenset({"APPROVED", "PUBLICATION_ELIGIBLE", "PUBLISHED"})
+
+# Operators can reduce exposure without waiting for an unavailable approval.
+for _state in tuple(TRANSITIONS):
+    if _state != "ARCHIVED":
+        TRANSITIONS[_state] |= frozenset({"ARCHIVED"})
+    if _state not in {"CORRECTED", "RETRACTED", "ARCHIVED"}:
+        TRANSITIONS[_state] |= frozenset({"CORRECTED"})
 
 # Kinds are derived from source evidence, never from how recently a build ran.
 StoryKind = Literal["NEWS", "RESEARCH", "EVERGREEN", "REFERENCE", "SECURITY_ADVISORY", "OFFICIAL_RELEASE"]
@@ -217,7 +224,7 @@ class EditorialLedger(EditorialModel):
             state = states.get(story, "DISCOVERED")
             if decision.to_state in AUTHORITY_GATED:
                 raise ValueError("Ledger claims an editorial approval this project cannot authorise")
-            if decision.to_state not in TRANSITIONS[state]:
+            if decision.from_state != state or decision.to_state not in TRANSITIONS[state]:
                 raise ValueError("Illegal editorial transition in ledger")
             if last_at and decision.at < last_at:
                 raise ValueError("Editorial decision timestamps must be monotonic")
@@ -237,7 +244,7 @@ def load_ledger(root=ROOT) -> EditorialLedger:
     path = ledger_path(root)
     if not path.exists():
         return EditorialLedger()
-    return EditorialLedger.model_validate(json.loads(path.read_text(encoding="utf-8")))
+    return EditorialLedger.model_validate(bounded_json(path))
 
 
 def story_state(ledger: EditorialLedger, story_id: str) -> str:
