@@ -40,6 +40,11 @@ node scripts/verify-build.mjs
 ```
 
 Recovery validates every before/after payload and path before replacing anything.
+Recovery requires an outstanding journal. Repeating a completed recovery returns
+the controlled `NO_PENDING_GENERATION` refusal (exit 1, no traceback or artifact
+writes); it does not claim to finish or roll back a generation. Python callers
+receive `NoPendingGeneration`, a `ValueError` subclass. Corrupt journals and
+missing staged payloads continue to refuse as recovery failures.
 Corrupt files, unrelated post-crash edits, links, junctions, reparse points,
 reserved names and directory collisions block recovery. Retain the evidence for
 review; never repair a journal by guessing hashes. A failure during recovery
@@ -69,6 +74,12 @@ public HTTPS. It never activates those sources or constructs an AI router. Store
 one receipt per UTC day; repeat runs cannot overwrite that day's live receipt.
 Receipts retain state, counts, durations, freshness, retry recovery and report
 digests. They omit titles, excerpts, canonical item URLs and publisher bodies.
+New receipts also retain HTTP status counts (including 429), the terminal
+exception category, terminal-timeout status and measured diagnostic run duration.
+Timeout evidence is terminal-only: retries that later succeed do not establish
+how many earlier transport failures were timeouts. Never infer that from missing
+HTTP responses. Existing dated receipts remain intact and readable; do not
+rewrite historical evidence to add fields that were not measured.
 The authoritative receipts are under `.cache/phase4/observations/`; index.json is
 a regenerable summary. Maximum retention is 31 daily receipts; archive minimized
 metadata privately before continuing. Preserve failed observations too.
@@ -116,6 +127,13 @@ Review names, quantities/units, dates, negation, uncertainty, research/peer-revi
 claims, security-impact terms and attribution. Changed evidence invalidates the
 review. This is an acceptance contract; no production human-review state is enabled.
 Current English fallback and machine/synthetic labels remain truthful.
+
+Standalone snapshot reads use the shared generation reader: an exclusive lock
+protects each synchronous read, while build children inherit their build token.
+Site, editorial and build verifiers use that same pathway. A pending journal,
+active/unknown writer or invalid snapshot refuses; no last-good data is silently
+replaced. The lock covers the read, not an entire later asynchronous browser
+review. Full builds continue to hold the writer lock for the complete build.
 
 Independent review should reproduce `pipeline/tests/test_release_completion.py`,
 the retained-rights cases in `test_owner_launch.py`, and

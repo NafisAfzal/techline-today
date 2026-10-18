@@ -19,7 +19,15 @@ export function assertGenerationStable(root = '.') {
     if (owner.kind !== 'build' || !process.env.TECHLINE_BUILD_TOKEN || owner.token !== process.env.TECHLINE_BUILD_TOKEN) {
       throw Error('Pipeline/build writer is active or left a stale lock; inspect it before proceeding.');
     }
+    return true;
   }
+  return false;
+}
+
+// Synchronous reads either inherit the build's lock or exclude new writers.
+export function withGenerationRead(root, action) {
+  if (assertGenerationStable(root)) return action();
+  return withGenerationLock(root, action);
 }
 
 export function withGenerationLock(root, action) {

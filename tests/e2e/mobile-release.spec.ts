@@ -45,7 +45,12 @@ for (const locale of ['en','bn']) {
     const route = await lead.getAttribute('href');
     await lead.tap();
     await expect(page.locator('h1')).toBeVisible();
-    await page.locator('[data-bookmark]').first().tap();
+    // Deferred modules finish before DOMContentLoaded. Visible static HTML can
+    // precede the delegated bookmark listener after a link navigation.
+    await page.waitForLoadState('domcontentloaded');
+    const bookmark = page.locator('[data-bookmark]').first();
+    await bookmark.tap();
+    await expect(bookmark).toHaveAttribute('aria-pressed', 'true');
     await page.goto(prefix + '/saved/');
     await expect(page.locator('[data-story]:visible')).toHaveCount(1);
     await page.goBack();

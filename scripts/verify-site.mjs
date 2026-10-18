@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { chromium } from '@playwright/test';
 import { indexingBlocked } from './site-url.mjs';
+import { readSnapshot } from './read-snapshot.mjs';
 
 const root = path.resolve('apps/web/dist');
 const files = directory => fs.readdirSync(directory, {withFileTypes:true}).flatMap(entry => entry.isDirectory() ? files(path.join(directory,entry.name)) : [path.join(directory,entry.name)]);
@@ -66,7 +67,7 @@ try {
   }
   const missing=await fetch(base+'/audit-route-that-does-not-exist/');
   assert.equal(missing.status,404);
-  const snapshot=JSON.parse(fs.readFileSync('content/generated/snapshot.json','utf8'));
+  const snapshot=readSnapshot('content/generated/snapshot.json');
   const canonicalOrigin=new URL(pages.get('/').canonical).origin;
   for(const [route,info] of pages) assert.equal(new URL(info.canonical).origin,canonicalOrigin,`Canonical origin on ${route}`);
   for(const [route,info] of pages) {

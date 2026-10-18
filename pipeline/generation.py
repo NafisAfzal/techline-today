@@ -25,6 +25,10 @@ MAX_FILE_BYTES = 50_000_000
 MAX_GENERATION_BYTES = 250_000_000
 
 
+class NoPendingGeneration(ValueError):
+    """Recovery requires an outstanding journal; no artifacts were changed."""
+
+
 def encode(value):
     if isinstance(value, bytes):
         return value
@@ -122,7 +126,11 @@ def recover(root, action):
     if action not in {"finish", "rollback"}:
         raise ValueError("Unknown recovery action")
     journal_path = confined_file(root, JOURNAL)
-    journal = strict_json(bounded_file(journal_path, 1024), max_bytes=1024)
+    try:
+        journal_bytes = bounded_file(journal_path, 1024)
+    except FileNotFoundError:
+        raise NoPendingGeneration("No pending generation journal; no recovery performed") from None
+    journal = strict_json(journal_bytes, max_bytes=1024)
     if (not isinstance(journal, dict) or journal.get("version") != 1
             or not re.fullmatch(r"[a-f0-9]{32}", str(journal.get("generation")))):
         raise ValueError("Invalid generation journal")
@@ -178,10 +186,15 @@ def main():
     parser.add_argument("action", choices=("finish", "rollback"))
     parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parent.parent)
     args = parser.parse_args()
-    with writer(args.root):
-        recover(args.root, args.action)
+    try:
+        with writer(args.root):
+            recover(args.root, args.action)
+    except NoPendingGeneration:
+        print(json.dumps({"status": "NO_PENDING_GENERATION", "action": args.action,
+                          "recovery_performed": False, "publication_performed": False}))
+        return 1
     print(f"Generation recovery {args.action} complete; no deployment performed")
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())
