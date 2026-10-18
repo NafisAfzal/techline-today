@@ -168,10 +168,10 @@ def test_metadata_only_change_does_not_force_re_review():
     rec = TranslationRecord(story_identity=ident(), source_version="b" * 64, translation_version="c" * 64,
                             state="APPROVED_TRANSLATION", native_reviewer_reference="reviewer",
                             last_review_at=NOW)
-    result = staleness(rec, "d" * 64, {"headline": "Same", "last_verified_at": "old"},
+    result = staleness(rec, "b" * 64, {"headline": "Same", "last_verified_at": "old"},
                        {"headline": "Same", "last_verified_at": "new"})
     assert result.state == "APPROVED_TRANSLATION"
-    assert result.source_version == "d" * 64
+    assert result.source_version == "b" * 64
 
 
 def test_meaningful_change_only_considers_reader_visible_fields():

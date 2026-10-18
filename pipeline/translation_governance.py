@@ -142,10 +142,9 @@ def staleness(record: TranslationRecord, current_source_version: str, previous_c
     """Return a re-review-pending record when the English source moved."""
     if record.source_version == current_source_version:
         return record
-    if previous_content is not None and current_content is not None and not meaningful_change(
-            previous_content, current_content):
-        # Cosmetic-only change: record the new binding without downgrading review.
-        return record.model_copy(update={"source_version": current_source_version})
+    # Canonical versions exclude operational metadata already. Caller-supplied
+    # content projections cannot prove that a different evidence hash is cosmetic.
+    # Never rebind an approval to a new hash on that unauthenticated assertion.
     return record.model_copy(update={"state": "LANGUAGE_REVIEW_PENDING", "stale": True,
                                      "stale_reason": "english_source_changed_after_review",
                                      "native_reviewer_reference": None, "last_review_at": None})

@@ -156,8 +156,10 @@ NOT_TRANSLATED → DRAFT_TRANSLATION → LANGUAGE_REVIEW_PENDING
 A translation binds to an exact English source version. When the source changes
 materially — including facts, limitations, numbers, claims and evidence — the
 translation returns to `LANGUAGE_REVIEW_PENDING` and its reviewer reference and
-review time are cleared. Metadata-only churn rebinds the version without
-downgrading review.
+review time are cleared. Canonical versions already exclude operational metadata,
+so metadata-only churn retains the same canonical hash and does not downgrade
+review. A different hash always requires re-review; caller-supplied content
+projections cannot prove that rebinding a review is safe.
 
 `integrity_findings()` reports English fallback mislabelled as Bangla, empty
 fields, replacement characters, mojibake, control characters, Bangla leaking into

@@ -297,3 +297,12 @@ def test_unattested_synthetic_or_terminal_failure_cannot_pass_health(report):
 def test_onboarding_github_exception_requires_the_exact_host():
     with pytest.raises(ValueError, match="candidate website"):
         candidate(endpoint="https://api.github.com.attacker.example.org/feed")
+
+
+def test_untrusted_empty_content_projections_cannot_rebind_an_approval():
+    record = translation.TranslationRecord(story_identity="a" * 64, source_version="b" * 64,
+        translation_version="c" * 64, state="APPROVED_TRANSLATION",
+        native_reviewer_reference="synthetic-untrusted", last_review_at=NOW)
+    changed = translation.staleness(record, "d" * 64, {}, {})
+    assert changed.state == "LANGUAGE_REVIEW_PENDING"
+    assert changed.native_reviewer_reference is None
