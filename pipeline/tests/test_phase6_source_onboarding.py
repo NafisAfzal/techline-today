@@ -31,12 +31,6 @@ def candidate(**overrides):
     return SourceCandidate.model_validate({**base, **overrides})
 
 
-@pytest.fixture
-def root(tmp_path, monkeypatch):
-    monkeypatch.chdir(tmp_path)
-    return tmp_path
-
-
 # --- valid and invalid metadata ------------------------------------------------
 
 def test_valid_candidate_carries_a_stable_identity():
