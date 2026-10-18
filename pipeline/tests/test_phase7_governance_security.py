@@ -282,3 +282,18 @@ def test_rights_revocation_uses_real_source_mapping():
     report = readiness.revoked_source_contamination([story()], {"arxiv": {"publication": "exclude"}},
                                                     {SID: source()})
     assert report["result"] == readiness.FAIL
+
+
+@pytest.mark.parametrize("report", [
+    {"sources": [{"collection_state": "COLLECTION_SUCCESS"}]},
+    {"mode": "synthetic-fixtures-only", "sources": [{"collection_state": "COLLECTION_SUCCESS"}]},
+    {"sources": [{"collection_state": "COLLECTION_SUCCESS", "transport": {"terminal_timeout": True}}]},
+    {"sources": [{"collection_state": "COLLECTION_SUCCESS", "error_type": "ReadTimeout"}]},
+])
+def test_unattested_synthetic_or_terminal_failure_cannot_pass_health(report):
+    assert readiness.ingestion_failure_rate(report)["result"] != readiness.PASS
+
+
+def test_onboarding_github_exception_requires_the_exact_host():
+    with pytest.raises(ValueError, match="candidate website"):
+        candidate(endpoint="https://api.github.com.attacker.example.org/feed")

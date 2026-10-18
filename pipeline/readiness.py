@@ -309,16 +309,30 @@ def revoked_source_contamination(stories, source_rights, sources=None) -> dict:
 
 
 def ingestion_failure_rate(observation_report) -> dict:
-    if not observation_report or not observation_report.get("sources"):
+    if not isinstance(observation_report, dict) or not observation_report.get("sources"):
         return _dimension("ingestion_failure_rate", INCONCLUSIVE, {}, "no source diagnostics available")
     rows = observation_report["sources"]
     healthy = {"SUCCESS", "EMPTY", "COLLECTION_SUCCESS", "COLLECTION_EMPTY"}
-    failed = [r for r in rows if not isinstance(r, dict) or
-              r.get("collection_state", r.get("collection_status")) not in healthy]
+
+    def healthy_row(row):
+        if not isinstance(row, dict) or row.get("collection_state", row.get("collection_status")) not in healthy:
+            return False
+        transport = row.get("transport", {})
+        return (isinstance(transport, dict) and not transport.get("terminal_timeout")
+                and not transport.get("terminal_error_type") and not row.get("error_type"))
+
+    failed = [row for row in rows if not healthy_row(row)]
     ratio = len(failed) / len(rows)
     evidence = {"sources": len(rows), "failed": len(failed), "failure_rate": round(ratio, 4)}
     if ratio == 0:
-        return _dimension("ingestion_failure_rate", PASS, evidence, "every source collected successfully")
+        if (observation_report.get("mode") != "live-research-only"
+                or observation_report.get("transport_kind") != "pinned-public-https"
+                or observation_report.get("report_sha256") != digest(
+                    {k: v for k, v in observation_report.items() if k != "report_sha256"})):
+            return _dimension("ingestion_failure_rate", INCONCLUSIVE, evidence,
+                              "successful collection lacks a checked live diagnostic report")
+        return _dimension("ingestion_failure_rate", PASS, evidence,
+                          "the integrity-checked local live report records success; this is not authenticated uptime")
     if ratio < 0.5:
         return _dimension("ingestion_failure_rate", FAIL, evidence, "some sources failed to collect")
     return _dimension("ingestion_failure_rate", FAIL, evidence, "most sources failed to collect")
