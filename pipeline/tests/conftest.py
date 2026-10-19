@@ -21,3 +21,14 @@ def source():
     return SourceConfig(id="test", name="Test official", adapter="rss", source_class="primary",
                         endpoint="https://example.com/feed", allowed_hosts=["example.com"], categories=["ai"],
                         independence_group="test", terms_url="https://example.com/terms")
+
+
+@pytest.fixture
+def root(tmp_path, monkeypatch):
+    """Isolated repository root for local ledger and state tests.
+
+    Tests that only read `.cache` must use this instead of the real checkout so a
+    regression can never write to the owner's edition.
+    """
+    monkeypatch.chdir(tmp_path)
+    return tmp_path
