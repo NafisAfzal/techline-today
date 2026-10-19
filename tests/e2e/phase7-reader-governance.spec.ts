@@ -52,11 +52,15 @@ for (const locale of ['en', 'bn']) {
 test('private review queues and governance files are absent from the public site', async ({ page, request }) => {
   for (const path of ['/.cache/phase7/private-review-queue.json', '/.cache/phase6/editorial-decisions.json',
     '/.cache/phase6/source-candidates.json', '/.cache/phase6/translation-decisions.json',
-    '/config/source-rights.json', '/pipeline/readiness.py']) {
+    '/.cache/authority/journal.json', '/.cache/authority/outbox/decision.json',
+    '/.cache/authority/STOP_PUBLICATION', '/config/authority-trust.json',
+    '/config/source-rights.json', '/pipeline/authority/cli.py', '/pipeline/readiness.py']) {
     expect((await request.get(path)).status(), path).toBe(404);
   }
   const latest = await request.get('/data/latest.json');
   expect(await latest.text()).not.toContain('PHASE7_PRIVATE_REVIEW_SENTINEL');
+  expect(await latest.text()).not.toContain('PHASE8_PRIVATE_AUTHORITY_SENTINEL');
   await page.goto('/');
   expect(await page.content()).not.toContain('PHASE7_PRIVATE_REVIEW_SENTINEL');
+  expect(await page.content()).not.toContain('PHASE8_PRIVATE_AUTHORITY_SENTINEL');
 });

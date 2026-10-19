@@ -1,5 +1,11 @@
 # Phase 6 — Editorial readiness infrastructure
 
+The [Phase 8 authority extension](PHASE8_EDITORIAL_AUTHORITY.md) now provides an
+offline signed path using these same lifecycles. The legacy draft ledgers below
+still cannot grant approvals, and the default real environment remains
+UNPROVISIONED. Real appointments, rights and independent history trust are not
+supplied by implementing the cryptographic mechanism.
+
 This document describes the infrastructure added for lawful source onboarding,
 editorial review, bilingual governance and operational readiness. It grants
 nothing. Every approval path in it is deliberately blocked until an owner

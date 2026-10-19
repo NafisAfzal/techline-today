@@ -11,6 +11,7 @@ The frozen pnpm and uv locks identify the installed tree. This pass collected **
 | Pagefind reader/search runtime | MIT; package also includes a vscode-ripgrep notice | Packaged license directory included in notices; tool/platform executable stays outside public Git/static output |
 | Tailwind generated styles | MIT | Packaged notice retained conservatively |
 | http-cache-semantics local patch | BSD-2-Clause | Original packaged notice retained alongside the public patch |
+| Phase 8 cryptography 50.0.2 / PyNaCl 1.6.2 / cffi 2.1.1 / pycparser 3.11 | Installed metadata: Apache-2.0 OR BSD-3-Clause / Apache-2.0 / MIT-0 / BSD-3-Clause | Offline Python signature tooling only; upstream wheel/package notices retained, none copied into reader assets. Review OpenSSL/libsodium/native-wheel notices before distributing a Python environment or binary. |
 | axe tooling / lightningcss / certifi | MPL-2.0 metadata in development/build/Python dependencies | Package source/venvs/node_modules not redistributed; modifications or binary redistribution require file-level/source-offer review |
 | Sharp platform library | Apache-2.0/LGPL-3.0-or-later metadata | Native build/dry-run tooling is excluded from the site and public tree; do not bundle a virtual environment or dependency binary without separate notice/source/relinking review |
 | Other transitive tools | Predominantly MIT/Apache/ISC/BSD; individual terms remain applicable | Frozen install fetches original packages; review licenses when dependencies or delivered code change |
