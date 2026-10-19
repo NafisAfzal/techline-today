@@ -1,6 +1,6 @@
-import fs from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import { coverage } from './coverage.mjs';
+import { readSnapshot } from './read-snapshot.mjs';
 
 export function editorialQuality(snapshot, { production = false, now = Date.now() } = {}) {
   const errors = [], warnings = [];
@@ -35,7 +35,7 @@ export function editorialQuality(snapshot, { production = false, now = Date.now(
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  const result = editorialQuality(JSON.parse(fs.readFileSync('content/generated/snapshot.json', 'utf8')), { production: process.argv.includes('--production') });
+  const result = editorialQuality(readSnapshot('content/generated/snapshot.json'), { production: process.argv.includes('--production') });
   console.log(JSON.stringify(result, null, 2));
   if (result.errors.length) process.exitCode = 1;
 }

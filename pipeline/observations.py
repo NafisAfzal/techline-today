@@ -2,6 +2,9 @@
 
 import argparse
 import asyncio
+import re
+import time
+from collections import Counter
 from datetime import UTC, datetime, timedelta
 
 from pipeline.filesystem import confined_file
@@ -12,19 +15,35 @@ from pipeline.storage import atomic_json
 DIRECTORY = ".cache/phase4/observations"
 
 
+def transport_evidence(row):
+    statuses = [status for request in row.get("requests", []) for status in request["statuses"]]
+    if any(type(status) is not int or not 100 <= status <= 599 for status in statuses):
+        raise ValueError("Invalid HTTP observation status")
+    error = row.get("error_type")
+    if error is not None and (not isinstance(error, str) or not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]{0,99}", error)):
+        raise ValueError("Invalid diagnostic error category")
+    # Only terminal exceptions are observed by the adapter boundary. Do not
+    # infer timeout counts from attempts without a corresponding HTTP response.
+    return {"http_status_counts": {str(status): count for status, count in sorted(Counter(statuses).items())},
+            "terminal_error_type": error,
+            "terminal_timeout": error in {"TimeoutException", "ConnectTimeout", "ReadTimeout", "WriteTimeout", "PoolTimeout", "TimeoutError"},
+            "timeout_scope": "terminal-only"}
+
+
 def compact_receipt(report, observed_at):
     payload = {key: value for key, value in report.items() if key != "report_sha256"}
     if (digest(payload) != report.get("report_sha256") or report.get("publication_allowed") is not False
             or report.get("ai_submission_allowed") is not False or report.get("raw_content_retained") is not False):
         raise ValueError("Invalid or non-isolated observation report")
     live = report.get("mode") == "live-research-only" and report.get("transport_kind") == "pinned-public-https"
+    sources = [{**{key: row[key] for key in (
+        "source_id", "collection_state", "rights_status", "editorial_status", "valid_items",
+        "invalid_items", "duplicate_items", "duration_seconds", "freshness", "recovery")},
+        "transport": transport_evidence(row)} for row in report["sources"]]
     return {"version": 1, "observed_at": observed_at.isoformat(), "live": live,
             "run_id": report["run_id"], "report_sha256": report["report_sha256"],
             "collection_state": report["collection_state"], "publication_allowed": False,
-            "ai_submission_allowed": False, "sources": [{key: row[key] for key in (
-                "source_id", "collection_state", "rights_status", "editorial_status", "valid_items",
-                "invalid_items", "duplicate_items", "duration_seconds", "freshness", "recovery")}
-                for row in report["sources"]]}
+            "ai_submission_allowed": False, "sources": sources}
 
 
 def summary(receipts, now):
@@ -74,8 +93,10 @@ async def observe(root=ROOT, *, live=False):
                                 f"{DIRECTORY}/synthetic-latest.json")
         if live and (target.exists() or len(receipts) >= 31):
             raise ValueError("At most one retained live observation per UTC day; preserve existing evidence")
+        started = time.perf_counter()
         report = await run_diagnostics(root=root, live=live)
         receipt = compact_receipt(report, now)
+        receipt["run_duration_seconds"] = round(time.perf_counter() - started, 6)
         if live and not receipt["live"]:
             raise ValueError("Synthetic transport cannot count as live observation")
         receipt["receipt_sha256"] = digest(receipt)

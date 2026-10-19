@@ -12,15 +12,24 @@ from pathlib import Path
 RESERVED = re.compile(r"^(?:CON|PRN|AUX|NUL|COM[1-9¹²³]|LPT[1-9¹²³])(?:\.|$)", re.I)
 
 
+def validate_name_parts(path):
+    for part in path.parts:
+        if part == path.anchor:
+            continue
+        if (part.endswith((".", " ")) or RESERVED.match(part)
+                or any(ord(char) < 32 or char in '<>:"|?*' for char in part)):
+            raise ValueError("Unsafe or reserved filesystem name")
+
+
 def regular_path(path):
     path = Path(path)
     if ".." in path.parts:
         raise ValueError("Parent traversal is forbidden")
+    # Win32 abspath can erase trailing dots/spaces or resolve device aliases.
+    # Reject lexical names before applying any OS normalization.
+    validate_name_parts(path)
     path = Path(os.path.abspath(path))
-    for part in path.parts[1:]:
-        if (part.endswith((".", " ")) or RESERVED.match(part)
-                or any(ord(char) < 32 or char in '<>:"|?*' for char in part)):
-            raise ValueError("Unsafe or reserved filesystem name")
+    validate_name_parts(path)
     for candidate in (path, *path.parents):
         if candidate.is_symlink() or candidate.is_junction():
             raise ValueError("Linked filesystem paths are forbidden")
@@ -39,9 +48,12 @@ def regular_path(path):
 
 
 def confined_file(root, relative):
-    root, relative = Path(root).absolute(), Path(relative)
+    root, relative = Path(root), Path(relative)
     if relative.is_absolute() or relative.drive or ".." in relative.parts:
         raise ValueError("Relative confined path required")
+    validate_name_parts(root)
+    validate_name_parts(relative)
+    root = root.absolute()
     target = regular_path(root / relative)
     if not target.is_relative_to(root):
         raise ValueError("Filesystem path escaped its root")

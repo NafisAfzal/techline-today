@@ -4,8 +4,9 @@ import { gzipSync } from 'node:zlib';
 import { siteUrl } from './site-url.mjs';
 import { verifyProvenance } from './build-provenance.mjs';
 import { verifyContentRights } from './content-rights.mjs';
+import { readSnapshot } from './read-snapshot.mjs';
 const root=path.resolve('apps/web/dist');
-const snapshot=JSON.parse(fs.readFileSync('content/generated/snapshot.json','utf8'));
+const snapshot=readSnapshot('content/generated/snapshot.json');
 verifyProvenance(root);
 function walk(directory) {return fs.readdirSync(directory,{withFileTypes:true}).flatMap(entry=>entry.isDirectory()?walk(path.join(directory,entry.name)):[path.join(directory,entry.name)]);}
 const files=walk(root);
