@@ -31,7 +31,8 @@ from pydantic import (
     model_validator,
 )
 
-from pipeline.filesystem import confined_file
+from pipeline.filesystem import confined_file, regular_path
+from pipeline.generation import bounded_file
 from pipeline.models import Contract, safe_url
 from pipeline.review_governance import bounded_json, digest, writer_lock
 from pipeline.storage import atomic_json
@@ -285,8 +286,8 @@ def dossier_path(root, candidate_id) -> Path:
     """
     if not isinstance(candidate_id, str) or not re.fullmatch(r"[a-z0-9][a-z0-9_-]{1,63}", candidate_id):
         raise ValueError("Unsafe candidate dossier name")
-    directory = Path(root).absolute() / DOSSIER
-    directory.mkdir(parents=True, exist_ok=True)
+    path = confined_file(root, f"{DOSSIER}/{candidate_id}.json")
+    path.parent.mkdir(parents=True, exist_ok=True)
     return confined_file(root, f"{DOSSIER}/{candidate_id}.json")
 
 
@@ -559,7 +560,7 @@ def main():
             from pipeline.source_evidence import evidence_report, load_dossiers, read_candidate_document
 
             if args.file:
-                dossiers = [read_candidate_document(args.file.read_bytes())]
+                dossiers = [read_candidate_document(bounded_file(regular_path(args.file), 1_000_000))]
             else:
                 dossiers = load_dossiers(args.root)
             result = evidence_report(dossiers)

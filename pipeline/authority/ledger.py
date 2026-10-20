@@ -335,6 +335,11 @@ def verify_anchor(history, anchor, at):
         raise AuthorityError("checkpoint_challenge", "Checkpoint is not for this independent publication challenge")
     if not instant(history.registry.root_key.active_at) <= clock(at) < instant(history.registry.root_key.expires_at):
         raise AuthorityError("owner_expired", "Current owner root has expired")
+    if not history.registry.pin.synthetic:
+        raise AuthorityError("independent_freshness_unverified",
+                             "A file digest and matching challenge do not authenticate an independent "
+                             "custodian's current state. Production authority remains blocked until "
+                             "independent current-state evidence can be verified")
     return envelope
 
 

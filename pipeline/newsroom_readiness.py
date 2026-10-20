@@ -11,7 +11,7 @@ checkpoint verifier - so it cannot drift away from the systems it describes.
 
 import json
 import re
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from pipeline.readiness import (
@@ -142,9 +142,12 @@ def security_advisory_status(root, now=None) -> dict:
                                            str(advisory.get("package", "")))
         due = advisory.get("reassessment_due")
         deadline_passed = False
+        dates_valid = False
         if due:
             try:
                 deadline_passed = datetime.strptime(due, "%Y-%m-%d").replace(tzinfo=UTC) < at
+                reviewed = datetime.strptime(advisory.get("last_reassessed", ""), "%Y-%m-%d").replace(tzinfo=UTC)
+                dates_valid = reviewed <= at and advisory["last_reassessed"] <= due
             except (TypeError, ValueError):
                 deadline_passed = False
         if deadline_passed:
@@ -154,14 +157,20 @@ def security_advisory_status(root, now=None) -> dict:
                      "mitigation": advisory.get("mitigation"),
                      "mitigation_present": present,
                      "patched_versions": advisory.get("patched_versions"),
+                     "dates_valid": dates_valid,
                      "reassessment_due": due, "last_reassessed": advisory.get("last_reassessed"),
                      "exposure": advisory.get("exposure")})
     missing = []
+    if not rows or len(rows) != len(advisories):
+        return _item("security_advisory", INCONCLUSIVE, "Advisory entries are malformed.",
+                     missing=["Complete dated advisory records"])
     for row in rows:
         if not row["mitigation_present"]:
             missing.append(f"missing mitigation artifact for {row['id']}")
-        if row["observed_locked_version"] and row["observed_locked_version"] != row["locked_version"]:
+        if row["observed_locked_version"] != row["locked_version"]:
             missing.append(f"lockfile version for {row['package']} differs from the recorded version")
+        if not row["dates_valid"]:
+            missing.append(f"missing, invalid or future advisory review dates for {row['id']}")
     if missing:
         return _item("security_advisory", FAIL,
                      "A recorded advisory mitigation is not in place as documented.", evidence={"advisories": rows},
@@ -238,31 +247,39 @@ def newsroom_readiness(root, now=None, *, canonical_sha256=None) -> dict:
                         evidence={**eligibility["evidence"], "approved_source_count": len(approved)},
                         missing=[] if eligibility["result"] == PASS else
                         ["A rights-approved source that is actually enabled"]))
-    items.append(_item("rights_evidence_completeness", completeness["result"], completeness["detail"],
+    # These policy fields describe historical decisions, not retained evidence.
+    # No authenticated historical-rights archive verifier is currently available.
+    rights_result = INCONCLUSIVE if completeness["result"] == PASS else completeness["result"]
+    items.append(_item("rights_evidence_completeness", rights_result,
+                        "Licence fields are recorded; historical rights archives and their authenticated "
+                        "review have not been verified." if rights_result == INCONCLUSIVE else completeness["detail"],
                         evidence=completeness["evidence"],
-                        missing=[] if completeness["result"] == PASS else
-                        ["Licence, licence URL and scope for every approved source"]))
+                        missing=["Retained rights evidence and authenticated review for every approved source"]))
 
     # --- candidate backlog -------------------------------------------------------------
     from pipeline.source_evidence import evidence_report, load_dossiers
     from pipeline.source_onboarding import candidates as candidate_rows
 
+    candidate_error = False
     try:
         candidate_state = candidate_rows(root)
     except (ValueError, OSError, TypeError):
         candidate_state = []
+        candidate_error = True
     dossiers = load_dossiers(root)
     evidence = evidence_report(dossiers, now=at)
     pending = sorted(set(row["candidate_id"] for row in candidate_state
                          if row["state"] not in {"REVOKED"})) if candidate_state else []
     items.append(_item("source_candidate_backlog",
-                        PASS if not pending else BLOCKED,
+                        FAIL if candidate_error else PASS if not pending else BLOCKED,
+                        "Candidate history is invalid or unreadable." if candidate_error else
                         "No candidate is awaiting a rights decision." if not pending else
                         f"{len(pending)} source candidate(s) are awaiting a rights decision.",
                         evidence={"candidates": candidate_state, "evidence_status": {
                             "blocked": evidence["blocked"], "review_required": evidence["review_required"],
                             "evidence_complete": evidence["evidence_complete"]}},
-                        missing=[] if not pending else
+                        missing=["Repair candidate history from verified evidence"] if candidate_error else
+                        [] if not pending else
                         ["A named human rights reviewer decision for each pending candidate"]))
 
     # --- edition content ---------------------------------------------------------------
@@ -308,6 +325,16 @@ def newsroom_readiness(root, now=None, *, canonical_sha256=None) -> dict:
         evaluation = evaluate_snapshot(snapshot, rights, authority=bundle, now=at,
                                        source_registry=source_registry(root))
         denied = evaluation["blocked"]
+        denied_ids = {row["story_id"] for row in denied}
+        cleared_news = [story for story in news if snapshot.mode == "live"
+                        and story.category != "research" and story.id not in denied_ids
+                        and at - timedelta(hours=72) <= story.published_at <= at
+                        and not snapshot.sources[story.primary_source_id].missing_publication_time]
+        coverage = next(row for row in items if row["item"] == "current_news_coverage")
+        coverage.update(result=PASS if cleared_news else BLOCKED,
+                        detail=f"{len(cleared_news)} fresh, publication-eligible live news article(s).",
+                        missing=[] if cleared_news else ["Rights-cleared, reviewed current news within 72 hours"])
+        coverage["evidence"]["news_count"] = len(cleared_news)
         items.append(_item("publication_eligibility", PASS if evaluation["publication_allowed"] else FAIL,
                            "Every story in the edition satisfies every publication dimension." if
                            evaluation["publication_allowed"] else
@@ -325,12 +352,13 @@ def newsroom_readiness(root, now=None, *, canonical_sha256=None) -> dict:
                                "The edition contains no Bangla translation, so freshness cannot be "
                                "assessed.", missing=["A Bangla translation with a recorded review"]))
         else:
+            oldest = min(row["generated_at"] for row in rows)
             newest = max(row["generated_at"] for row in rows)
-            age = (at - newest).days
-            stale = age > MAX_TRANSLATION_AGE_DAYS
+            age = (at - oldest).days
+            stale = age > MAX_TRANSLATION_AGE_DAYS or newest > at
             items.append(_item("translation_staleness", FAIL if stale else PASS,
-                               f"Newest Bangla translation is {age} day(s) old." if stale else
-                               f"Newest Bangla translation is {age} day(s) old, inside the "
+                               f"Bangla translation age is invalid or exceeds the limit ({age} days)." if stale else
+                               f"Oldest Bangla translation is {age} day(s) old, inside the "
                                f"{MAX_TRANSLATION_AGE_DAYS}-day limit.",
                                evidence={"translation_count": len(rows), "newest_generated_at":
                                          newest.isoformat(), "age_days": age,
@@ -371,13 +399,13 @@ def newsroom_readiness(root, now=None, *, canonical_sha256=None) -> dict:
         window = {"live_observations": 0, "distinct_days": 0, "elapsed_days": 0, "missing_days": [],
                   "anomalies": [], "elapsed_window_satisfied": False}
     items.append(_item("operational_observation_coverage",
-                        INCONCLUSIVE if not window["elapsed_window_satisfied"] else PASS,
+                        INCONCLUSIVE,
                         f"{window['live_observations']} retained live observation(s) over "
                         f"{window['distinct_days']} distinct day(s).",
                         evidence={k: window[k] for k in ("live_observations", "distinct_days",
                                                         "elapsed_days", "missing_days", "anomalies")},
                         missing=["Independently attested observation provenance covering at least "
-                                 "seven elapsed days"]))
+                                 "seven elapsed days; local hashes and live labels do not authenticate provenance"]))
 
     # --- release gates -------------------------------------------------------------------
     release = _release_config(root)
@@ -413,8 +441,8 @@ def newsroom_readiness(root, now=None, *, canonical_sha256=None) -> dict:
                for result in (PASS, FAIL, BLOCKED, INCONCLUSIVE)}
     return {"version": 1, "assessed_at": at.isoformat(), "items": items, "summary": summary,
             "publication_allowed": False, "ai_submission_allowed": False,
-            "note": "BLOCKED means an owner-controlled decision is the only thing missing. "
-                    "INCONCLUSIVE means the evidence does not exist. Neither is a pass."}
+            "note": "BLOCKED means a required operational prerequisite or authorization is missing. "
+                    "INCONCLUSIVE means available evidence is insufficient. Neither is a pass."}
 
 
 def human_report(report: dict) -> str:

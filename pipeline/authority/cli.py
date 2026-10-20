@@ -180,8 +180,8 @@ def execute(args, now):
                 "checkpoint_sha256": document.checkpoint_sha256,
                 "custody": document.trust.custody, "authentication": document.trust.authentication,
                 "output": target, "publication_allowed": False,
-                "note": "The document is custody evidence only; it becomes trusted only when an "
-                        "independently obtained digest accompanies it"}
+                "note": "This document records a custody claim only. A supplied digest does not "
+                        "authenticate an independent custodian or its current head; trust remains BLOCKED"}
     if args.action == "inspect":
         return inspect_story(root, args.story)
     if args.action == "queue":

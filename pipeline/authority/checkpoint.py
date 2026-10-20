@@ -14,11 +14,10 @@ Five trust levels are distinguished and never collapsed:
 1. ``LOCAL_SNAPSHOT`` - generated locally, never signed.
 2. ``LOCAL_SIGNED`` - signed locally; still only local evidence.
 3. ``EXTERNAL_STORED`` - written outside the authority state directory.
-4. ``INDEPENDENTLY_AUTHENTICATED`` - the verifier holds an independently
-   obtained digest/challenge for that exact document.
-5. ``CURRENTLY_TRUSTED`` - level 4 *and* signature, ledger identity,
-   environment, registry revision and journal head all agree with the local
-   state at verification time.
+4. ``INDEPENDENTLY_AUTHENTICATED`` - reserved for authenticated independent
+   custody evidence; no current adapter establishes this property.
+5. ``CURRENTLY_TRUSTED`` - additionally requires independently authenticated
+   current-head evidence and a fresh, single-use challenge response; unavailable.
 
 Only level 5 may be reported as a current trusted checkpoint. Level 3 is not
 authenticity: a file copied into another folder is still a file on the same
@@ -59,6 +58,7 @@ from pipeline.authority.protocol import (
 )
 from pipeline.authority.registry import TrustPin
 from pipeline.filesystem import regular_path
+from pipeline.generation import bounded_file
 
 FORMAT = "techline.editorial.external-checkpoint/v1"
 MAX_DOCUMENT_BYTES = 256_000
@@ -103,6 +103,7 @@ OWNER_EXPIRED = "owner_expired"
 LOCAL_STATE_UNAVAILABLE = "local_state_unavailable"
 CHECKPOINT_NOT_CURRENT = "checkpoint_not_current"
 CHECKPOINT_CUSTODY_INSUFFICIENT = "checkpoint_custody_insufficient"
+INDEPENDENT_FRESHNESS_UNVERIFIED = "independent_freshness_unverified"
 
 
 class TrustClaim(Model):
@@ -287,7 +288,8 @@ def read_checkpoint_document(data: bytes) -> ExternalCheckpoint:
 
     A bare envelope is accepted so the existing Phase 8 anchors keep working,
     but it carries no custody statement: it can only ever reach
-    ``LOCAL_SIGNED`` unless an independently obtained digest is supplied.
+    ``LOCAL_SIGNED`` without external storage evidence. A supplied digest
+    does not establish independently authenticated current trust.
     """
     raw, value = _parse_document(data)
     if isinstance(value, dict) and value.get("format") == FORMAT:
@@ -394,7 +396,7 @@ class OperatorFileCheckpointStore:
         if not target.is_file():
             raise AuthorityError(CHECKPOINT_MISSING,
                                  "The configured checkpoint custodian file does not exist")
-        return target.read_bytes()
+        return bounded_file(target, MAX_DOCUMENT_BYTES)
 
 
 @dataclass(frozen=True)
@@ -428,7 +430,7 @@ class ProtectedHistoryCheckpointStore:
         if not target.is_file():
             raise AuthorityError(CHECKPOINT_MISSING,
                                  "No checkpoint file is present in the materialised protected history")
-        return target.read_bytes()
+        return bounded_file(target, MAX_DOCUMENT_BYTES)
 
 
 # --- verification ----------------------------------------------------------------
@@ -456,12 +458,11 @@ def verify_external_checkpoint(*, document: ExternalCheckpoint | None,
                                custody: Custody | None = None) -> CheckpointVerification:
     """Verify one externally held checkpoint against the local authority state.
 
-    The result is deliberately split into two questions:
+    The result distinguishes local agreement from independent current trust:
 
-    * is this document *independently authenticated*? (a digest/challenge the
-      local state does not control), and
-    * is it *current*? (signature, ledger, environment, registry revision and
-      journal head all agree with the local state right now).
+    * do the signature, supplied digest and local journal agree?, and
+    * can a supported adapter authenticate an independent custodian's current
+      state and fresh challenge response? None currently can.
 
     ``custody`` is what the *store* can actually vouch for. A document's own
     custody claim is recorded as evidence but never upgrades the trust level:
@@ -469,7 +470,7 @@ def verify_external_checkpoint(*, document: ExternalCheckpoint | None,
     external anchor, whatever it says about itself.
 
     Missing evidence yields BLOCKED or INCONCLUSIVE. Contradicted evidence
-    yields FAIL. Only fully agreeing, freshly held evidence yields PASS.
+    yields FAIL. Local agreement remains BLOCKED; it cannot produce PASS.
     """
     at = clock(now)
     if emergency_stopped:
@@ -485,7 +486,9 @@ def verify_external_checkpoint(*, document: ExternalCheckpoint | None,
         except AuthorityError as error:
             return _result(FAIL, error.code, str(error))
 
-    effective_custody = custody or document.trust.custody
+    # An envelope cannot authenticate its own custodian. Adapter labels describe
+    # storage only; neither an outside path nor a copied digest proves independence.
+    effective_custody = custody or "unknown"
     trust_level = _base_trust_level(effective_custody)
 
     # --- independent authentication ------------------------------------------------
@@ -505,7 +508,8 @@ def verify_external_checkpoint(*, document: ExternalCheckpoint | None,
         return _result(FAIL, EXPECTED_DIGEST_MISMATCH,
                        "The supplied checkpoint digest differs from the independently trusted digest",
                        trust_level, expected=expectation.checkpoint_sha256, observed=computed_checkpoint)
-    trust_level = "INDEPENDENTLY_AUTHENTICATED"
+    # A matching digest proves equality to the supplied expectation, not the
+    # provenance or currency of that expectation. Do not upgrade its trust level.
 
     # --- the signed checkpoint itself ----------------------------------------------
     envelope = document.checkpoint_envelope
@@ -536,11 +540,12 @@ def verify_external_checkpoint(*, document: ExternalCheckpoint | None,
     if payload.policy_version != POLICY or document.policy_version != POLICY:
         return _result(FAIL, UNSUPPORTED_PROTOCOL_VERSION, "The checkpoint policy version is not supported",
                        trust_level, observed=payload.policy_version)
-    if payload.signer_id != pin.owner_id or payload.key_id != pin.root_key.key_id:
+    owner_key = history.registry.root_key if history is not None else pin.root_key
+    if payload.signer_id != pin.owner_id or payload.key_id != owner_key.key_id:
         return _result(FAIL, UNKNOWN_SIGNER, "The checkpoint was not signed by the pinned current owner root",
                        trust_level, expected_signer=pin.owner_id, observed_signer=payload.signer_id)
     try:
-        verify_signature(envelope, pin.root_key.public_key)
+        verify_signature(envelope, owner_key.public_key)
     except AuthorityError as error:
         return _result(FAIL, INVALID_SIGNATURE, str(error), trust_level)
 
@@ -558,6 +563,8 @@ def verify_external_checkpoint(*, document: ExternalCheckpoint | None,
         return _result(FAIL, CHECKPOINT_STALE, "The checkpoint is expired or future-dated", trust_level,
                        issued_at=payload.issued_at, expires_at=payload.expires_at)
     age = (at - instant(payload.issued_at)).total_seconds()
+    if type(max_age_seconds) is not int or not 0 < max_age_seconds <= 86400:
+        return _result(FAIL, CHECKPOINT_STALE, "Freshness policy must be 1..86400 seconds", trust_level)
     if age > max_age_seconds:
         return _result(FAIL, CHECKPOINT_STALE,
                        f"The checkpoint is older than the operator freshness policy ({max_age_seconds}s)",
@@ -578,21 +585,19 @@ def verify_external_checkpoint(*, document: ExternalCheckpoint | None,
             code = CHECKPOINT_NOT_CURRENT
         return _result(FAIL, code, comparison.detail, trust_level, **comparison.evidence)
 
-    if not instant(pin.root_key.active_at) <= at < instant(pin.root_key.expires_at):
+    if (history.journal.events and instant(payload.issued_at) <
+            instant(history.journal.events[-1].record.payload.issued_at)):
+        return _result(FAIL, CHECKPOINT_STALE, "Checkpoint predates its claimed history", trust_level)
+    if not instant(owner_key.active_at) <= instant(payload.issued_at) <= at < instant(owner_key.expires_at):
         return _result(FAIL, OWNER_EXPIRED, "The pinned owner root is not currently valid", trust_level)
 
-    return CheckpointVerification(
-        status=PASS, code="checkpoint_current", trust_level="CURRENTLY_TRUSTED",
-        detail="An independently authenticated, unexpired checkpoint agrees with the local journal head",
-        independently_trusted=True, current=True,
-        evidence={"document_sha256": computed_document, "checkpoint_sha256": computed_checkpoint,
-                  "ledger_id": payload.ledger_id, "environment": payload.environment,
-                  "event_count": payload.event_count, "registry_revision": payload.registry_revision,
-                  "head_sha256": payload.head_sha256, "issued_at": payload.issued_at,
-                  "expires_at": payload.expires_at, "custody": document.trust.custody,
-                  "authentication": document.trust.authentication,
-                  "expectation_source": expectation.source},
-        publication_allowed=False)
+    return _result(
+        BLOCKED, INDEPENDENT_FRESHNESS_UNVERIFIED,
+        "Signature and local journal agree, but no supported adapter authenticates an independent "
+        "custodian's current head or a fresh, single-use challenge response. A supplied digest, "
+        "custody label and caller clock cannot establish current trust.", trust_level,
+        local_checkpoint_consistent=True, document_sha256=computed_document,
+        checkpoint_sha256=computed_checkpoint, expectation_source=expectation.source)
 
 
 def conflicting_checkpoints(documents) -> dict | None:

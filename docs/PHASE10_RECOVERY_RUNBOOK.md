@@ -5,6 +5,13 @@ This runbook is preparation, not permission to provision, grant rights,
 publish, activate a feed, enable AI, schedule ingestion or deploy. Those
 require the owner's separate real-world authorisation.
 
+Phase 11 correction: [operational trust limits](PHASE11_TRUST_LIMITS.md)
+supersede earlier currency claims. Packs omit the generated edition and retained
+evidence bodies; arrange separate lawful backups for those assets. Export,
+restore and explicit drill work directories must be new. Complete preflight
+precedes writes; existing/partial destinations are refused. The clean recovery
+drill and lost-owner-key drill are BLOCKED for operational recovery.
+
 ## 1. What must be protected
 
 `python -m pipeline.recovery inventory` prints the machine-readable inventory.
@@ -34,8 +41,8 @@ uv run python -m pipeline.recovery verify D:/backups/pack-YYYYMMDD \
 
 A pack that passes every local check is **locally consistent**. It is not
 "trusted" and not "current". The verifier says so in its `trust_statement`,
-and `current` stays false until an independently held checkpoint agrees with
-the restored history.
+and `current` stays false. No supported adapter authenticates the independent
+current-state evidence needed to change that result.
 
 ## 3. Restore drill
 

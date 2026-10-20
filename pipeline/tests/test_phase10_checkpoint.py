@@ -14,7 +14,6 @@ from pipeline.authority.checkpoint import (
     BLOCKED,
     FAIL,
     INCONCLUSIVE,
-    PASS,
     IndependentExpectation,
     MissingCheckpointStore,
     OperatorFileCheckpointStore,
@@ -50,17 +49,19 @@ def verify(newsroom, document, *, digest=None, challenge=None, now=SYNTHETIC_NOW
     expectation = IndependentExpectation(
         document_sha256=digest if digest is not None else digest_attestation(document),
         challenge=challenge, source="synthetic-test")
+    kwargs.setdefault("custody", "operator-offline-file")
     return verify_external_checkpoint(document=document, document_bytes=None, expectation=expectation,
                                      pin=newsroom.pin, history=newsroom.history(), now=now, **kwargs)
 
 
-def test_an_independently_authenticated_current_checkpoint_is_the_only_pass(tmp_path):
+def test_signed_local_agreement_does_not_authenticate_independent_current_state(tmp_path):
     newsroom = room(tmp_path)
     document = document_for(newsroom)
     result = verify(newsroom, document)
-    assert result.status == PASS
-    assert result.trust_level == "CURRENTLY_TRUSTED"
-    assert result.independently_trusted and result.current
+    assert result.status == BLOCKED
+    assert result.code == "independent_freshness_unverified"
+    assert result.trust_level == "EXTERNAL_STORED"
+    assert not result.independently_trusted and not result.current
     assert result.publication_allowed is False
 
 
@@ -73,7 +74,7 @@ def test_a_stored_document_without_independent_evidence_is_blocked_not_passed(tm
         history=newsroom.history(), now=SYNTHETIC_NOW)
     assert result.status == BLOCKED
     assert result.code == "independent_evidence_missing"
-    assert result.trust_level == "EXTERNAL_STORED"
+    assert result.trust_level == "LOCAL_SIGNED"
     assert result.current is False
 
 
@@ -84,7 +85,7 @@ def test_a_local_custody_document_never_reaches_the_currently_trusted_level(tmp_
                                  captured_at=SYNTHETIC_NOW)
     result = verify(newsroom, document)
     assert result.status in {BLOCKED, FAIL}
-    assert result.trust_level in {"LOCAL_SIGNED", "INDEPENDENTLY_AUTHENTICATED"}
+    assert result.trust_level == "EXTERNAL_STORED"
     assert result.trust_level != "CURRENTLY_TRUSTED"
 
 
@@ -196,12 +197,13 @@ def test_a_cross_environment_checkpoint_is_refused(tmp_path):
 def test_an_unsupported_protocol_version_is_refused(tmp_path):
     newsroom = room(tmp_path)
     document = document_for(newsroom)
-    payload = document.checkpoint_envelope.payload.model_copy(update={"protocol": "techline.future/v9"})
-    envelope = document.checkpoint_envelope.model_copy(update={"payload": payload})
-    broken = document.model_copy(update={"checkpoint_envelope": envelope})
-    result = verify(newsroom, broken, digest=digest_attestation(broken))
+    broken = document.model_dump(mode="json")
+    broken["checkpoint_envelope"]["payload"]["protocol"] = "techline.future/v9"
+    result = verify_external_checkpoint(
+        document=None, document_bytes=canonical(broken), pin=newsroom.pin,
+        history=newsroom.history(), now=SYNTHETIC_NOW, expectation=IndependentExpectation())
     assert result.status == FAIL
-    assert result.code in {"unsupported_protocol_version", "checkpoint_malformed"}
+    assert result.code == "unsupported_protocol_version"
 
 
 def test_a_malformed_document_is_refused(tmp_path):

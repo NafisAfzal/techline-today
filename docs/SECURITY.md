@@ -1,5 +1,13 @@
 # Security implementation
 
+The [operational trust limits](PHASE11_TRUST_LIMITS.md) correct Phase 10's
+independent-custody and freshness claims. Production anchor verification remains
+blocked until authenticated independent current-state evidence is supported.
+Recovery preflights bounded allowlisted packs and refuses existing destinations.
+The 2026-10-21 advisory reassessment verified npm's 4.3.0 tarball integrity and
+reproduced all five restricted max-stale cases upstream. Retain the locked local
+patch and the 2026-11-03 reassessment deadline; a clean audit is not proof of a fix.
+
 Use ignored `.env` or GitHub production environment secrets. The example contains blank values. Inference/deploy credentials are separate. Source scanning finds common keys/private keys; build scanning rejects secret names or configured values in public assets. Enable repository secret push protection when publishing.
 
 Fetching is HTTPS-only and allowlisted, rejects credentials/nonstandard ports/private destinations, validates every DNS answer and pins the selected public IP while retaining TLS SNI. Multicast and deprecated IPv6 site-local addresses are explicitly blocked despite Python marking them global. Redirect/MIME/size/time/domain-rate protections apply. HTML requires explicit permission and robots approval. Locked httpx/httpcore backend integration must be rechecked during upgrades.

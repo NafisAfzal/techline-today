@@ -203,5 +203,5 @@ def test_the_emergency_stop_drill_refuses_currency():
 
 def test_drill_directories_are_isolated_from_the_checkout(tmp_path):
     result = run_drill("DR-01", tmp_path / "isolated")
-    assert result.result == "PASS"
+    assert result.result == "BLOCKED"
     assert str(tmp_path) not in json.dumps(result.as_dict(), default=str)

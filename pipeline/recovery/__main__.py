@@ -4,6 +4,9 @@ import argparse
 import json
 from pathlib import Path
 
+from pipeline.authority.checkpoint import MAX_DOCUMENT_BYTES
+from pipeline.filesystem import regular_path
+from pipeline.generation import bounded_file
 from pipeline.recovery.drills import drill_report, run_all_drills, run_drill
 from pipeline.recovery.inventory import inventory_report
 from pipeline.recovery.verify import build_recovery_pack, verify_recovery_pack
@@ -42,7 +45,7 @@ def main(argv=None):
             expected = {"ledger_id": args.expected_ledger_id, "environment": args.expected_environment,
                         "owner_id": args.expected_owner_id}
             expected = {key: value for key, value in expected.items() if value}
-            checkpoint = args.checkpoint.read_bytes() if args.checkpoint else None
+            checkpoint = bounded_file(regular_path(args.checkpoint), MAX_DOCUMENT_BYTES) if args.checkpoint else None
             result = verify_recovery_pack(args.pack, expected=expected, checkpoint_bytes=checkpoint,
                                           expected_checkpoint_sha256=args.expected_checkpoint_sha256,
                                           challenge=args.challenge).model_dump(mode="json")

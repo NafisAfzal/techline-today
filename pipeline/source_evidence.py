@@ -405,10 +405,17 @@ def load_dossiers(root, *, limit: int = 200) -> list[SourceCandidate]:
     directory = dossier_directory(root)
     if not directory.is_dir():
         return []
+    from itertools import islice
+
+    from pipeline.filesystem import regular_path
+    from pipeline.generation import bounded_file
+
+    if type(limit) is not int or not 1 <= limit <= 200:
+        raise ValueError("Dossier limit must be 1..200")
+    paths = list(islice(directory.glob("*.json"), limit + 1))
+    if len(paths) > limit:
+        raise ValueError("Too many candidate dossiers; review the complete inventory")
     found = []
-    for path in sorted(directory.glob("*.json"))[:limit]:
-        try:
-            found.append(read_candidate_document(path.read_bytes()))
-        except (ValueError, OSError):
-            continue
+    for path in sorted(paths):
+        found.append(read_candidate_document(bounded_file(regular_path(path), 1_000_000)))
     return found

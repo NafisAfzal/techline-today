@@ -161,21 +161,19 @@ def drill_clean_recovery(work: Path) -> DrillResult:
     pack = _pack(room, work, "clean-pack", trust)
     verification = _verify(pack, checkpoint=payload, digest=digest,
                            expected={"ledger_id": SYNTHETIC_LEDGER, "environment": "synthetic"})
-    ok = (verification.status == "PASS" and verification.local_consistency == "PASS"
-          and verification.current)
+    ok = (verification.status == "BLOCKED" and verification.local_consistency == "PASS"
+          and not verification.current and not verification.independently_trusted)
     return DrillResult(
         drill_id="DR-01", name="Clean recovery",
         fixture="A synthetic newsroom with an appointed team, a published story and an owner-signed "
-                "checkpoint held by a separate custodian.",
+                "checkpoint copied to another local directory (no authenticated custodian).",
         injected_failure="None. This is the reference recovery.",
-        expected_behavior="Every local check passes and the independently held checkpoint agrees with "
-                          "the restored history.",
+        expected_behavior="Local consistency passes; independent current trust remains BLOCKED.",
         actual_behavior=verification.trust_statement,
         trust_guarantees=["journal chain continuity", "trust-root bound replay",
-                          "independently authenticated checkpoint agreement"],
-        human_intervention=["None for verification. Publication still needs the owner's separate "
-                            "publication authorisation."],
-        result="PASS" if ok else "FAIL",
+                          "signed checkpoint agreement with supplied local history"],
+        human_intervention=["Establish an authenticated independent current-state channel before publication"],
+        result="BLOCKED" if ok else "FAIL",
         detail="Baseline recovery drill.",
         evidence={"status": verification.status, "local_consistency": verification.local_consistency,
                   "current": verification.current,
@@ -212,13 +210,13 @@ def drill_corrupted_ledger(work: Path) -> DrillResult:
     payload[10:14] = b"XXXX"
     target.write_bytes(bytes(payload))
     verification = _verify(pack)
-    detected = _check_result(verification, "journal_continuity") == "FAIL"
+    detected = _check_result(verification, "pack_readable") == "FAIL"
     return DrillResult(
         drill_id="DR-03", name="Corrupted ledger",
         fixture="A recovery pack whose signed journal bytes were altered after export.",
         injected_failure="Overwrote four bytes inside the packed journal.",
-        expected_behavior="Journal continuity fails and the pack is refused.",
-        actual_behavior="The journal continuity check rejected the altered member.",
+        expected_behavior="The altered member is refused before restore.",
+        actual_behavior="The pack integrity check rejected the altered member.",
         trust_guarantees=["per-member SHA-256", "journal hash-chain validation"],
         human_intervention=["Restore from another verified copy; never repair a corrupted chain by hand"],
         result="PASS" if detected else "FAIL",
@@ -446,13 +444,13 @@ def drill_duplicate_decision_history(work: Path) -> DrillResult:
     journal["events"].append(json.loads(json.dumps(journal["events"][-1])))
     target.write_text(json.dumps(journal), encoding="utf-8")
     verification = _verify(pack)
-    detected = _check_result(verification, "journal_continuity") == "FAIL"
+    detected = _check_result(verification, "pack_readable") == "FAIL"
     return DrillResult(
         drill_id="DR-12", name="Duplicate decision history",
         fixture="A recovery pack whose journal contains the same signed decision twice.",
         injected_failure="Duplicated the last journal event.",
         expected_behavior="The duplicated history is refused; record IDs stay globally unique.",
-        actual_behavior="The journal continuity check rejected the duplicated event.",
+        actual_behavior="The pack integrity check rejected the altered journal before restore.",
         trust_guarantees=["hash-chain continuity", "global record-ID uniqueness"],
         human_intervention=["Restore the deduplicated history from a verified copy"],
         result="PASS" if detected else "FAIL",
@@ -563,8 +561,20 @@ def run_drill(drill_id: str, work: Path | None = None) -> DrillResult:
         raise ValueError(f"Unknown drill: {drill_id}")
     if work is None:
         with TemporaryDirectory(prefix="techline-drill-") as temporary:
-            return DRILLS[key](Path(temporary))
-    return DRILLS[key](Path(work))
+            return run_drill(key, Path(temporary) / "drill")
+    base = _claim_drill_directory(work)
+    return DRILLS[key](base)
+
+
+def _claim_drill_directory(work):
+    from pipeline.filesystem import regular_path
+
+    base = Path(work)
+    regular_path(base / ".path-check")
+    if base.exists():
+        raise ValueError("Drills require a new isolated directory")
+    base.mkdir(parents=True, exist_ok=False)
+    return base
 
 
 def run_all_drills(work: Path | None = None) -> list[DrillResult]:
@@ -573,8 +583,7 @@ def run_all_drills(work: Path | None = None) -> list[DrillResult]:
         with TemporaryDirectory(prefix="techline-drills-") as temporary:
             base = Path(temporary)
             return [DRILLS[key](base / key) for key in sorted(DRILLS)]
-    base = Path(work)
-    base.mkdir(parents=True, exist_ok=True)
+    base = _claim_drill_directory(work)
     return [DRILLS[key](base / key) for key in sorted(DRILLS)]
 
 

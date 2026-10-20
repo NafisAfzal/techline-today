@@ -11,8 +11,9 @@ The verifier deliberately separates two claims:
 * **independent currency** - an independently held checkpoint agrees with it.
 
 A pack that passes every local check is still not "trusted" and not "current".
-Only an independently obtained checkpoint digest plus a matching journal head
-can produce that claim, and this module never invents one.
+An independently obtained digest can detect disagreement with a known checkpoint,
+but cannot prove that it is the custodian's current head. No current adapter
+authenticates that external property, so currency remains BLOCKED.
 """
 
 import hashlib
@@ -20,6 +21,7 @@ import json
 import os
 import tempfile
 from datetime import UTC, datetime
+from itertools import islice
 from pathlib import Path
 from typing import Literal
 
@@ -29,7 +31,7 @@ from pydantic import Field
 from pipeline.authority.ledger import decode_journal, replay
 from pipeline.authority.protocol import MAX_RECORD, AuthorityError, Model
 from pipeline.authority.registry import TrustPin
-from pipeline.filesystem import regular_path
+from pipeline.filesystem import confined_file, regular_path
 from pipeline.generation import bounded_file
 from pipeline.strict_json import strict_json
 
@@ -41,6 +43,8 @@ POLICY_SOURCES = {
     "policy/sources.yaml": "config/sources.yaml",
 }
 REQUIRED_POLICY_FILES = tuple(sorted(POLICY_SOURCES))
+ALLOWED_MEMBERS = frozenset((*REQUIRED_POLICY_FILES, "authority/journal.json", "authority/trust-pin.json",
+                             "evidence/source-candidates.json", "evidence/index.json"))
 
 PASS, FAIL, BLOCKED, INCONCLUSIVE = "PASS", "FAIL", "BLOCKED", "INCONCLUSIVE"
 
@@ -70,15 +74,91 @@ def _check(name, result, message, **evidence) -> dict:
 
 
 def _digest(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    return hashlib.sha256(bounded_file(path, 1_000_000)).hexdigest()
 
 
 def _pack_files(root: Path) -> list[str]:
     files = []
-    for base, _dirs, names in os.walk(root):
-        for name in names:
-            files.append(str((Path(base) / name).relative_to(root)).replace("\\", "/"))
+
+    def scan(directory):
+        with os.scandir(directory) as entries:
+            children = list(islice(entries, len(ALLOWED_MEMBERS) + 4))
+        if len(children) > len(ALLOWED_MEMBERS) + 1:
+            raise ValueError("Unexpected recovery pack content")
+        for child in children:
+            path = Path(child.path)
+            relative = path.relative_to(root).as_posix()
+            if child.is_dir(follow_symlinks=False):
+                regular_path(path / ".path-check")
+                if relative not in {"authority", "policy", "evidence"}:
+                    raise ValueError("Unexpected recovery pack directory")
+                scan(path)
+            else:
+                regular_path(path)
+                files.append(relative)
+            if len(files) > len(ALLOWED_MEMBERS) + 1:
+                raise ValueError("Unexpected recovery pack content")
+    scan(root)
     return sorted(files)
+
+
+def _validated_pack(pack: Path) -> tuple[dict, dict[str, bytes]]:
+    """Bounded, complete preflight. No path or payload is used before validation."""
+    manifest_path = confined_file(pack, "manifest.json")
+    manifest = strict_json(bounded_file(manifest_path, 1_000_000), max_bytes=1_000_000,
+                           max_depth=16, max_tokens=20000)
+    if (not isinstance(manifest, dict) or manifest.get("kind") != PACK_FORMAT
+            or type(manifest.get("version")) is not int or manifest["version"] != 1):
+        raise ValueError("Unsupported recovery pack format")
+    listed = manifest.get("files")
+    if not isinstance(listed, list) or not 1 <= len(listed) <= len(ALLOWED_MEMBERS):
+        raise ValueError("Recovery pack contains no usable files")
+    payloads = {}
+    total = 0
+    for item in listed:
+        if not isinstance(item, dict):
+            raise ValueError("Invalid recovery pack member")
+        relative = item.get("path")
+        if not isinstance(relative, str) or relative not in ALLOWED_MEMBERS:
+            raise ValueError("Recovery pack contains an unsafe path or unexpected content")
+        if relative in payloads or type(item.get("bytes")) is not int or item["bytes"] < 0:
+            raise ValueError("Duplicate or invalid recovery pack member")
+        total += item["bytes"]
+        if total > MAX_PACK_BYTES:
+            raise ValueError("Recovery pack exceeds the aggregate size limit")
+        payload = bounded_file(confined_file(pack, relative), item["bytes"])
+        if len(payload) != item["bytes"] or hashlib.sha256(payload).hexdigest() != item.get("sha256"):
+            raise ValueError(f"Recovery pack member failed integrity: {relative}")
+        if any(marker in payload for marker in PRIVATE_KEY_MARKERS):
+            raise ValueError(f"Refusing private key material: {relative}")
+        payloads[relative] = payload
+    if set(_pack_files(pack)) != {*payloads, "manifest.json"}:
+        raise ValueError("Recovery pack contains unlisted content")
+    if (type(manifest.get("journal_present")) is not bool
+            or manifest["journal_present"] != ("authority/journal.json" in payloads)):
+        raise ValueError("Recovery pack journal inventory disagrees")
+    if not {*REQUIRED_POLICY_FILES, "evidence/index.json"} <= payloads.keys():
+        raise ValueError("Required recovery policy or evidence index missing")
+    return manifest, payloads
+
+
+def _write_new_directory(destination: Path, payloads: dict[str, bytes]) -> list[str]:
+    # A single mkdir claims this destination. Existing/partial directories stay
+    # untouched; interrupted operations require inspection and a new destination.
+    regular_path(destination / ".path-check")
+    if destination.exists():
+        raise ValueError("Restore requires a new empty destination")
+    destination.mkdir(parents=True, exist_ok=False)
+    restored = []
+    for relative, payload in payloads.items():
+        target = confined_file(destination, relative)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        with target.open("xb") as stream:
+            stream.write(payload)
+            stream.flush()
+            os.fsync(stream.fileno())
+        restored.append(relative)
+    return restored
 
 
 def build_recovery_pack(root, destination, *, now=None, trust_file=None,
@@ -88,23 +168,24 @@ def build_recovery_pack(root, destination, *, now=None, trust_file=None,
     The pack carries public authority material and policy only. Private keys
     are never exported; if one is found in the source tree the export refuses.
     """
-    root = Path(root).absolute()
-    destination = Path(destination).absolute()
-    if destination.exists() and any(destination.iterdir()):
+    root = Path(root)
+    destination = Path(destination)
+    regular_path(root / ".path-check")
+    regular_path(destination / ".path-check")
+    if destination.exists():
         raise ValueError("Use a new recovery pack directory")
     at = now or datetime.now(UTC)
     files: list[dict] = []
+    payloads: dict[str, bytes] = {}
 
     def include(relative: str, source: Path) -> None:
-        payload = source.read_bytes()
-        if len(payload) > MAX_PACK_BYTES:
+        payload = bounded_file(regular_path(source), MAX_PACK_BYTES)
+        if sum(len(value) for value in payloads.values()) + len(payload) > MAX_PACK_BYTES:
             raise ValueError(f"Recovery pack member exceeds the size limit: {relative}")
         for marker in PRIVATE_KEY_MARKERS:
             if marker in payload:
                 raise ValueError(f"Refusing to export private key material: {relative}")
-        target = destination / relative
-        target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_bytes(payload)
+        payloads[relative] = payload
         files.append({"path": relative, "bytes": len(payload),
                       "sha256": hashlib.sha256(payload).hexdigest()})
 
@@ -129,7 +210,7 @@ def build_recovery_pack(root, destination, *, now=None, trust_file=None,
                        "sources": []}
     if candidates.is_file():
         try:
-            ledger = json.loads(candidates.read_text(encoding="utf-8"))
+            ledger = strict_json(payloads["evidence/source-candidates.json"], max_bytes=MAX_PACK_BYTES)
             evidence_index["sources"] = [
                 {"candidate_id": event.get("candidate_id"),
                  "identity": event.get("identity"),
@@ -138,9 +219,7 @@ def build_recovery_pack(root, destination, *, now=None, trust_file=None,
         except (ValueError, OSError):
             evidence_index["sources"] = []
     index_payload = json.dumps(evidence_index, indent=2, sort_keys=True).encode() + b"\n"
-    index_target = destination / "evidence/index.json"
-    index_target.parent.mkdir(parents=True, exist_ok=True)
-    index_target.write_bytes(index_payload)
+    payloads["evidence/index.json"] = index_payload
     files.append({"path": "evidence/index.json", "bytes": len(index_payload),
                   "sha256": hashlib.sha256(index_payload).hexdigest()})
 
@@ -151,94 +230,44 @@ def build_recovery_pack(root, destination, *, now=None, trust_file=None,
                 "contains_private_keys": False,
                 "note": "Public authority and policy material only. Independent currency requires an "
                         "externally held checkpoint whose digest was obtained separately."}
-    (destination / "manifest.json").write_bytes(
-        json.dumps(manifest, indent=2, sort_keys=True).encode() + b"\n")
+    payloads["manifest.json"] = json.dumps(manifest, indent=2, sort_keys=True).encode() + b"\n"
+    if sum(map(len, payloads.values())) > MAX_PACK_BYTES:
+        raise ValueError("Recovery pack exceeds the aggregate size limit")
+    _write_new_directory(destination, payloads)
     return manifest
 
 
 def restore_recovery_pack(pack: Path, destination: Path) -> list[str]:
     """Restore a pack into an isolated directory. Existing content is never overwritten."""
-    pack, destination = Path(pack).absolute(), Path(destination).absolute()
-    if destination.exists() and any(destination.iterdir()):
-        raise ValueError("Restore requires an empty destination")
-    manifest = json.loads((pack / "manifest.json").read_text(encoding="utf-8"))
-    restored = []
-    for item in manifest["files"]:
-        relative = item["path"]
-        if relative.startswith("/") or ".." in Path(relative).parts:
-            raise ValueError("Recovery pack contains an unsafe path")
-        source = pack / relative
-        payload = source.read_bytes()
-        if len(payload) != item["bytes"] or hashlib.sha256(payload).hexdigest() != item["sha256"]:
-            raise ValueError(f"Recovery pack member failed integrity: {relative}")
-        target = destination / relative
-        target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_bytes(payload)
-        restored.append(relative)
-    return restored
+    pack, destination = Path(pack), Path(destination)
+    regular_path(destination / ".path-check")
+    if destination.exists():
+        raise ValueError("Restore requires a new empty destination")
+    _manifest, payloads = _validated_pack(pack)
+    return _write_new_directory(destination, payloads)
 
 
 def verify_recovery_pack(pack, *, expected: dict | None = None, checkpoint_bytes: bytes | None = None,
                          expected_checkpoint_sha256: str | None = None,
                          challenge: str | None = None, now=None) -> RecoveryVerification:
     """Validate a recovery pack offline. Never mutates the pack and never trusts it by itself."""
-    pack = Path(pack).absolute()
+    pack = Path(pack)
     checks: list[dict] = []
     at = now or datetime.now(UTC)
 
     # --- 1. structurally readable ------------------------------------------------
     manifest_path = pack / "manifest.json"
-    if not manifest_path.is_file():
-        return RecoveryVerification(status=FAIL, local_consistency=FAIL, checks=[
-            _check("pack_readable", FAIL, "The recovery pack has no manifest")],
-            trust_statement="An unreadable pack proves nothing.")
     try:
-        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest, _payloads = _validated_pack(pack)
     except (ValueError, OSError):
         return RecoveryVerification(status=FAIL, local_consistency=FAIL, checks=[
-            _check("pack_readable", FAIL, "The recovery pack manifest is not readable JSON")],
+            _check("pack_readable", FAIL, "Recovery pack failed bounded structural, path or integrity checks")],
             trust_statement="An unreadable pack proves nothing.")
-    if manifest.get("kind") != PACK_FORMAT or manifest.get("version") != 1:
-        return RecoveryVerification(status=FAIL, local_consistency=FAIL, checks=[
-            _check("pack_readable", FAIL, "Unsupported recovery pack format")],
-            trust_statement="An unsupported pack format proves nothing.")
-    listed = manifest.get("files") or []
-    if not isinstance(listed, list) or not 1 <= len(listed) <= 2000:
-        return RecoveryVerification(status=FAIL, local_consistency=FAIL, checks=[
-            _check("pack_readable", FAIL, "The recovery pack manifest lists no usable files")],
-            trust_statement="An empty pack proves nothing.")
-    damaged = []
-    for item in listed:
-        relative = item.get("path")
-        if not isinstance(relative, str) or relative.startswith("/") or ".." in Path(relative).parts:
-            damaged.append(str(relative))
-            continue
-        member = pack / relative
-        if not member.is_file():
-            damaged.append(relative)
-            continue
-        payload = member.read_bytes()
-        if len(payload) != item.get("bytes") or hashlib.sha256(payload).hexdigest() != item.get("sha256"):
-            damaged.append(relative)
-    checks.append(_check("pack_readable", FAIL if damaged else PASS,
-                         "Recovery pack members are missing or altered" if damaged
-                         else "Every listed member matches its recorded digest and size",
-                         damaged=damaged))
+    checks.append(_check("pack_readable", PASS, "All members passed bounded path, size and digest checks"))
 
     # --- 2. no private key exposure ---------------------------------------------
-    exposed = []
-    for relative in _pack_files(pack):
-        member = pack / relative
-        if member.stat().st_size > MAX_PACK_BYTES:
-            exposed.append(relative)
-            continue
-        payload = member.read_bytes()
-        if any(marker in payload for marker in PRIVATE_KEY_MARKERS):
-            exposed.append(relative)
-    checks.append(_check("no_private_key_exposure", FAIL if exposed else PASS,
-                         "The pack contains private key material" if exposed
-                         else "No private key material is present in the pack",
-                         exposed=exposed))
+    checks.append(_check("no_private_key_exposure", PASS,
+                         "No recognized private-key markers in allowlisted public-policy members"))
 
     # --- 3. journal continuity ----------------------------------------------------
     history = None
@@ -248,7 +277,7 @@ def verify_recovery_pack(pack, *, expected: dict | None = None, checkpoint_bytes
                              "The pack contains no authority journal; no continuity can be asserted"))
     else:
         try:
-            journal = decode_journal(bounded_file(journal_path, MAX_PACK_BYTES))
+            journal = decode_journal(_payloads["authority/journal.json"])
             checks.append(_check("journal_continuity", PASS,
                                  "The journal chain is continuous and its head matches",
                                  event_count=len(journal.events), head_sha256=journal.head_sha256))
@@ -263,7 +292,7 @@ def verify_recovery_pack(pack, *, expected: dict | None = None, checkpoint_bytes
     pin_path = pack / "authority/trust-pin.json"
     if pin_path.is_file():
         try:
-            pin = TrustPin.model_validate(strict_json(bounded_file(pin_path, MAX_RECORD),
+            pin = TrustPin.model_validate(strict_json(_payloads["authority/trust-pin.json"],
                                                       max_bytes=MAX_RECORD))
         except (ValueError, OSError) as error:
             checks.append(_check("trust_pin_readable", FAIL, "The packed trust pin is not valid",
@@ -271,15 +300,15 @@ def verify_recovery_pack(pack, *, expected: dict | None = None, checkpoint_bytes
     expected = expected or {}
     identity_problems = []
     if expected:
-        for key, observed in (("ledger_id", manifest.get("ledger_id") or (pin.ledger_id if pin else None)),
-                              ("environment", manifest.get("environment") or (pin.environment if pin else None)),
-                              ("owner_id", manifest.get("owner_id") or (pin.owner_id if pin else None))):
+        for key, observed in (("ledger_id", pin.ledger_id if pin else None),
+                              ("environment", pin.environment if pin else None),
+                              ("owner_id", pin.owner_id if pin else None)):
             if key in expected and expected[key] is not None and observed != expected[key]:
                 identity_problems.append(f"{key}={observed!r} expected {expected[key]!r}")
         if "head_sha256" in expected and expected["head_sha256"]:
             observed_head = checks and next((row["evidence"].get("head_sha256")
                                              for row in checks if row["check"] == "journal_continuity"), None)
-            if observed_head and observed_head != expected["head_sha256"]:
+            if observed_head != expected["head_sha256"]:
                 identity_problems.append("journal head differs from the expected head")
     if identity_problems:
         checks.append(_check("expected_identity", FAIL, "The pack does not match the expected identity",
@@ -299,7 +328,7 @@ def verify_recovery_pack(pack, *, expected: dict | None = None, checkpoint_bytes
                              "No journal is available to replay against the packed trust pin"))
     else:
         try:
-            journal = decode_journal(bounded_file(journal_path, MAX_PACK_BYTES))
+            journal = decode_journal(_payloads["authority/journal.json"])
             history = replay(journal, pin, at, mode="synthetic" if pin.synthetic else "production")
             checks.append(_check("authority_state_consistent", PASS,
                                  "The journal replays cleanly against the packed trust pin",
@@ -317,8 +346,8 @@ def verify_recovery_pack(pack, *, expected: dict | None = None, checkpoint_bytes
     policy_error = None
     if not missing_policy:
         try:
-            json.loads((pack / "policy/source-rights.json").read_text(encoding="utf-8"))
-            yaml.safe_load((pack / "policy/sources.yaml").read_text(encoding="utf-8"))
+            strict_json(_payloads["policy/source-rights.json"], max_bytes=MAX_PACK_BYTES)
+            yaml.safe_load(_payloads["policy/sources.yaml"])
         except (ValueError, OSError, yaml.YAMLError) as error:
             policy_error = type(error).__name__
     checks.append(_check("required_policy_present",
@@ -335,7 +364,7 @@ def verify_recovery_pack(pack, *, expected: dict | None = None, checkpoint_bytes
                              "The pack carries no evidence index"))
     else:
         try:
-            index = json.loads(index_path.read_text(encoding="utf-8"))
+            index = strict_json(_payloads["evidence/index.json"], max_bytes=MAX_PACK_BYTES)
             ok = isinstance(index, dict) and index.get("version") == 1
             checks.append(_check("evidence_index_present", PASS if ok else FAIL,
                                  "The evidence index is present and well formed" if ok
@@ -347,7 +376,7 @@ def verify_recovery_pack(pack, *, expected: dict | None = None, checkpoint_bytes
     restore_detail = None
     try:
         with tempfile.TemporaryDirectory(prefix="techline-recovery-restore-") as temporary:
-            restored = restore_recovery_pack(pack, Path(temporary) / "restored")
+            restored = _write_new_directory(Path(temporary) / "restored", _payloads)
             restore_detail = len(restored)
         checks.append(_check("restorable", PASS,
                              "The pack restores into an isolated location with matching digests",
@@ -392,15 +421,17 @@ def verify_recovery_pack(pack, *, expected: dict | None = None, checkpoint_bytes
                 independently_trusted = result.independently_trusted
                 current = result.status == PASS and result.trust_level == "CURRENTLY_TRUSTED"
 
+    local_results = {row["result"] for row in checks if row["check"] != "trusted_checkpoint_comparison"}
+    local = FAIL if FAIL in local_results else INCONCLUSIVE if INCONCLUSIVE in local_results else PASS
     results = {row["result"] for row in checks}
     if FAIL in results:
-        overall, local = FAIL, FAIL
+        overall = FAIL
     elif BLOCKED in results:
-        overall, local = BLOCKED, "PASS" if INCONCLUSIVE not in results else "INCONCLUSIVE"
+        overall = BLOCKED
     elif INCONCLUSIVE in results:
-        overall, local = INCONCLUSIVE, "INCONCLUSIVE"
+        overall = INCONCLUSIVE
     else:
-        overall, local = PASS, PASS
+        overall = PASS
     statement = ("Local consistency only. This pack is not an externally trusted checkpoint and "
                  "does not establish currency; independent checkpoint evidence is required.")
     if independently_trusted and current:
@@ -409,7 +440,7 @@ def verify_recovery_pack(pack, *, expected: dict | None = None, checkpoint_bytes
     elif independently_trusted:
         statement = ("Local consistency verified and the checkpoint was independently authenticated, "
                      "but it does not match this pack's history; currency is not established.")
-    if FAIL in results:
+    if local == FAIL:
         statement = "The pack failed a local consistency check and must not be restored or compared."
     return RecoveryVerification(status=overall, local_consistency=local,
                                 independently_trusted=independently_trusted, current=current,

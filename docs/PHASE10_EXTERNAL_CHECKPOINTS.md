@@ -3,6 +3,11 @@
 Status: **UNPROVISIONED**. Nothing here appoints a reviewer, grants a
 permission, publishes or deploys. The canonical edition is unchanged.
 
+Phase 11 correction: read [operational trust limits](PHASE11_TRUST_LIMITS.md).
+The file adapters cannot authenticate independent custody or the current head.
+Matching signatures and local history remain BLOCKED. The workflow below
+prepares evidence only; it cannot establish current trust.
+
 ## Why this exists
 
 Phase 8 signs a journal head as a `Checkpoint` envelope. That proves *which key*
@@ -22,13 +27,13 @@ evidence actually reaches.
 | `LOCAL_SNAPSHOT` | Generated locally, never signed | Nothing. The starting point. |
 | `LOCAL_SIGNED` | Signed locally, still only local evidence | A local signature |
 | `EXTERNAL_STORED` | Written outside the authority state directory | An operator-held custodian file, a materialised protected branch, or a read-only mirror |
-| `INDEPENDENTLY_AUTHENTICATED` | The verifier holds a digest obtained through a channel the local state does not control | An out-of-band digest plus an external custody |
-| `CURRENTLY_TRUSTED` | Level 4 **and** signature, ledger identity, environment, registry revision and journal head all agree right now | Level 4 plus a matching, unexpired journal |
+| `INDEPENDENTLY_AUTHENTICATED` | Authenticated evidence from an independently controlled custodian | Reserved; unavailable through current adapters |
+| `CURRENTLY_TRUSTED` | Additionally authenticated current-head evidence with a fresh, single-use challenge response | Reserved; unavailable through current adapters |
 
 Only `CURRENTLY_TRUSTED` is a pass. `EXTERNAL_STORED` is **custody, not
 authenticity**: a file copied into another folder is still a file on the same
-disk. Moving a checkpoint does not upgrade it; only an independently obtained
-digest does.
+disk. A supplied digest establishes equality with that value; it cannot prove
+its independent origin or currency. Moving the file never establishes those properties.
 
 A checkpoint whose effective custody is the authority state directory is
 refused with `checkpoint_custody_insufficient`. It cannot act as an external
@@ -74,6 +79,7 @@ The verifier names the defect instead of collapsing everything into "rollback".
 | `conflicting_checkpoints` | Two independently held checkpoints disagree |
 | `checkpoint_custody_insufficient` | The document is stored inside the authority state directory |
 | `independent_evidence_missing` | No independently obtained digest was supplied |
+| `independent_freshness_unverified` | Local agreement exists, but independent current-state evidence cannot be authenticated |
 | `emergency_hold` | A persistent publication stop is present |
 
 Verdicts are `PASS`, `FAIL`, `BLOCKED` or `INCONCLUSIVE`. Missing evidence is

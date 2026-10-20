@@ -64,7 +64,9 @@ The Bangla interface is implemented. **Production Bangla story translation is no
 
 Editorial authority is implemented as an initially **UNPROVISIONED** offline
 Ed25519 reviewer system. Separate role/scope grants, exact content signatures and
-independently trusted checkpoints feed the existing publication gate. No real
+checkpoint checks feed the existing publication gate. Independent current-state
+authentication is unavailable, so production verification remains blocked; see
+the [operational trust limits](docs/PHASE11_TRUST_LIMITS.md). No real
 editors or publisher rights are provisioned. Run `uv run python -m pipeline.authority status`
 or the ephemeral `demo`; neither activates publication. See the
 [security design](docs/PHASE8_EDITORIAL_AUTHORITY.md) and

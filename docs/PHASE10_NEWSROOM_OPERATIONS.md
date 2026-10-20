@@ -4,6 +4,12 @@ Status: **production launch is not authorised**. Every command below is
 read-only or reduces exposure. None of them enables a schedule, a publisher, a
 paid model, a preview or a deployment.
 
+Phase 11 correction: [operational trust limits](PHASE11_TRUST_LIMITS.md)
+explain why current checkpoint trust remains BLOCKED, local observation
+provenance remains INCONCLUSIVE, and historical rights archives remain
+INCONCLUSIVE. Current-news counts require live, fresh, publication-eligible
+articles. Populated fields and local receipt hashes cannot establish these facts.
+
 ## The one report
 
 ```sh
@@ -13,8 +19,8 @@ uv run python -m pipeline.newsroom_readiness --root .
 
 Every item resolves to `PASS`, `FAIL`, `BLOCKED` or `INCONCLUSIVE` with the
 evidence that produced it and the specific missing thing. `BLOCKED` means an
-owner-controlled decision is the only thing missing. `INCONCLUSIVE` means the
-evidence does not exist. Neither is a pass. There are no invented progress
+operational prerequisite or authorization is missing; the detail names it.
+`INCONCLUSIVE` means available evidence is insufficient. Neither is a pass. There are no invented progress
 percentages.
 
 | Item | What it means today |
