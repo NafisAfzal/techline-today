@@ -255,6 +255,19 @@ def story_state(ledger: EditorialLedger, story_id: str) -> str:
     return state
 
 
+def record_authenticated(envelope, *, trust_pin, now, root=ROOT, mode="production"):
+    """Authenticated extension of this lifecycle; an actor/status field never suffices.
+
+    Stored signatures remain inactive until an independent current checkpoint is
+    supplied to the publication verifier. The legacy draft ledger is preserved.
+    """
+    from pipeline.authority.ledger import append
+    from pipeline.authority.protocol import Decision
+    if not isinstance(envelope.payload, Decision) or envelope.payload.binding.workflow != "editorial":
+        raise ValueError("Expected a signed editorial lifecycle decision")
+    return append(root, envelope, trust_pin, now, mode=mode)
+
+
 def record(story_id, from_state, to_state, *, actor, now, reason, fact_check_reference=None,
            correction_reference=None, retraction_reason=None, root=ROOT):
     """Append one editorial decision. Approval states are refused, not configurable."""

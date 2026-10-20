@@ -297,6 +297,46 @@ def evidence_digest(candidate: SourceCandidate) -> str | None:
     return digest([item.model_dump(mode="json") for item in candidate.evidence]) if candidate.evidence else None
 
 
+def authenticated_review(candidate, authority, now, *, mode="production"):
+    """Report signed onboarding evidence; source activation stays a separate owner act."""
+    from pipeline.authority.service import AuthorityBundle, bind_candidate
+    if not isinstance(authority, AuthorityBundle):
+        raise AuthorityUnavailable("An independently provisioned and anchored authority is required")
+    history = authority.verify(now, expected_mode=mode)
+    binding = bind_candidate(candidate)
+    return {"state": history.state(binding),
+            "rights_evidence_recorded": bool(history.active(binding, "RIGHTS_EVIDENCE_RECORDED", now)),
+            "eligible_for_activation": bool(history.active(binding, "ELIGIBLE_FOR_ACTIVATION", now)),
+            "activation_allowed": False, "ai_submission_allowed": False}
+
+
+def signed_candidate_allowed(row, local_ledger, history, now):
+    """Reconcile preserved local proposal evidence with the authenticated lifecycle.
+
+    Only the full new-edition gate supplies this verified history. Unsigned
+    suspension/revocation still denies; a signed review must match the exact most
+    recent local candidate digest and identity. No configuration is changed.
+    """
+    if row["state"] in {"SUSPENDED", "REVOKED"} or any(
+            event.candidate_id == row["candidate_id"] and event.transition is not None
+            and event.transition.to_state in {"SUSPENDED", "REVOKED"} for event in local_ledger.events):
+        return False
+    latest = next((event for event in reversed(local_ledger.events)
+                   if event.candidate_id == row["candidate_id"]), None)
+    if latest is None:
+        return False
+    expected = latest.candidate_sha256 if latest.registered else latest.transition.to_candidate_sha256
+    for envelope in reversed(history.decisions):
+        bound = envelope.payload.binding
+        if (bound.workflow == "source" and bound.source_id == row["candidate_id"]
+                and bound.story_id == "candidate:" + row["candidate_id"]
+                and bound.source_sha256 == row["identity"] and bound.content_sha256 == expected):
+            return (history.state(bound) == "ELIGIBLE_FOR_ACTIVATION"
+                    and bool(history.active(bound, "RIGHTS_EVIDENCE_RECORDED", now))
+                    and bool(history.active(bound, "ELIGIBLE_FOR_ACTIVATION", now)))
+    return False
+
+
 def register(candidate, *, actor, now, root=ROOT):
     """Append a candidate registration event. Duplicate identities are refused."""
     candidate = SourceCandidate.model_validate(candidate.model_dump(mode="json"))

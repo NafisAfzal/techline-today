@@ -440,7 +440,14 @@ def assess(*, root, source_rights=None, enabled_sources=None, stories=None, now=
             "summary": {result: tally.get(result, 0) for result in (PASS, FAIL, BLOCKED, INCONCLUSIVE)},
             "publication_allowed": False, "ai_submission_allowed": False,
             "observation_window": window,
+            "authenticated_authority": authority_readiness(root, now),
             "note": "INCONCLUSIVE means evidence is missing. It is never a pass."}
+
+
+def authority_readiness(root, now):
+    """Identity/checkpoint readiness does not assert editorial or legal approval."""
+    from pipeline.authority.service import status
+    return status(root, now)
 
 
 def human_report(assessment) -> str:

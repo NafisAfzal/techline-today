@@ -21,7 +21,7 @@ from pipeline.editorial_workflow import (
 )
 
 DENIED = "DENIED"
-ALLOWED = "ELLOWED"
+ALLOWED = "ALLOWED"
 LEGACY_SNAPSHOT_SHA256 = "d146d528ed8b00bc4e3a1e379ceffa300f46ce5a17ee9d34e8291410e9973eb5"
 
 
@@ -31,7 +31,8 @@ def _dimension(name, allowed, reasons, evidence):
 
 
 def evaluate(story, sources, source_rights, *, editorial_ledger=None, now=None,
-             build_time=None, require_approval=True):
+             build_time=None, require_approval=True, authority=None, authority_mode="production",
+             source_registry=None):
     """Evaluate one story against every publication dimension.
 
     ``story`` is a ``pipeline.models.Story``; ``sources`` maps source ids to
@@ -40,6 +41,14 @@ def evaluate(story, sources, source_rights, *, editorial_ledger=None, now=None,
     """
     now = now or datetime.now(UTC)
     dimensions = []
+    authenticated = None
+    authority_error = "authenticated_editor_authority_unavailable"
+    if authority is not None:
+        from pipeline.authority.service import story_evidence
+        try:
+            authenticated = story_evidence(authority, story, sources, source_rights, now, mode=authority_mode)
+        except (ValueError, TypeError, OSError) as error:
+            authority_error = "invalid_authenticated_authority:" + getattr(error, "code", type(error).__name__)
 
     # --- rights evidence ------------------------------------------------------
     rights_reasons, rights_evidence = [], {}
@@ -59,6 +68,8 @@ def evaluate(story, sources, source_rights, *, editorial_ledger=None, now=None,
             rights_reasons.append(f"non_news_source:{sid}")
     if len(cited) != len(story.source_ids):
         rights_reasons.append("missing_source_evidence")
+    if authenticated is not None and not authenticated["rights_complete"]:
+        rights_reasons.append("missing_active_signed_rights_review")
     dimensions.append(_dimension("rights_evidence", not rights_reasons, rights_reasons, rights_evidence))
 
     # --- source validation ----------------------------------------------------
@@ -71,21 +82,46 @@ def evaluate(story, sources, source_rights, *, editorial_ledger=None, now=None,
         source_reasons.append("demo_story")
     if any(not source.publisher for source in cited):
         source_reasons.append("unattributed_source")
+    if authenticated is not None and authority_mode == "production" and source_registry is None:
+        source_reasons.append("trusted_source_registry_unavailable")
+    if source_registry is not None:
+        from pipeline.models import SourceRegistry
+        try:
+            registry = SourceRegistry.model_validate(source_registry.model_dump(mode="json"))
+            configured = {entry.id: entry for entry in registry.sources}
+            for source in cited:
+                entry = configured.get(source.source_registry_id)
+                if entry is None or not entry.enabled:
+                    source_reasons.append(f"source_disabled_or_unknown:{source.source_registry_id}")
+                elif entry.adapter != source.source_type:
+                    source_reasons.append(f"source_adapter_mismatch:{source.source_registry_id}")
+        except (ValueError, TypeError, AttributeError):
+            source_reasons.append("invalid_source_registry")
     dimensions.append(_dimension("source_validation", not source_reasons, source_reasons,
                                  {"cited": len(story.source_ids), "resolved": len(cited)}))
 
     # --- editorial authority ---------------------------------------------------
     identity = "DISCOVERED"
-    editorial_reasons = ["authenticated_editor_authority_unavailable"]
+    editorial_reasons = [authority_error] if authenticated is None else []
+    if authenticated is not None:
+        identity = authenticated["state"]
+        if not authenticated["editorial_complete"]:
+            editorial_reasons.append("missing_active_signed_editorial_reviews")
+        if authenticated["blocked"]:
+            editorial_reasons.append(authenticated["blocked"])
     # The compatibility flag may request diagnostics, never permission. Hashes and
     # caller-supplied actor names do not establish an authenticated human editor.
     if editorial_ledger is not None:
         try:
             checked = EditorialLedger.model_validate(editorial_ledger.model_dump(mode="python"))
-            identity = story_state(checked, story_identity(story_id=story.id, source_ids=[]))
+            local_state = story_state(checked, story_identity(story_id=story.id, source_ids=[]))
+            if authenticated is None:
+                identity = local_state
+            if local_state in {"CORRECTED", "RETRACTED", "ARCHIVED"}:
+                editorial_reasons.append(f"local_editorial_withdrawal:{local_state}")
         except (ValueError, TypeError, AttributeError):
             editorial_reasons.append("invalid_editorial_ledger")
-    if identity in AUTHORITY_GATED:
+    if identity in AUTHORITY_GATED and authenticated is None:
         editorial_reasons.append("approval_state_unreachable_without_authenticated_editor")
     elif identity != "PUBLISHED":
         editorial_reasons.append(f"editorial_state_not_published:{identity}")
@@ -116,9 +152,11 @@ def evaluate(story, sources, source_rights, *, editorial_ledger=None, now=None,
 
     # --- bilingual publication integrity --------------------------------------
     language_reasons = []
+    if story.language != "en":
+        language_reasons.append("canonical_language_requires_english_source")
     translation = story.translations.get("bn")
     if translation is not None:
-        if kind in CURRENT_NEWS_KINDS:
+        if kind in CURRENT_NEWS_KINDS and (authenticated is None or not authenticated["native_complete"]):
             # Machine-translated news must never present as reviewed Bangla.
             language_reasons.append("translation_not_native_reviewed")
         if translation.review_status == "fixture-reviewed":
@@ -126,6 +164,9 @@ def evaluate(story, sources, source_rights, *, editorial_ledger=None, now=None,
         from pipeline.translation import canonical_hash
         if translation.canonical_hash != canonical_hash(story):
             language_reasons.append("translation_binding_mismatch")
+        from pipeline.translation_governance import integrity_findings
+        language_reasons.extend("translation_integrity:" + finding["check"] for finding in
+                                integrity_findings(story, translation) if finding["severity"] == "fail")
     dimensions.append(_dimension("language_review", not language_reasons, language_reasons,
                                  {"bn_present": translation is not None,
                                   "review_status": translation.review_status if translation else None}))
@@ -137,12 +178,16 @@ def evaluate(story, sources, source_rights, *, editorial_ledger=None, now=None,
 
 
 def evaluate_snapshot(snapshot, source_rights, *, editorial_ledger=None, now=None,
-                      build_time=None, require_approval=True) -> dict:
+                      build_time=None, require_approval=True, authority=None, authority_mode="production",
+                      source_registry=None) -> dict:
     """Evaluate every story in a snapshot. Any denial fails the whole edition."""
-    now = now or snapshot.generated_at
+    # Edition metadata is untrusted evidence, never the authority-verification
+    # clock. Restoring an old edition must not make expired signatures current.
+    now = datetime.now(UTC) if now is None else now
     build_time = build_time or snapshot.generated_at
     results = [evaluate(story, snapshot.sources, source_rights, editorial_ledger=editorial_ledger,
-                        now=now, build_time=build_time, require_approval=require_approval)
+                        now=now, build_time=build_time, require_approval=require_approval,
+                        authority=authority, authority_mode=authority_mode, source_registry=source_registry)
                for story in snapshot.stories]
     blocked = [row for row in results if not row["allowed"]]
     return {"version": 1, "story_count": len(results), "blocked_count": len(blocked),
@@ -158,11 +203,11 @@ def assert_publishable(result) -> None:
 
 
 def assert_existing_build_safe(root):
-    """Negative guard for legacy editions, not a new approval path.
+    """Keep the legacy build exception; require authenticated gates for new editions.
 
     Existing rights-reviewed legacy content retains its established checks. Local
     Phase 6 drafts/withdrawals matching that edition cannot be ignored by a rebuild.
-    No ledger, hash or mutable actor field grants permission here.
+    No unsigned draft ledger, hash or mutable actor field grants permission here.
     """
     import hashlib
 
@@ -170,7 +215,8 @@ def assert_existing_build_safe(root):
     from pipeline.filesystem import confined_file
     from pipeline.models import Snapshot
     from pipeline.review_governance import bounded_json
-    from pipeline.source_onboarding import candidates
+    from pipeline.source_onboarding import candidates, signed_candidate_allowed
+    from pipeline.source_onboarding import load_ledger as candidate_ledger
     from pipeline.translation_governance import load_ledger as translation_ledger
     from pipeline.translation_governance import translation_state
 
@@ -178,18 +224,22 @@ def assert_existing_build_safe(root):
     snapshot = Snapshot.model_validate(bounded_json(path, limit=50_000_000))
     if snapshot.mode == "fixture":
         return
-    if hashlib.sha256(path.read_bytes()).hexdigest() != LEGACY_SNAPSHOT_SHA256:
-        raise PermissionError("New live editorial content requires unavailable authenticated review authority")
+    from pipeline.authority.service import assert_build_authority
+    authority_history = assert_build_authority(root, snapshot, datetime.now(UTC))
     from urllib.parse import urlsplit
 
     proposed = candidates(root)
+    source_ledger = candidate_ledger(root)
     editorial = editorial_ledger(root)
     translations = translation_ledger(root)
     for source in snapshot.sources.values():
         host = (urlsplit(source.canonical_url).hostname or "").lower().removeprefix("www.")
         identity = hashlib.sha256(f"{host}|{source.source_type}|{source.language}".encode()).hexdigest()
-        if any(row["candidate_id"] == source.source_registry_id or row["identity"] == identity for row in proposed):
-            raise PermissionError("An unapproved, suspended or revoked candidate is still in the generated edition")
+        for row in proposed:
+            if row["candidate_id"] == source.source_registry_id or row["identity"] == identity:
+                if authority_history is None or not signed_candidate_allowed(
+                        row, source_ledger, authority_history, datetime.now(UTC)):
+                    raise PermissionError("An unapproved, suspended or revoked candidate is still in the generated edition")
     for story in snapshot.stories:
         primary = snapshot.sources.get(story.primary_source_id)
         identities = {
@@ -198,10 +248,15 @@ def assert_existing_build_safe(root):
             story_identity(story_id=story.id, source_ids=story.source_ids,
                            canonical_url=primary.canonical_url if primary else None),
         }
-        if any(event.decision.story_id in identities for event in editorial.events):
+        matching_editorial = [event for event in editorial.events if event.decision.story_id in identities]
+        if matching_editorial and (authority_history is None or
+                                  matching_editorial[-1].decision.to_state in {"CORRECTED", "RETRACTED", "ARCHIVED"}):
             raise PermissionError("A locally governed draft or withdrawn story is still in the generated edition")
-        if story.translations.get("bn") and any(
-                translation_state(translations, identity) != "NOT_TRANSLATED" for identity in identities):
+        withdrawn_translation = any(event.decision.story_identity in identities and
+                                    event.decision.to_state == "WITHDRAWN" for event in translations.events)
+        legacy_translation = authority_history is None and any(
+            translation_state(translations, identity) != "NOT_TRANSLATED" for identity in identities)
+        if story.translations.get("bn") and (withdrawn_translation or legacy_translation):
             raise PermissionError("A draft or withdrawn translation is still in the generated edition")
 
 

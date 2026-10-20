@@ -272,6 +272,15 @@ def translation_state(ledger: TranslationLedger, story_ident: str) -> str:
     return state
 
 
+def record_authenticated(envelope, *, trust_pin, now, root=ROOT, mode="production"):
+    """Signed extension of the same translation lifecycle; no content is generated."""
+    from pipeline.authority.ledger import append
+    from pipeline.authority.protocol import Decision
+    if not isinstance(envelope.payload, Decision) or envelope.payload.binding.workflow != "translation":
+        raise ValueError("Expected a signed translation lifecycle decision")
+    return append(root, envelope, trust_pin, now, mode=mode)
+
+
 # --- language integrity checks -------------------------------------------------
 
 def integrity_findings(story, translation=None, *, locale="bn") -> list[dict]:
@@ -319,20 +328,32 @@ def integrity_findings(story, translation=None, *, locale="bn") -> list[dict]:
     return findings
 
 
-def edition_language_report(stories, *, locale="bn") -> dict:
+def edition_language_report(stories, *, locale="bn", authority=None, sources=None,
+                            source_rights=None, now=None, authority_mode="production") -> dict:
     """Machine-readable bilingual coverage across an edition."""
     rows = []
     for story in stories:
         translation = story.translations.get("bn")
         findings = integrity_findings(story, translation, locale=locale)
+        native_verified = False
+        if authority is not None and translation is not None:
+            from pipeline.authority.service import story_evidence
+            try:
+                evidence = story_evidence(authority, story, sources or {}, source_rights or {},
+                                          now or datetime.now(UTC), mode=authority_mode)
+                native_verified = bool(evidence["native_bn"]) and evidence["native_complete"]
+            except (ValueError, TypeError, OSError):
+                native_verified = False
+        native_verified = native_verified and not any(f["severity"] == "fail" for f in findings)
         rows.append({"story_id": story.id, "translated": translation is not None,
                      "review_status": translation.review_status if translation else None,
+                     "authenticated_native_review": native_verified,
                      "findings": findings,
                      "blocking": [f["check"] for f in findings if f["severity"] == "fail"]})
     return {"version": 1, "locale": locale, "story_count": len(rows),
             "translated_count": sum(row["translated"] for row in rows),
             "blocking_story_count": sum(1 for row in rows if row["blocking"]),
-            "native_reviewed_count": 0,
+            "native_reviewed_count": sum(row["authenticated_native_review"] for row in rows),
             "rows": rows,
             "publication_allowed": False,
             "note": "Structural checks only; native-language review remains a human prerequisite."}

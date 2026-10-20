@@ -62,6 +62,14 @@ The Bangla interface is implemented. **Production Bangla story translation is no
 
 ## Run locally
 
+Editorial authority is implemented as an initially **UNPROVISIONED** offline
+Ed25519 reviewer system. Separate role/scope grants, exact content signatures and
+independently trusted checkpoints feed the existing publication gate. No real
+editors or publisher rights are provisioned. Run `uv run python -m pipeline.authority status`
+or the ephemeral `demo`; neither activates publication. See the
+[security design](docs/PHASE8_EDITORIAL_AUTHORITY.md) and
+[owner runbook](docs/PHASE8_OWNER_RUNBOOK.md).
+
 Use Node 24, pnpm **10.33.1**, Python **3.13** and uv **0.12.22**. From the project root:
 
 ```sh
