@@ -6,6 +6,7 @@ import json
 import os
 import stat
 import sys
+import warnings
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from uuid import uuid4
@@ -103,7 +104,13 @@ def protected_key(path, root):
     if not sys.stdin.isatty() or not sys.stderr.isatty():
         raise AuthorityError("interactive_required", "Signing requires a private interactive terminal; no echoed-input fallback")
     # Password never enters argv, environment, a report, or a public artifact.
-    password = getpass.getpass("Encrypted signing key passphrase: ").encode("utf-8")
+    try:
+        # isatty() alone does not guarantee echo can be disabled. getpass warns
+        # before its echoed fallback; turn that warning into a refusal first.
+        with warnings.catch_warnings(action="error", category=getpass.GetPassWarning):
+            password = getpass.getpass("Encrypted signing key passphrase: ").encode("utf-8")
+    except getpass.GetPassWarning:
+        raise AuthorityError("interactive_required", "Terminal cannot guarantee private passphrase input") from None
     private = load_pem_private_key(data, password=password)
     if not isinstance(private, Ed25519PrivateKey):
         raise AuthorityError("algorithm", "Only Ed25519 signing keys are supported")
@@ -124,7 +131,7 @@ def inspect_story(root, story_id):
     rows = []
     for sid in found.source_ids:
         source = edition.sources[sid]
-        bound = bind_story(found, source, rights)
+        bound = bind_story(found, source, rights, sources=edition.sources)
         rows.append({"source_item_id": sid, "registry_id": source.source_registry_id,
                      "publisher": source.publisher, "canonical_url": source.canonical_url,
                      "kind_from_source": bound.story_kind, "binding": bound.model_dump(mode="json"),
@@ -236,7 +243,8 @@ def execute(args, now):
         source = edition.sources.get(args.source or story.primary_source_id)
         if source is None:
             raise AuthorityError("source", "Unknown cited source ID")
-        bound = bind_story(story, source, policy(root), language=args.language, workflow=args.workflow)
+        bound = bind_story(story, source, policy(root), language=args.language, workflow=args.workflow,
+                           sources=edition.sources)
         member = history.registry.member(args.reviewer)
         grant_record = history.registry.grants.get(args.grant)
         if grant_record is None or grant_record[0] != args.reviewer:

@@ -21,7 +21,7 @@ from pipeline.editorial_workflow import (
 )
 
 DENIED = "DENIED"
-ALLOWED = "ELLOWED"
+ALLOWED = "ALLOWED"
 LEGACY_SNAPSHOT_SHA256 = "d146d528ed8b00bc4e3a1e379ceffa300f46ce5a17ee9d34e8291410e9973eb5"
 
 
@@ -181,7 +181,9 @@ def evaluate_snapshot(snapshot, source_rights, *, editorial_ledger=None, now=Non
                       build_time=None, require_approval=True, authority=None, authority_mode="production",
                       source_registry=None) -> dict:
     """Evaluate every story in a snapshot. Any denial fails the whole edition."""
-    now = now or snapshot.generated_at
+    # Edition metadata is untrusted evidence, never the authority-verification
+    # clock. Restoring an old edition must not make expired signatures current.
+    now = datetime.now(UTC) if now is None else now
     build_time = build_time or snapshot.generated_at
     results = [evaluate(story, snapshot.sources, source_rights, editorial_ledger=editorial_ledger,
                         now=now, build_time=build_time, require_approval=require_approval,

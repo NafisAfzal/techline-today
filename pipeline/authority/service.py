@@ -90,7 +90,7 @@ def load_authority(root, *, allow_stopped=False):
     return result
 
 
-def bind_story(story, source, source_rights, *, language="en", workflow="editorial"):
+def bind_story(story, source, source_rights, *, language="en", workflow="editorial", sources=None):
     from pipeline.editorial_workflow import classify_kind
     story = type(story).model_validate(story.model_dump(mode="json"))
     source = type(source).model_validate(source.model_dump(mode="json"))
@@ -98,13 +98,23 @@ def bind_story(story, source, source_rights, *, language="en", workflow="editori
         raise AuthorityError("language", "English editorial authority requires an English canonical story")
     if source.id not in story.source_ids:
         raise AuthorityError("binding", "Source is not cited by this story")
+    sources = {source.id: source} if sources is None else sources
+    if any(sid not in sources for sid in story.source_ids):
+        raise AuthorityError("binding", "Binding requires the complete cited source evidence set")
+    cited = {}
+    for sid in story.source_ids:
+        checked = type(source).model_validate(sources[sid].model_dump(mode="json"))
+        if checked.id != sid or sid == source.id and checked != source:
+            raise AuthorityError("binding", "Cited source identity or selected source version disagrees")
+        cited[sid] = checked.model_dump(mode="json")
     kind = classify_kind(source_type=source.source_type, source_class=source.source_class,
                          editorial_kind=source.editorial_kind)
     translation = story.translations.get(language) if language != "en" else None
     if language != "en" and translation is None:
         raise AuthorityError("translation_missing", "No translation exists for this binding")
     return Binding(source_id=source.source_registry_id, story_id=story.id, story_kind=kind,
-                   content_sha256=digest(story.model_dump(mode="json", exclude={"translations"})),
+                   content_sha256=digest({"story": story.model_dump(mode="json", exclude={"translations"}),
+                                          "cited_sources": cited}),
                    source_sha256=digest(source.model_dump(mode="json")),
                    rights_sha256=digest(source_rights.get(source.source_registry_id, {})), language=language,
                    language_sha256=digest(translation.model_dump(mode="json")) if translation else ZERO,
@@ -134,19 +144,19 @@ def story_evidence(bundle, story, sources, rights, now, *, mode="production"):
     primary = sources.get(story.primary_source_id)
     if primary is None:
         raise AuthorityError("binding", "Primary source evidence is missing")
-    bound = bind_story(story, primary, rights)
+    bound = bind_story(story, primary, rights, sources=sources)
     needed = ["FACT_CHECKED", "APPROVED", "PUBLICATION_ELIGIBLE", "PUBLISHED"]
     english = {state: history.active(bound, state, now) for state in needed}
     per_source = {}
     for sid in story.source_ids:
         if sid not in sources:
             raise AuthorityError("binding", "Cited source evidence is missing")
-        rb = bind_story(story, sources[sid], rights, workflow="rights")
+        rb = bind_story(story, sources[sid], rights, workflow="rights", sources=sources)
         per_source[sid] = history.active(rb, "RIGHTS_APPROVED", now)
     native = {}
     native_state = None
     if story.translations.get("bn") is not None:
-        translated = bind_story(story, primary, rights, language="bn", workflow="translation")
+        translated = bind_story(story, primary, rights, language="bn", workflow="translation", sources=sources)
         native_state = history.state(translated)
         native = {state: history.active(translated, state, now) for state in
                   ["NATIVE_REVIEW_COMPLETE", "APPROVED_TRANSLATION", "PUBLISHED_TRANSLATION"]}

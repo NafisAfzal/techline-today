@@ -12,6 +12,21 @@ PR CI has no production secrets, read-only repository permissions and no pull_re
 
 ## Temporary transitive patch — reviewed 2026-10-04, expires 2026-11-03
 
+### Reassessment on October 20
+
+The Phase 9 review fetched current official npm metadata and verified the SHA-512
+integrity of the 4.3.0 tarball. It remains the latest release; the [advisory](https://github.com/advisories/GHSA-ch52-4w7c-c8xp)
+still lists no patched version and the [maintainer PR](https://github.com/kornelski/http-cache-semantics/pull/58)
+remains closed. All five isolated restricted-response max-stale probes still
+allow reuse in unpatched upstream code; the installed locked patch refuses them,
+including cookie stale-while-revalidate and stale-error fallbacks. Keep the
+existing patch and **2026-11-03T00:00:00Z** reassessment deadline.
+
+Offline editorial signatures do not add a server, remote-image path, shared
+HTTP response cache or reader dependency. Source/build/deployment architecture
+remains static. No dependency version or lockfile was changed by this audit.
+Empty registry results are not evidence that the upstream behavior is fixed.
+
 ### Reassessment on October 13
 
 The owner-directed UI correction passed source/build security scans and full/production Node audits with zero registry advisories. A frozen Python export of 31 requirements passed pip-audit 2.10.1. The explicit dependency gate still reports the local mitigation rather than silently treating that clean audit as an upstream fix.

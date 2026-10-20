@@ -296,7 +296,7 @@ def test_machine_translation_of_news_is_denied():
                                "license_url": "https://creativecommons.org/licenses/by/4.0/",
                                "scope": "Attributed excerpts."}}
     result = evaluate(translated, {SID: news_source}, rights, now=NOW, build_time=NOW)
-    assert result["dimensions"][0]["result"] == "ELLOWED"
+    assert result["dimensions"][0]["result"] == "ALLOWED"
     assert "translation_not_native_reviewed" in result["dimensions"][4]["reasons"]
 
 
@@ -309,7 +309,7 @@ def test_no_provenance_history_is_denied():
 def test_every_dimension_must_hold_not_just_one():
     """A story with only rights satisfied still fails on the editorial dimension."""
     result = evaluate(story(), {SID: source()}, RIGHTS_ALLOW, now=NOW, build_time=NOW)
-    satisfied = [d["dimension"] for d in result["dimensions"] if d["result"] == "ELLOWED"]
+    satisfied = [d["dimension"] for d in result["dimensions"] if d["result"] == "ALLOWED"]
     assert "rights_evidence" in satisfied
     assert result["allowed"] is False
 

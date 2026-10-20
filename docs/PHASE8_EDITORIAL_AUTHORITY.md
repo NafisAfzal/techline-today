@@ -47,7 +47,8 @@ Publication requires an exact, fresh owner-signed checkpoint and its independent
 trusted digest and per-publication challenge. These inputs must arrive through
 operator-controlled configuration outside the repository. A checkpoint copied
 alongside an old backup is not independently trusted. Missing, stale or mismatched
-anchors deny activation. Reusing an old challenge or ignoring newer denials breaks
+anchors deny activation. Authority expiry uses the verifier's current clock,
+never the edition's editable generation timestamp. Reusing an old challenge or ignoring newer denials breaks
 the operator's currentness assumption; no local hash chain repairs that mistake.
 An attacker controlling both the OS user and the external trust inputs can defeat
 this boundary. Signatures do not protect compromised executable/verifier code.
@@ -145,6 +146,15 @@ publication gate independently checks current factual, English, rights, publishe
 and relevant Bangla signatures against exact content and the anchored journal.
 Editable story approval fields are ignored. Existing rights exclusions, source
 holds, date checks, research classification and translation integrity still apply.
+The content digest binds `{"story": STORY_WITHOUT_TRANSLATIONS, "cited_sources":
+{SOURCE_ITEM_ID: COMPLETE_SOURCE_ITEM}}` using the existing deterministic evidence
+serialization. Every cited source is included, not just the primary source.
+`bind_story(..., sources=edition.sources)` is required for multi-source content;
+missing, mismatched or substituted source identities fail closed. Changing any
+cited evidence invalidates factual, editorial, rights and native-language reviews;
+a rights-only reapproval cannot carry those older decisions forward. This
+pre-release correction invalidates earlier Phase 8 binding hashes; there is no
+production history to migrate or silently rebind.
 Neither `require_approval=False` nor a signed editor decision bypasses rights.
 Production verification also requires the explicit source configuration: disabled
 or unknown sources and adapter/type relabeling are refused. Signed reviews never

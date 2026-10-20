@@ -40,6 +40,8 @@ The standard-library/PyCA operations for a separately authorized generator are:
 ```python
 import getpass
 import os
+import sys
+import warnings
 from pathlib import Path
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
@@ -48,8 +50,14 @@ checkout = Path.cwd().resolve()
 destination = Path(input("New key file outside this checkout: ")).resolve()
 if destination.is_relative_to(checkout):
     raise ValueError("Choose a protected directory outside the checkout")
-password = getpass.getpass("New passphrase: ").encode()
-if len(password) < 16 or password != getpass.getpass("Repeat passphrase: ").encode():
+if not sys.stdin.isatty() or not sys.stderr.isatty():
+    raise ValueError("Use a private interactive terminal")
+def private_prompt(prompt):
+    # GetPassWarning is raised before getpass falls back to echoed input.
+    with warnings.catch_warnings(action="error", category=getpass.GetPassWarning):
+        return getpass.getpass(prompt).encode()
+password = private_prompt("New passphrase: ")
+if len(password) < 16 or password != private_prompt("Repeat passphrase: "):
     raise ValueError("Use matching strong passphrases of at least 16 bytes")
 key = Ed25519PrivateKey.generate()
 encoded = key.private_bytes(serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8,
@@ -68,6 +76,8 @@ Pre-create the destination directory with appropriate protection. On Windows,
 inspect NTFS ACLs and encrypted-backup policy before generation; POSIX `0o600`
 does not establish an equivalent Windows ACL. Protect the entire machine from
 same-user malware. File encryption cannot protect an unlocked signer process.
+If the terminal cannot disable echo, abort; never ignore `GetPassWarning` or
+accept an echoed-input fallback. The signer enforces this even after TTY checks.
 Back up encrypted keys and recovery passphrases through separately controlled
 owner procedures, then rehearse access offline. Do not transmit a private key to
 another reviewer or a server. Public fingerprints may be compared out of band.
@@ -159,6 +169,11 @@ owner administrative revocation. Fresh publication checkpoints are unnecessary
 to store risk-reducing records, but publish none of the old approvals afterward.
 Update the independent anchor as soon as it is legitimate to attest complete
 history. Reinstatement or rotation requires fresh reviews, not replayed signatures.
+
+Revocation blocks subsequent verification and release. It cannot remove static
+files already delivered to a website, cache or reader. Preserve the evidence and
+coordinate any correction, retraction notice or takedown through a separately
+authorized owner publication/deployment action; the offline CLI performs none.
 
 Back up the entire canonical journal, public trust pin, retained evidence and
 independently preserved checkpoints. Store encrypted private keys separately.
