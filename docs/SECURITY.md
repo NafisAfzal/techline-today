@@ -12,6 +12,39 @@ PR CI has no production secrets, read-only repository permissions and no pull_re
 
 ## Temporary transitive patch — reviewed 2026-10-04, expires 2026-11-03
 
+### Phase 10 reassessment on October 20
+
+The advisory record is now structured and machine-readable in
+`config/security-advisories.json`, and the launch-readiness report reads it
+so the mitigation state cannot silently drift from the documentation.
+
+Fresh official npm metadata on the access date still identifies
+`http-cache-semantics` **4.3.0** as `dist-tags.latest`. The
+[GitHub advisory](https://github.com/advisories/GHSA-ch52-4w7c-c8xp) still
+lists affected versions `<= 4.2.0` and **patched versions: None**, last
+updated 2026-10-02, severity High (CVSS 4.0 8.7). The
+[maintainer PR](https://github.com/kornelski/http-cache-semantics/pull/58)
+remains closed and disputes the premise; a separate
+[dispute thread](https://github.com/github/advisory-database/issues/10139)
+records the same objection.
+
+**Interpretation is unchanged.** Being outside the database's listed range is
+not a verified fix. The locked local patch
+`patches/http-cache-semantics@4.3.0.patch`, the 14 regression tests and the
+explicit `pnpm audit:dependencies` gate all remain required, and the
+**2026-11-03** deadline stands. No dependency version, override or lockfile
+entry was changed by Phase 10, and no broad upgrade was attempted.
+
+Exposure remains build-time only: the deployed architecture is asset-only
+static output with no shared cache, so the advisory's cross-user
+cache-disclosure path is not reachable in production.
+
+Next maintenance action, before 2026-11-03: re-download the current upstream
+release, verify its SHA-512 against npm metadata, re-run the five restricted
+max-stale probes against the unmodified implementation, and re-read the
+advisory text. Remove the patch only when the unmodified upstream release
+rejects every probe, or when Astro removes the dependency.
+
 ### Reassessment on October 20
 
 The Phase 9 review fetched current official npm metadata and verified the SHA-512

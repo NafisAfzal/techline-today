@@ -38,6 +38,7 @@ from pipeline.storage import atomic_json
 
 ROOT = Path(__file__).resolve().parent.parent
 LEDGER = ".cache/phase6/source-candidates.json"
+DOSSIER = ".cache/phase6/candidates"
 MAX_EVENTS = 500
 
 # Ordered lifecycle. SUSPENDED/REVOKED are reachable from ACTIVATED; REVOKED is
@@ -275,6 +276,29 @@ def ledger_path(root=ROOT) -> Path:
     return confined_file(root, LEDGER)
 
 
+def dossier_path(root, candidate_id) -> Path:
+    """Where the locally retained candidate metadata lives.
+
+    The ledger keeps digests, not bodies. The dossier is the reviewable
+    metadata a rights reviewer actually reads; it is local, private and
+    git-ignored, and it never carries an approval.
+    """
+    if not isinstance(candidate_id, str) or not re.fullmatch(r"[a-z0-9][a-z0-9_-]{1,63}", candidate_id):
+        raise ValueError("Unsafe candidate dossier name")
+    directory = Path(root).absolute() / DOSSIER
+    directory.mkdir(parents=True, exist_ok=True)
+    return confined_file(root, f"{DOSSIER}/{candidate_id}.json")
+
+
+def write_dossier(root, candidate) -> None:
+    """Persist the current candidate metadata for rights review."""
+    from pipeline.storage import atomic_json
+
+    candidate = SourceCandidate.model_validate(candidate.model_dump(mode="json"))
+    path = dossier_path(root, candidate.candidate_id)
+    atomic_json(path, candidate.model_dump(mode="json"))
+
+
 def load_ledger(root=ROOT) -> CandidateLedger:
     path = ledger_path(root)
     if not path.exists():
@@ -407,6 +431,11 @@ def _refuse_permission_claims(candidate):
 
 def _append(event, now, actor, reason, candidate=None, root=ROOT):
     path = ledger_path(root)
+    # The dossier is written first. A dossier failure must not leave a ledger
+    # entry whose reviewable metadata is missing.
+    if candidate is not None:
+        # The dossier is review material, never an approval.
+        write_dossier(root, candidate)
     with writer_lock(confined_file(root, ".cache/phase6/source-candidates.lock")):
         ledger = load_ledger(root)
         if ledger.head_sha256 != event.previous_sha256 or ledger.events and len(ledger.events) >= MAX_EVENTS:
@@ -468,6 +497,8 @@ def readiness(candidate):
 
 
 def report(root=ROOT) -> dict:
+    from pipeline.source_evidence import evidence_report, load_dossiers
+
     ledger = load_ledger(root)
     rows = candidates(root)
     blocked = [{"candidate_id": row["candidate_id"], "state": row["state"]} for row in rows
@@ -476,21 +507,64 @@ def report(root=ROOT) -> dict:
             "candidates": rows, "event_count": len(ledger.events),
             "authority_gated_states": sorted(AUTHORITY_GATED),
             "activable_candidates": blocked,
+            "evidence": evidence_report(load_dossiers(root)),
             "publication_allowed": False, "ai_submission_allowed": False,
             "note": "No candidate can be activated or rights-approved without an owner-appointed reviewer."}
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("action", choices=("list", "report", "head"))
+    parser.add_argument("action", choices=("list", "report", "head", "evidence", "register-research"))
+    parser.add_argument("--root", type=Path, default=ROOT)
+    parser.add_argument("--file", type=Path,
+                        help="A candidate dossier JSON to check instead of the local dossiers")
+    parser.add_argument("--actor", default="phase10-source-research",
+                        help="The tool label recorded as the actor. Never a person's identity.")
     args = parser.parse_args()
     try:
         if args.action == "list":
-            result = {"candidates": candidates()}
+            result = {"candidates": candidates(args.root)}
         elif args.action == "head":
-            result = load_ledger().model_dump(mode="json")
+            result = load_ledger(args.root).model_dump(mode="json")
+        elif args.action == "register-research":
+            from pipeline.source_evidence import (
+                configured_source_ids,
+                edition_identities,
+                research_candidates,
+            )
+
+            registered, skipped, configured = [], [], []
+            edition = edition_identities(args.root)
+            known = configured_source_ids(args.root)
+            for candidate in research_candidates(args.root):
+                if candidate.candidate_id in known or candidate.identity in edition:
+                    configured.append(candidate.candidate_id)
+                    continue
+                try:
+                    register(candidate, actor=args.actor, now=datetime.now(UTC), root=args.root)
+                    registered.append(candidate.candidate_id)
+                except DuplicateCandidate:
+                    skipped.append(candidate.candidate_id)
+                except ValueError as error:
+                    skipped.append(candidate.candidate_id)
+                    print(json.dumps({"status": "refused", "candidate_id": candidate.candidate_id,
+                                      "detail": str(error), "publication_allowed": False}))
+            result = {"registered": registered, "already_registered": skipped,
+                      "already_configured": configured,
+                      "actor": args.actor, "publication_allowed": False,
+                      "ai_submission_allowed": False,
+                      "note": "Registration records a proposal only. Every candidate remains "
+                              "RIGHTS_UNVERIFIED until a named human rights reviewer decides."}
+        elif args.action == "evidence":
+            from pipeline.source_evidence import evidence_report, load_dossiers, read_candidate_document
+
+            if args.file:
+                dossiers = [read_candidate_document(args.file.read_bytes())]
+            else:
+                dossiers = load_dossiers(args.root)
+            result = evidence_report(dossiers)
         else:
-            result = report()
+            result = report(args.root)
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
     except (ValueError, OSError, TypeError) as error:

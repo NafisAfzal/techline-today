@@ -109,6 +109,16 @@ pnpm performance
 pnpm deploy:check
 ```
 
+Operator tooling for the newsroom is private and local. It reports state and
+refuses unsafe states; it never approves, activates or publishes.
+
+```sh
+uv run python -m pipeline.newsroom_readiness            # launch readiness
+uv run python -m pipeline.authority checkpoint-status    # current trusted checkpoint
+uv run python -m pipeline.source_onboarding evidence     # source rights evidence
+uv run python -m pipeline.recovery drills                # synthetic disaster drills
+```
+
 Restore/recollect live content and rebuild after fixture tests. `pnpm verify:content-rights` checks a live candidate, including referenced archives and built JSON. Hosted smoke accepts a supplied `SMOKE_BASE_URL`; it never assumes a live URL. [Current exact results](docs/OWNER_LAUNCH_VERIFICATION.md) · [Test guide](docs/TESTING.md).
 
 ## Deployment and updates

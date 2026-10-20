@@ -1,0 +1,406 @@
+{
+  "version": 1,
+  "status": "RESEARCH_ONLY",
+  "assessed_on": "2026-10-20",
+  "note": "Phase 10 source-intelligence research evidence. Nothing in this file grants rights, activates a source, approves a candidate or constitutes a legal conclusion. Every entry needs a named human rights reviewer before any use. An accessible feed is not a republication licence and an API key is not a licence.",
+  "method": "Official publisher feeds, official API documentation and official licence/terms pages were fetched directly on the access date. Publisher article bodies were not fetched for reuse and no paywall or robots restriction was bypassed.",
+  "coverage_categories": [
+    "artificial-intelligence-and-machine-learning",
+    "cybersecurity-advisories",
+    "consumer-technology",
+    "software-engineering-and-developer-tools",
+    "cloud-and-infrastructure",
+    "research-publications",
+    "semiconductors-and-hardware",
+    "bangladesh-technology-ecosystem"
+  ],
+  "candidates": [
+    {
+      "candidate_id": "cisa_kev",
+      "name": "CISA Known Exploited Vulnerabilities",
+      "onboarding": "already-configured",
+      "onboarding_reason": "Already present in config/sources.yaml as a disabled local advisory pilot with a recorded CC0 scope. This research refreshes the licence evidence; it does not propose a new candidate.",
+      "website": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog",
+      "endpoint": "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json",
+      "fetch_method": "json_api",
+      "category": "security",
+      "language": "en",
+      "scope": "Advisory catalogue metadata only: CVE identifier, vendor project, product, vulnerability name, catalogue-addition date and required remediation deadline. No prose reuse of the vendor advisory.",
+      "terms_url": "https://www.cisa.gov/sites/default/files/licenses/kev/license.txt",
+      "discovered_on": "2026-10-20",
+      "verified_on": "2026-10-20",
+      "last_fetch_outcome": "NOT_PERFORMED",
+      "coverage_categories": ["cybersecurity-advisories"],
+      "evidence": [
+        {
+          "url": "https://www.cisa.gov/sites/default/files/licenses/kev/license.txt",
+          "kind": "license",
+          "note": "Publisher-issued licence file states: 'The KEV database is distributed under the Creative Commons 0 1.0 License.' Full CC0 1.0 text retrieved on the access date."
+        }
+      ],
+      "verification": {
+        "technical_availability": "VERIFIED",
+        "licence": "CC0-1.0",
+        "licence_url": "https://www.cisa.gov/sites/default/files/licenses/kev/license.txt",
+        "rate_limit": "None documented for the JSON catalogue; the pipeline applies a bounded fetch policy.",
+        "attribution_required": false,
+        "article_body_reuse": "NOT_APPLICABLE_CATALOGUE_ONLY",
+        "summary_allowed": "METADATA_ONLY",
+        "image_reuse": "NOT_PERMITTED_NO_LOGO_OR_SEAL",
+        "retention": "REVIEW_REQUIRED",
+        "ai_submission": "NOT_PERMITTED",
+        "access_date": "2026-10-20",
+        "confidence": "HIGH",
+        "unresolved_legal_questions": [
+          "Retention period for archived catalogue rows is not stated in the licence and needs an owner decision.",
+          "The licence explicitly excludes use of the CISA logo or DHS seal and any endorsement implication."
+        ]
+      }
+    },
+    {
+      "candidate_id": "osv_dev",
+      "name": "OSV.dev open-source vulnerability database",
+      "website": "https://api.osv.dev/",
+      "endpoint": "https://api.osv.dev/v1/query",
+      "fetch_method": "json_api",
+      "category": "security",
+      "language": "en",
+      "scope": "Structured advisory records for open-source packages: identifiers, affected ranges, severity and fixed versions. No prose reuse. The public query endpoint requires a POST body, which the current JSON adapter does not issue, so an adapter change is a prerequisite.",
+      "terms_url": "https://github.com/google/osv.dev/blob/master/LICENSE",
+      "discovered_on": "2026-10-20",
+      "verified_on": "2026-10-20",
+      "last_fetch_outcome": "NOT_PERFORMED",
+      "coverage_categories": ["cybersecurity-advisories", "software-engineering-and-developer-tools"],
+      "evidence": [
+        {
+          "url": "https://raw.githubusercontent.com/google/osv.dev/master/LICENSE",
+          "kind": "license",
+          "note": "The osv.dev infrastructure repository licence was retrieved on the access date: Apache License 2.0, full text."
+        },
+        {
+          "url": "https://osv.dev/docs/",
+          "kind": "publisher-policy",
+          "note": "Official API documentation retrieved on the access date. Documents POST /v1/query, GET /v1/vulns/{id}, querybatch and the OpenSSF Vulnerability data-source model."
+        }
+      ],
+      "verification": {
+        "technical_availability": "VERIFIED",
+        "licence": "Apache-2.0 for the osv.dev infrastructure code",
+        "licence_url": "https://raw.githubusercontent.com/google/osv.dev/master/LICENSE",
+        "rate_limit": "None documented on the public API documentation page retrieved on the access date.",
+        "attribution_required": true,
+        "article_body_reuse": "NOT_APPLICABLE_STRUCTURED_RECORDS_ONLY",
+        "summary_allowed": "METADATA_ONLY",
+        "image_reuse": "NOT_APPLICABLE",
+        "retention": "REVIEW_REQUIRED",
+        "ai_submission": "REVIEW_REQUIRED",
+        "access_date": "2026-10-20",
+        "confidence": "MEDIUM",
+        "unresolved_legal_questions": [
+          "The licence retrieved covers the osv.dev infrastructure repository, not automatically the aggregated advisory records it serves. The data-source terms for each contributing database (for example the CVE Program terms) were not separately retrieved and must be reviewed before republication.",
+          "Per-advisory attribution strings must be preserved per record."
+        ]
+      }
+    },
+    {
+      "candidate_id": "nvd_api",
+      "name": "NIST National Vulnerability Database API 2.0",
+      "website": "https://services.nvd.nist.gov/",
+      "endpoint": "https://services.nvd.nist.gov/rest/json/cves/2.0",
+      "fetch_method": "json_api",
+      "category": "security",
+      "language": "en",
+      "scope": "CVE records with description text, references, weakness identifiers and CVSS vectors. Description text is publisher prose and needs a per-field reuse decision.",
+      "terms_url": "https://nvd.nist.gov/general/terms-of-use",
+      "discovered_on": "2026-10-20",
+      "verified_on": "2026-10-20",
+      "last_fetch_outcome": "NOT_PERFORMED",
+      "coverage_categories": ["cybersecurity-advisories"],
+      "evidence": [
+        {
+          "url": "https://nvd.nist.gov/developers/start-here",
+          "kind": "publisher-policy",
+          "note": "Official developer documentation states the public rate limit is 5 requests in a rolling 30 second window and 50 requests in a rolling 30 second window with an API key, and recommends a six second sleep between requests."
+        }
+      ],
+      "verification": {
+        "technical_availability": "VERIFIED_DOCUMENTED",
+        "licence": "NOT_VERIFIED",
+        "licence_url": "https://nvd.nist.gov/general/terms-of-use",
+        "rate_limit": "5 requests / 30 s without an API key; 50 requests / 30 s with a key; a six second sleep between requests is recommended.",
+        "attribution_required": true,
+        "article_body_reuse": "REVIEW_REQUIRED_DESCRIPTION_TEXT_IS_PUBLISHER_PROSE",
+        "summary_allowed": "REVIEW_REQUIRED",
+        "image_reuse": "NOT_APPLICABLE",
+        "retention": "REVIEW_REQUIRED",
+        "ai_submission": "REVIEW_REQUIRED",
+        "access_date": "2026-10-20",
+        "confidence": "LOW",
+        "unresolved_legal_questions": [
+          "The NVD terms-of-use page did not render retrievable text on the access date, so the reuse grant was not read. It must be read directly before any use.",
+          "CVE Program terms of use govern the CVE identifier data inside the NVD records.",
+          "Description text reuse is separate from identifier reuse and needs an explicit per-field decision."
+        ]
+      }
+    },
+    {
+      "candidate_id": "cisa_advisories",
+      "name": "CISA cybersecurity advisories feed",
+      "website": "https://www.cisa.gov/cybersecurity-advisories",
+      "endpoint": "https://www.cisa.gov/cybersecurity-advisories/all.xml",
+      "fetch_method": "rss",
+      "category": "security",
+      "language": "en",
+      "scope": "Advisory titles, identifiers, dates, severity and links only. Feed items embed the full advisory prose in the description field, which is a reuse question rather than a technical one.",
+      "terms_url": "https://www.cisa.gov/terms-use",
+      "discovered_on": "2026-10-20",
+      "verified_on": "2026-10-20",
+      "last_fetch_outcome": "SUCCESS",
+      "coverage_categories": ["cybersecurity-advisories"],
+      "evidence": [
+        {
+          "url": "https://www.cisa.gov/cybersecurity-advisories/all.xml",
+          "kind": "publisher-policy",
+          "note": "Official RSS 2.0 feed retrieved on the access date. It returns advisories with titles, links, dates and full advisory HTML in the description element."
+        },
+        {
+          "url": "https://www.cisa.gov/terms-use",
+          "kind": "terms",
+          "note": "Official CISA terms-of-use page retrieved on the access date. It governs site access, accuracy disclaimers and jurisdiction. It contains no explicit redistribution or republication licence for advisory prose."
+        }
+      ],
+      "verification": {
+        "technical_availability": "VERIFIED",
+        "licence": "NOT_VERIFIED",
+        "licence_url": "https://www.cisa.gov/terms-use",
+        "rate_limit": "None documented; the pipeline applies a bounded fetch policy.",
+        "attribution_required": true,
+        "article_body_reuse": "REVIEW_REQUIRED_FEED_EMBEDS_FULL_ADVISORY_PROSE",
+        "summary_allowed": "METADATA_ONLY_UNTIL_REVIEWED",
+        "image_reuse": "NOT_PERMITTED_NO_SEALS_OR_LOGOS",
+        "retention": "REVIEW_REQUIRED",
+        "ai_submission": "REVIEW_REQUIRED",
+        "access_date": "2026-10-20",
+        "confidence": "MEDIUM",
+        "unresolved_legal_questions": [
+          "The CISA KEV CC0 licence file does not cover the advisory feed. Any republication of advisory prose needs a separate decision, and the site terms reserve the right to modify content and disclaim completeness.",
+          "Feed descriptions embed the complete advisory body, so a naive adapter would capture more text than a metadata-only scope permits."
+        ]
+      }
+    },
+    {
+      "candidate_id": "ubuntu_usn",
+      "name": "Ubuntu Security Notices",
+      "website": "https://ubuntu.com/security/notices",
+      "endpoint": "https://ubuntu.com/security/notices/rss.xml",
+      "fetch_method": "rss",
+      "category": "security",
+      "language": "en",
+      "scope": "Notice identifiers, package names, affected release status and dates only. The feed embeds the full notice text, which is Canonical prose.",
+      "terms_url": "https://ubuntu.com/legal/intellectual-property-policy",
+      "discovered_on": "2026-10-20",
+      "verified_on": "2026-10-20",
+      "last_fetch_outcome": "SUCCESS",
+      "coverage_categories": ["cybersecurity-advisories", "cloud-and-infrastructure"],
+      "evidence": [
+        {
+          "url": "https://ubuntu.com/security/notices/rss.xml",
+          "kind": "publisher-policy",
+          "note": "Official RSS 2.0 feed retrieved on the access date. Items carry the notice identifier, package and CVE list, and the full notice prose in the description element. The channel declares 'Copyright 2026 Canonical Ltd.'"
+        },
+        {
+          "url": "https://ubuntu.com/legal/intellectual-property-policy",
+          "kind": "terms",
+          "note": "Canonical intellectual-property policy page retrieved on the access date. The page is largely navigation, so the clause that governs security-notice prose could not be isolated from the retrieved text."
+        }
+      ],
+      "verification": {
+        "technical_availability": "VERIFIED",
+        "licence": "NOT_VERIFIED",
+        "licence_url": "https://ubuntu.com/legal/intellectual-property-policy",
+        "rate_limit": "None documented; the pipeline applies a bounded fetch policy.",
+        "attribution_required": true,
+        "article_body_reuse": "REVIEW_REQUIRED_NOTICE_TEXT_IS_CANONICAL_PROSE",
+        "summary_allowed": "METADATA_ONLY_UNTIL_REVIEWED",
+        "image_reuse": "NOT_APPLICABLE",
+        "retention": "REVIEW_REQUIRED",
+        "ai_submission": "REVIEW_REQUIRED",
+        "access_date": "2026-10-20",
+        "confidence": "MEDIUM",
+        "unresolved_legal_questions": [
+          "The specific Canonical licence clause that covers security-notice text was not isolated from the retrieved policy page and must be read directly.",
+          "Ubuntu documentation is commonly distributed under CC BY-SA, but that is not established here for the USN text and must not be assumed.",
+          "The feed description embeds the complete notice body, so a naive adapter would capture more text than a metadata-only scope permits."
+        ]
+      }
+    },
+    {
+      "candidate_id": "bd_cert",
+      "name": "Bangladesh Computer Emergency Response Team (BD CERT)",
+      "website": "https://www.bdcert.gov.bd/",
+      "endpoint": null,
+      "fetch_method": "manual",
+      "category": "security",
+      "language": "en",
+      "scope": "National CERT advisories and incident notices for the Bangladesh technology ecosystem. No machine-readable feed has been identified.",
+      "terms_url": "https://www.bdcert.gov.bd/",
+      "discovered_on": "2026-10-20",
+      "verified_on": null,
+      "last_fetch_outcome": "UNKNOWN",
+      "coverage_categories": ["cybersecurity-advisories", "bangladesh-technology-ecosystem"],
+      "evidence": [],
+      "verification": {
+        "technical_availability": "NOT_PERFORMED",
+        "licence": "NOT_VERIFIED",
+        "licence_url": null,
+        "rate_limit": "UNKNOWN",
+        "attribution_required": true,
+        "article_body_reuse": "REVIEW_REQUIRED",
+        "summary_allowed": "REVIEW_REQUIRED",
+        "image_reuse": "REVIEW_REQUIRED",
+        "retention": "REVIEW_REQUIRED",
+        "ai_submission": "REVIEW_REQUIRED",
+        "access_date": "2026-10-20",
+        "confidence": "LOW",
+        "unresolved_legal_questions": [
+          "The official site was not reachable from the Phase 10 workstation, so no endpoint, feed format, licence or republication term could be checked.",
+          "Bangladesh government publications may have their own copyright and attribution rules that must be read directly.",
+          "A Bangla edition of the site, if any, would need its own native-review path and a Bangla-capable rights reviewer."
+        ]
+      }
+    },
+    {
+      "candidate_id": "ict_division_bd",
+      "name": "Bangladesh ICT Division",
+      "website": "https://ict.gov.bd/",
+      "endpoint": null,
+      "fetch_method": "manual",
+      "category": "other",
+      "language": "en",
+      "scope": "National ICT policy, standards and programme notices relevant to the Bangladesh technology ecosystem.",
+      "terms_url": "https://ict.gov.bd/",
+      "discovered_on": "2026-10-20",
+      "verified_on": null,
+      "last_fetch_outcome": "UNKNOWN",
+      "coverage_categories": ["bangladesh-technology-ecosystem", "cloud-and-infrastructure"],
+      "evidence": [],
+      "verification": {
+        "technical_availability": "NOT_PERFORMED",
+        "licence": "NOT_VERIFIED",
+        "licence_url": null,
+        "rate_limit": "UNKNOWN",
+        "attribution_required": true,
+        "article_body_reuse": "REVIEW_REQUIRED",
+        "summary_allowed": "REVIEW_REQUIRED",
+        "image_reuse": "REVIEW_REQUIRED",
+        "retention": "REVIEW_REQUIRED",
+        "ai_submission": "REVIEW_REQUIRED",
+        "access_date": "2026-10-20",
+        "confidence": "LOW",
+        "unresolved_legal_questions": [
+          "The official site was not reachable from the Phase 10 workstation, so no feed, licence or republication term could be checked.",
+          "Government notices are typically the most reusable Bangla-origin material, but the terms must be read directly before use."
+        ]
+      }
+    },
+    {
+      "candidate_id": "arxiv_metadata",
+      "name": "arXiv descriptive metadata",
+      "onboarding": "already-configured",
+      "onboarding_reason": "Already present in config/sources.yaml with a recorded CC0 metadata scope. This research refreshes the licence evidence; it does not propose a new candidate.",
+      "website": "https://export.arxiv.org/",
+      "endpoint": "https://export.arxiv.org/api/query",
+      "fetch_method": "rss",
+      "category": "research",
+      "language": "en",
+      "scope": "Titles, abstracts, authors, identifiers and dates only. No e-print full text.",
+      "terms_url": "https://info.arxiv.org/help/api/tou.html",
+      "discovered_on": "2026-10-03",
+      "verified_on": "2026-10-03",
+      "last_fetch_outcome": "NOT_PERFORMED",
+      "coverage_categories": ["research-publications", "artificial-intelligence-and-machine-learning"],
+      "evidence": [
+        {
+          "url": "https://info.arxiv.org/help/api/tou.html",
+          "kind": "terms",
+          "note": "Recorded by the repository configuration on 2026-10-03. The arXiv metadata grant is CC0 for descriptive metadata; the e-print full text is excluded."
+        }
+      ],
+      "verification": {
+        "technical_availability": "VERIFIED_PRIOR_RELEASE",
+        "licence": "CC0-1.0 (descriptive metadata)",
+        "licence_url": "https://info.arxiv.org/help/api/tou.html",
+        "rate_limit": "arXiv asks for a three second delay between requests; the repository fetch policy already applies a minimum interval.",
+        "attribution_required": false,
+        "article_body_reuse": "NOT_APPLICABLE_METADATA_ONLY",
+        "summary_allowed": "METADATA_ONLY",
+        "image_reuse": "NOT_APPLICABLE",
+        "retention": "REVIEW_REQUIRED",
+        "ai_submission": "NOT_PERMITTED",
+        "access_date": "2026-10-03",
+        "confidence": "HIGH",
+        "unresolved_legal_questions": [
+          "Only descriptive metadata is cleared. Any abstract reuse beyond the metadata grant needs a fresh review."
+        ]
+      }
+    },
+    {
+      "candidate_id": "cloudflare_docs",
+      "name": "Cloudflare documentation and product terms",
+      "onboarding": "already-configured",
+      "onboarding_reason": "Already present in config/sources.yaml as cloudflare_ai_terms with a recorded CC BY 4.0 scope. This research refreshes the licence evidence; it does not propose a new candidate.",
+      "website": "https://developers.cloudflare.com/",
+      "endpoint": "https://api.github.com/repos/cloudflare/cloudflare-docs/contents/src/content/docs/workers-ai/platform/pricing.mdx",
+      "fetch_method": "github_document",
+      "category": "dev-apis",
+      "language": "en",
+      "scope": "Attributed documentation excerpts and summaries with disclosed changes.",
+      "terms_url": "https://github.com/cloudflare/cloudflare-docs/blob/production/LICENSE",
+      "discovered_on": "2026-10-03",
+      "verified_on": "2026-10-03",
+      "last_fetch_outcome": "NOT_PERFORMED",
+      "coverage_categories": ["cloud-and-infrastructure", "artificial-intelligence-and-machine-learning"],
+      "evidence": [
+        {
+          "url": "https://github.com/cloudflare/cloudflare-docs/blob/production/LICENSE",
+          "kind": "license",
+          "note": "Recorded by the repository configuration on 2026-10-03. The cloudflare-docs repository is licensed CC BY 4.0."
+        }
+      ],
+      "verification": {
+        "technical_availability": "VERIFIED_PRIOR_RELEASE",
+        "licence": "CC-BY-4.0",
+        "licence_url": "https://github.com/cloudflare/cloudflare-docs/blob/production/LICENSE",
+        "rate_limit": "GitHub API rate limits apply; the repository fetch policy applies a minimum interval.",
+        "attribution_required": true,
+        "article_body_reuse": "ATTRIBUTED_EXCERPTS_ONLY",
+        "summary_allowed": "ATTRIBUTED_SUMMARIES_ONLY",
+        "image_reuse": "NOT_PERMITTED",
+        "retention": "REVIEW_REQUIRED",
+        "ai_submission": "NOT_PERMITTED",
+        "access_date": "2026-10-03",
+        "confidence": "HIGH",
+        "unresolved_legal_questions": [
+          "The CC BY 4.0 grant covers the documentation repository content, not Cloudflare product logos, screenshots or marketing imagery."
+        ]
+      }
+    }
+  ],
+  "unchanged_exclusions": [
+    {"candidate_id": "kubernetes", "decision": "exclude", "reason": "Per-item origin and reuse rights remain unresolved; the repository records the evidence."},
+    {"candidate_id": "hacker_news", "decision": "exclude", "reason": "User-post and excerpt reuse basis unresolved."},
+    {"candidate_id": "nvidia", "decision": "exclude", "reason": "No specific public redistribution basis established."},
+    {"candidate_id": "huggingface", "decision": "exclude", "reason": "Blog and feed excerpt reuse basis unresolved."},
+    {"candidate_id": "google_research", "decision": "exclude", "reason": "Specific research blog reuse basis unresolved."},
+    {"candidate_id": "github_releases", "decision": "exclude", "reason": "Release-note licensing scope needs repository-specific review."}
+  ],
+  "not_considered": [
+    {"candidate": "General technology news publishers", "reason": "No openly licensed current-news feed with an explicit republication grant was identified. These publishers remain unreachable for republication without a direct rights agreement."},
+    {"candidate": "Paywalled security research", "reason": "Paywalls were not bypassed and no article bodies were fetched."}
+  ],
+  "coverage_gaps": [
+    "Consumer technology: no openly licensed candidate was identified. This coverage category has no candidate.",
+    "Semiconductors and hardware: no openly licensed candidate was identified. Vendor newsrooms remain excluded.",
+    "Bangladesh technology ecosystem: both identified official bodies were unreachable from this workstation, so Bangladesh coverage remains unverified."
+  ]
+}

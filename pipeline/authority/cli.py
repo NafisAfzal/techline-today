@@ -159,6 +159,29 @@ def execute(args, now):
         if args.confirm != "STOP_PUBLICATION":
             raise AuthorityError("confirmation", "Use --confirm STOP_PUBLICATION to create the persistent stop")
         return emergency_hold(root, args.reason, now)
+    if args.action == "checkpoint-status":
+        from pipeline.authority.service import checkpoint_status
+        return checkpoint_status(root, now, max_age_seconds=args.max_age_seconds)
+    if args.action == "checkpoint-verify":
+        from pipeline.authority.checkpoint import read_checkpoint_document
+        from pipeline.authority.service import verify_checkpoint_document
+        raw = bounded_file(regular_path(args.input), MAX_RECORD)
+        document = read_checkpoint_document(raw)
+        return verify_checkpoint_document(root, now, document=document,
+                                          expected_sha256=args.expected_sha256, challenge=args.challenge,
+                                          max_age_seconds=args.max_age_seconds)
+    if args.action == "checkpoint-attest":
+        from pipeline.authority.checkpoint import build_attestation, digest_attestation
+        envelope = read_envelope(bounded_file(regular_path(args.input), MAX_RECORD))
+        document = build_attestation(envelope, custody=args.custody, authentication=args.authentication,
+                                     captured_at=now, challenge=args.challenge, notes=args.notes)
+        target = output(root, args.output, document.model_dump(mode="json"))
+        return {"attestation_document_sha256": digest_attestation(document),
+                "checkpoint_sha256": document.checkpoint_sha256,
+                "custody": document.trust.custody, "authentication": document.trust.authentication,
+                "output": target, "publication_allowed": False,
+                "note": "The document is custody evidence only; it becomes trusted only when an "
+                        "independently obtained digest accompanies it"}
     if args.action == "inspect":
         return inspect_story(root, args.story)
     if args.action == "queue":
@@ -306,6 +329,25 @@ def parser():
     cp = sub.add_parser("prepare-checkpoint")
     cp.add_argument("--challenge", required=True)
     cp.add_argument("--output", required=True)
+    attest = sub.add_parser("checkpoint-attest")
+    attest.add_argument("--input", type=Path, required=True, help="A signed checkpoint envelope JSON")
+    attest.add_argument("--output", required=True)
+    attest.add_argument("--custody", choices=["local-state-directory", "operator-offline-file",
+                                              "protected-git-history", "read-only-mirror", "unknown"],
+                        default="operator-offline-file")
+    attest.add_argument("--authentication", choices=["none", "operator-attested", "independently-signed"],
+                        default="operator-attested")
+    attest.add_argument("--challenge")
+    attest.add_argument("--notes")
+    for name in ("checkpoint-verify", "checkpoint-status"):
+        item = sub.add_parser(name)
+        if name == "checkpoint-verify":
+            item.add_argument("--input", type=Path, required=True)
+            item.add_argument("--expected-sha256", dest="expected_sha256",
+                              help="Independently obtained digest of the custody document")
+            item.add_argument("--challenge")
+        item.add_argument("--max-age-seconds", type=int, default=86400,
+                          help="Operator freshness policy for the checkpoint")
     return result
 
 

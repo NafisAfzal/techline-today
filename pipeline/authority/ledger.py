@@ -248,6 +248,69 @@ class Anchor:
     expected_challenge: str
 
 
+@dataclass(frozen=True)
+class CheckpointComparison:
+    """Outcome of comparing one trusted checkpoint against the replayed local journal.
+
+    Pure inspection: no clock, no I/O and no signature check. The Phase 8
+    anchor verifier and the Phase 10 external-checkpoint verifier share this so
+    rollback detection has exactly one implementation.
+    """
+
+    matched: bool
+    code: str
+    detail: str
+    evidence: dict
+
+
+def compare_checkpoint(history, cp) -> CheckpointComparison:
+    """Compare a trusted checkpoint against the replayed local journal.
+
+    A checkpoint is *current* only when the local journal head, event count and
+    registry revision agree with it exactly. Everything else is a named,
+    separately reportable defect rather than one generic rollback verdict.
+    """
+    journal = history.journal
+    events = journal.events
+    evidence = {"checkpoint_event_count": cp.event_count, "local_event_count": len(events),
+                "checkpoint_head_sha256": cp.head_sha256, "local_head_sha256": journal.head_sha256,
+                "checkpoint_registry_revision": cp.registry_revision,
+                "local_registry_revision": history.registry.revision}
+    if cp.registry_revision != history.registry.revision:
+        return CheckpointComparison(False, "registry_mismatch",
+                                    "The trust registry revision differs from the checkpointed revision",
+                                    evidence)
+    if cp.previous_sha256 != cp.head_sha256 or cp.sequence != cp.event_count + 1:
+        return CheckpointComparison(False, "checkpoint_malformed",
+                                    "The checkpoint does not describe its own journal position", evidence)
+    if cp.event_count > len(events):
+        return CheckpointComparison(False, "journal_revision_regression",
+                                    "The local journal is shorter than the trusted checkpoint; "
+                                    "the local state was rolled back", evidence)
+    if cp.event_count == len(events):
+        if cp.head_sha256 != journal.head_sha256:
+            return CheckpointComparison(False, "journal_hash_mismatch",
+                                        "The local journal head differs from the trusted checkpoint head",
+                                        evidence)
+        return CheckpointComparison(True, "matched",
+                                    "The local journal head matches the trusted checkpoint", evidence)
+    # The local journal is longer. It is continuous with the trusted checkpoint
+    # only when the checkpointed prefix chains to the same head digest.
+    prefix = ZERO
+    for index, event in enumerate(events[:cp.event_count], 1):
+        if event.sequence != index or event.previous_sha256 != prefix:
+            return CheckpointComparison(False, "incomplete_history",
+                                        "The local journal history is not continuous with the trusted "
+                                        "checkpoint", evidence)
+        prefix = event.event_sha256
+    if prefix != cp.head_sha256:
+        return CheckpointComparison(False, "incomplete_history",
+                                    "The local journal does not extend the trusted checkpoint head", evidence)
+    return CheckpointComparison(False, "checkpoint_not_current",
+                                "The trusted checkpoint does not cover the current local journal head",
+                                evidence)
+
+
 def verify_anchor(history, anchor, at):
     if anchor is None:
         raise AuthorityError("checkpoint_missing", "An independently trusted current checkpoint is required")
@@ -265,7 +328,9 @@ def verify_anchor(history, anchor, at):
     if (cp.head_sha256 != history.journal.head_sha256 or cp.previous_sha256 != cp.head_sha256
             or cp.event_count != len(history.journal.events) or cp.sequence != cp.event_count + 1
             or cp.registry_revision != history.registry.revision):
-        raise AuthorityError("rollback", "Journal is truncated, ahead of, or forked from the trusted checkpoint")
+        comparison = compare_checkpoint(history, cp)
+        raise AuthorityError("rollback", "Journal is truncated, ahead of, or forked from the trusted "
+                                         f"checkpoint ({comparison.detail})")
     if cp.challenge != anchor.expected_challenge:
         raise AuthorityError("checkpoint_challenge", "Checkpoint is not for this independent publication challenge")
     if not instant(history.registry.root_key.active_at) <= clock(at) < instant(history.registry.root_key.expires_at):
