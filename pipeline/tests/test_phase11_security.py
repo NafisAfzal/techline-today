@@ -357,32 +357,52 @@ def test_dossier_evidence_cannot_be_silently_omitted(tmp_path, shape):
         load_dossiers(tmp_path)
 
 
+@pytest.fixture
+def readiness_snapshot(root, monkeypatch):
+    """Fresh in-memory edition; never load or generate the owner's snapshot."""
+    from pipeline.models import Snapshot, SourceRegistry
+    from pipeline.tests.test_phase6_editorial_gate import NOW, SID, source, story
+
+    (root / "config").mkdir()
+    (root / "config/sources.yaml").write_text(SourceRegistry(sources=[]).model_dump_json(), encoding="utf-8")
+    snapshot = Snapshot(mode="fixture", generated_at=NOW, last_successful_fetch_at=NOW,
+                        categories={"research": {}}, stories=[story(is_demo=True)],
+                        sources={SID: source(is_demo=True)}, digests=[], offers=[], model_releases=[])
+    monkeypatch.setattr("pipeline.newsroom_readiness._snapshot", lambda root: snapshot)
+    return snapshot
+
+
+def test_readiness_fixture_needs_no_generated_files_or_provisioned_authority(root, readiness_snapshot):
+    from pipeline.newsroom_readiness import newsroom_readiness
+
+    report = newsroom_readiness(root, readiness_snapshot.generated_at)
+    results = {row["item"]: row["result"] for row in report["items"]}
+    assert results["authority_provisioning"] == results["trusted_checkpoint"] == "BLOCKED"
+    assert report["publication_allowed"] is False and report["ai_submission_allowed"] is False
+    assert not (root / "content/generated/snapshot.json").exists()
+    assert not (root / ".cache/authority").exists()
+
+
 @pytest.mark.parametrize("ages", [[45, 0], [-1], [31]])
-def test_new_translation_cannot_conceal_stale_or_future_translation(monkeypatch, ages):
-    from datetime import UTC, datetime
-    from pathlib import Path
+def test_new_translation_cannot_conceal_stale_or_future_translation(root, monkeypatch, readiness_snapshot, ages):
 
     from pipeline.newsroom_readiness import newsroom_readiness
 
-    at = datetime.now(UTC)
+    at = readiness_snapshot.generated_at
     monkeypatch.setattr("pipeline.newsroom_readiness._translation_rows", lambda snapshot: [
         {"story_id": str(index), "generated_at": at - timedelta(days=age), "review_status": "unreviewed"}
         for index, age in enumerate(ages)])
-    report = newsroom_readiness(Path(__file__).resolve().parents[2], at)
+    report = newsroom_readiness(root, at)
     row = next(row for row in report["items"] if row["item"] == "translation_staleness")
     assert row["result"] == "FAIL"
 
 
 @pytest.mark.parametrize("reason", ["stale", "future", "fixture", "uncleared", "missing-date"])
-def test_news_classification_alone_cannot_make_coverage_green(monkeypatch, reason):
-    from datetime import UTC, datetime
-    from pathlib import Path
+def test_news_classification_alone_cannot_make_coverage_green(root, monkeypatch, readiness_snapshot, reason):
+    from pipeline.newsroom_readiness import newsroom_readiness
 
-    from pipeline.newsroom_readiness import _snapshot, newsroom_readiness
-
-    root = Path(__file__).resolve().parents[2]
-    at = datetime.now(UTC)
-    snapshot = _snapshot(root)
+    at = readiness_snapshot.generated_at
+    snapshot = readiness_snapshot
     story = snapshot.stories[0].model_copy(update={"category": "ai", "published_at":
         at - timedelta(days=40) if reason == "stale" else at + timedelta(days=1) if reason == "future" else at})
     snapshot = snapshot.model_copy(update={"stories": [story], "mode": "fixture" if reason == "fixture" else "live"})

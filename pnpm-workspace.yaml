@@ -8,5 +8,7 @@ onlyBuiltDependencies:
 patchedDependencies:
   http-cache-semantics@4.3.0: patches/http-cache-semantics@4.3.0.patch
 overrides:
+  # GHSA-698v-4r3x-3vcv: use the patched Vite 8 release across Astro and Vitest.
+  vite: 8.3.3
   # GHSA-wq5f-xc86-pv6w: this pinned Miniflare version otherwise locks vulnerable sharp.
   'miniflare@5.20261001.0-alpha>sharp': 0.35.5

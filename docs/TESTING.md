@@ -10,6 +10,8 @@ The current [light-theme/header report](LIGHT_THEME_HEADER_REFINEMENT.md) record
 
 Two datasets serve different purposes. **Live mode is for inspecting the real product and source health. Fixture mode is for repeatable CI and browser assertions.** The fixtures deliberately include corrections, conflicts, expired offers and old archive records. They are synthetic, visibly labelled and blocked from production publication.
 
+Python tests run before repository fixture generation in CI and must pass in a clean checkout without `content/generated/snapshot.json`. Readiness unit tests use a fresh in-memory synthetic edition, a fixed clock and the isolated pytest `root` fixture. They do not read the owner's canonical edition or provision authority. Generate fixture mode only for the later schema, build and browser stages, in an isolated checkout when preserving an existing live edition.
+
 Do not run fixture-specific Meridian/Harbor browser assertions against a live build. Regenerate fixture mode and rebuild first. E2E starts its own hardened production preview at port 4327 and refuses server reuse; a development server on 4321 cannot replace that target. Two browser workers prevent resource contention without changing assertion thresholds or the test timeout.
 
 ## Local validation
