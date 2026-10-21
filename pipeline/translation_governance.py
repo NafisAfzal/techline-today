@@ -28,7 +28,7 @@ from pipeline.filesystem import confined_file
 from pipeline.models import Contract, Story
 from pipeline.review_governance import bounded_json, digest, writer_lock
 from pipeline.storage import atomic_json
-from pipeline.translation import canonical_hash
+from pipeline.translation import DIRECTION_CONTROLS, canonical_hash
 
 ROOT = Path(__file__).resolve().parent.parent
 LEDGER = ".cache/phase6/translation-decisions.json"
@@ -318,6 +318,8 @@ def integrity_findings(story, translation=None, *, locale="bn") -> list[dict]:
         add("broken_unicode", "fail", "replacement characters or mojibake detected")
     if any(unicodedata.category(char) == "Cc" for text in texts for char in text):
         add("control_characters", "fail", "control characters in translated content")
+    if any(char in DIRECTION_CONTROLS for text in texts for char in text):
+        add("directional_controls", "fail", "hidden direction controls in left-to-right translated content")
     expected_hash = canonical_hash(story) if isinstance(story, Story) else getattr(story, "_canonical_hash", None)
     if expected_hash is None:
         add("translation_binding_unknown", "notice", "no canonical source version is available")
