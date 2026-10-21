@@ -306,7 +306,7 @@ def integrity_findings(story, translation=None, *, locale="bn") -> list[dict]:
 
     content = translation.content
     texts = [content.headline, *content.summary_bullets, content.why_it_matters, content.broader_summary,
-             *content.key_fact_texts, *content.limitations]
+             *content.key_fact_texts, *content.number_labels, *content.number_contexts, *content.limitations]
 
     if any(not text.strip() for text in texts):
         add("empty_translation_field", "fail", "a translated field is empty")

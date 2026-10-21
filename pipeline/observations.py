@@ -88,7 +88,10 @@ def summary(receipts, now):
 def read_receipts(root):
     parent = confined_file(root, f"{DIRECTORY}/index.json").parent
     receipts = []
-    for path in parent.glob("????-??-??.json") if parent.exists() else []:
+    # Filesystem enumeration order is not collection order (notably on restore).
+    # Daily UTC filenames provide deterministic order; the evaluator still
+    # validates timestamps, duplicate days and clock regressions within it.
+    for path in sorted(parent.glob("????-??-??.json")) if parent.exists() else []:
         if len(receipts) >= 31:
             raise ValueError("Observation retention capacity: archive metadata receipts before continuing")
         payload = bounded_json(confined_file(root, path.relative_to(root)), limit=100_000)

@@ -79,6 +79,11 @@ requirements](PHASE12_OPERATOR_DESIGN.md).
 source research, observation evaluator and recovery inventory. Corrupt sections
 are failures, not healthy empty queues. Legacy editorial/translation queues are
 work lists; the signed authority journal decides authorization.
+The console propagates verified failures from readable readiness reports and
+lists `failed_sections` separately from `unreadable_sections`. Invalid or
+duplicated observation evidence is a failure; missing independent provenance
+remains inconclusive. Daily receipt files are read in UTC filename order so
+filesystem enumeration or restoration order cannot simulate clock rollback.
 
 `rights-packets` prepares at most five existing candidates for qualified human
 review. It grants no text, image, AI or ingestion permission. The [portfolio

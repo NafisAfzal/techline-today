@@ -17,6 +17,10 @@ def isolated(tmp_path):
     for name in ["source-research.json", "source-rights.json", "sources.yaml", "release.json",
                  "security-advisories.json"]:
         shutil.copyfile(ROOT / "config" / name, tmp_path / "config" / name)
+    shutil.copyfile(ROOT / "pnpm-lock.yaml", tmp_path / "pnpm-lock.yaml")
+    (tmp_path / "patches").mkdir()
+    shutil.copyfile(ROOT / "patches/http-cache-semantics@4.3.0.patch",
+                    tmp_path / "patches/http-cache-semantics@4.3.0.patch")
     return tmp_path
 
 

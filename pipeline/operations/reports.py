@@ -49,7 +49,7 @@ def rights_packets(root, candidate_ids=None, *, now=None):
 def observation_plan(root, *, now=None):
     at = now or datetime.now(UTC)
     window = observation_evidence(read_observation_receipts(root), at)
-    return {"version": 1, "status": "INCONCLUSIVE", "existing_window": window,
+    return {"version": 1, "status": "FAIL" if window["anomalies"] else "INCONCLUSIVE", "existing_window": window,
             "genuinely_authenticated_days": 0, "environment_binding": "NOT_INDEPENDENTLY_VERIFIED",
             "planned_utc_dates": [(at.date() + timedelta(days=i)).isoformat() for i in range(8)],
             "dimensions": ["fetch_availability", "http_status", "retry_timeout", "schema_changes",
@@ -87,7 +87,13 @@ def console(root, *, now=None):
             sections[name] = {"status": "FAIL", "code": type(error).__name__,
                               "action": "Preserve and inspect invalid input; never treat it as empty or healthy"}
             failures.append(name)
-    return {"version": 1, "status": "FAIL" if failures else "BLOCKED", "sections": sections,
+    # A readable report can still contain a verified failure. Do not downgrade
+    # that failure to a missing owner permission at the console boundary.
+    failed = sorted(set(failures) | {name for name, report in sections.items()
+                    if isinstance(report, dict) and (report.get("status") == "FAIL"
+                    or report.get("summary", {}).get("FAIL", 0))})
+    return {"version": 1, "status": "FAIL" if failed else "BLOCKED", "sections": sections,
+            "failed_sections": failed,
             "unreadable_sections": failures, "publication_allowed": False,
             "note": "Local transition queues are work lists, not authenticated appointments or publication approval. "
                     "The existing readiness report remains authoritative for each production blocker."}

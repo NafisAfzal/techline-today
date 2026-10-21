@@ -7,12 +7,9 @@ from collections import Counter
 from datetime import UTC, datetime
 from pathlib import Path
 
-from pipeline.models import StoryTranslation, TranslationContent
+from pipeline.models import DIRECTION_CONTROLS, StoryTranslation, TranslationContent
 
 POLICY_VERSION = "1"
-# English and Bangla are left-to-right. Hidden direction overrides/isolates can
-# disguise evidence text. Preserve ZWJ/ZWNJ used for legitimate Bangla shaping.
-DIRECTION_CONTROLS = frozenset("\u061c\u200e\u200f\u202a\u202b\u202c\u202d\u202e\u2066\u2067\u2068\u2069")
 DIGITS = str.maketrans("০১২৩৪৫৬৭৮৯", "0123456789")
 NUMBERS = re.compile(r"[$€£]?[-+]?\d+(?:[,.]\d+)*(?:\s?(?:GB|MB|TB|GHz|MHz|nm|Wh|mAh)|[KkMmBb%])?")
 TERMS = re.compile(r"\b(?:CUDA|GPU|CPU|API|H100|GPT(?:-\w+)*|Gemini|Claude|Llama|NVIDIA|Cloudflare|"
