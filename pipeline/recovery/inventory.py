@@ -1,11 +1,12 @@
-"""Which assets a small newsroom must protect, and which it can never recover.
+"""Which assets a small newsroom must protect outside its project packs.
 
 The important distinction is between *data* and *credential*. A journal, a
 rights decision or a public key registry can be copied, replayed and verified.
-An Ed25519 private key cannot: once it is lost, no backup restores it, and the
-only lawful remedy is a reviewed rotation or a reviewed recovery decision.
-Reporting both under one word, "backup", is how small teams accidentally
-believe they are protected when they are not.
+An Ed25519 private key is excluded from these packs. A separately held encrypted
+backup may permit human-controlled recovery; losing every usable copy cannot be
+repaired by journal replay or automatic rotation. Independent checkpoint custody
+also needs separate retention. Inventory labels describe recovery from project
+packs, not a claim that encrypted credential backups are impossible.
 """
 
 from dataclasses import dataclass
