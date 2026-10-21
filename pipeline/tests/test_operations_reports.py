@@ -17,6 +17,14 @@ def isolated(tmp_path):
     for name in ["source-research.json", "source-rights.json", "sources.yaml", "release.json",
                  "security-advisories.json"]:
         shutil.copyfile(ROOT / "config" / name, tmp_path / "config" / name)
+    # The live advisory record carries the date of its most recent reassessment.
+    # This fixture assesses the console at a fixed synthetic instant, so the
+    # copied record's review date is frozen to that instant: otherwise the
+    # assessment would judge a record that claims a review from the future.
+    advisory = json.loads((tmp_path / "config/security-advisories.json").read_text(encoding="utf-8"))
+    for entry in advisory.get("advisories", []):
+        entry["last_reassessed"] = SYNTHETIC_NOW.date().isoformat()
+    (tmp_path / "config/security-advisories.json").write_text(json.dumps(advisory), encoding="utf-8")
     shutil.copyfile(ROOT / "pnpm-lock.yaml", tmp_path / "pnpm-lock.yaml")
     (tmp_path / "patches").mkdir()
     shutil.copyfile(ROOT / "patches/http-cache-semantics@4.3.0.patch",

@@ -20,6 +20,32 @@ PR CI has no production secrets, read-only repository permissions and no pull_re
 
 ## Temporary transitive patch — reviewed 2026-10-04, expires 2026-11-03
 
+### Post-release reassessment on October 21
+
+The mitigation was re-checked after the Phase 12–14 GitHub release, before the
+2026-11-03 deadline and without changing any dependency.
+
+Fresh npm metadata still identifies `http-cache-semantics` **4.3.0** as
+`dist-tags.latest`; there is **no newer release**, and the
+[GitHub advisory](https://github.com/advisories/GHSA-ch52-4w7c-c8xp) still lists
+affected versions `<= 4.2.0` with **patched versions: None**, last updated
+2026-10-02. The advisory text has not changed since the previous review.
+
+The twelve restricted stale-reuse probes were re-run against **both** builds: the
+pristine `http-cache-semantics@4.3.0` npm tarball and the locked patched
+installation.
+
+| Build | Restricted probes refused | Explicit-public reuse preserved |
+|---|---|---|
+| Pristine upstream 4.3.0 | **0 / 12** | yes |
+| Locked patched installation | **12 / 12** | yes |
+
+The unmodified upstream release still accepts every restricted path, so the
+advisory's behavioural premise remains live and the local patch is still
+required. **Protection is preserved unchanged.** The `2026-11-03` deadline
+stands and is not yet due; the record's `last_reassessed` date and an audit
+trail of this re-run are held in `config/security-advisories.json`.
+
 ### Phase 10 reassessment on October 20
 
 The advisory record is now structured and machine-readable in
