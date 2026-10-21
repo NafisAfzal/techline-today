@@ -6,13 +6,24 @@ import re
 import time
 from collections import Counter
 from datetime import UTC, datetime, timedelta
+from typing import Literal
 
+from pipeline.authority.protocol import Identifier, Model
 from pipeline.filesystem import confined_file
 from pipeline.review_governance import bounded_json, digest, writer_lock
 from pipeline.source_diagnostics import ROOT, run_diagnostics
 from pipeline.storage import atomic_json
 
 DIRECTORY = ".cache/phase4/observations"
+
+
+class ObservationContext(Model):
+    """Optional context in the existing v1 receipt; declarations are not trust."""
+
+    version: Literal[1]
+    environment_id: Identifier
+    ledger_id: Identifier
+    provenance: Literal["operator-local", "synthetic"]
 
 
 def transport_evidence(row):
@@ -30,7 +41,7 @@ def transport_evidence(row):
             "timeout_scope": "terminal-only"}
 
 
-def compact_receipt(report, observed_at):
+def compact_receipt(report, observed_at, *, context=None):
     payload = {key: value for key, value in report.items() if key != "report_sha256"}
     if (digest(payload) != report.get("report_sha256") or report.get("publication_allowed") is not False
             or report.get("ai_submission_allowed") is not False or report.get("raw_content_retained") is not False):
@@ -40,10 +51,16 @@ def compact_receipt(report, observed_at):
         "source_id", "collection_state", "rights_status", "editorial_status", "valid_items",
         "invalid_items", "duplicate_items", "duration_seconds", "freshness", "recovery")},
         "transport": transport_evidence(row)} for row in report["sources"]]
-    return {"version": 1, "observed_at": observed_at.isoformat(), "live": live,
+    result = {"version": 1, "observed_at": observed_at.isoformat(), "live": live,
             "run_id": report["run_id"], "report_sha256": report["report_sha256"],
             "collection_state": report["collection_state"], "publication_allowed": False,
             "ai_submission_allowed": False, "sources": sources}
+    if context is not None:
+        checked = ObservationContext.model_validate(context)
+        if checked.provenance != ("operator-local" if live else "synthetic"):
+            raise ValueError("Observation provenance declaration contradicts the transport")
+        result["context"] = checked.model_dump(mode="json")
+    return result
 
 
 def summary(receipts, now):
@@ -83,7 +100,12 @@ def read_receipts(root):
     return receipts
 
 
-async def observe(root=ROOT, *, live=False):
+async def observe(root=ROOT, *, live=False, context=None):
+    if context is not None:
+        checked = ObservationContext.model_validate(context)
+        if checked.provenance != ("operator-local" if live else "synthetic"):
+            raise ValueError("Observation provenance declaration contradicts the requested transport")
+        context = checked.model_dump(mode="json")
     # No caller-supplied wall clock. Unit tests exercise pure summary separately.
     now = datetime.now(UTC)
     lock = confined_file(root, f"{DIRECTORY}/writer.lock")
@@ -95,7 +117,7 @@ async def observe(root=ROOT, *, live=False):
             raise ValueError("At most one retained live observation per UTC day; preserve existing evidence")
         started = time.perf_counter()
         report = await run_diagnostics(root=root, live=live)
-        receipt = compact_receipt(report, now)
+        receipt = compact_receipt(report, now, context=context)
         receipt["run_duration_seconds"] = round(time.perf_counter() - started, 6)
         if live and not receipt["live"]:
             raise ValueError("Synthetic transport cannot count as live observation")
@@ -110,11 +132,18 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--live", action="store_true", help="One bounded manual research observation; no activation")
     parser.add_argument("--summary", action="store_true", help="Read retained local metadata without network")
+    parser.add_argument("--environment-id", help="Declared collection environment; not independent authentication")
+    parser.add_argument("--ledger-id", help="Declared ledger identity; both identity options are required together")
     args = parser.parse_args()
+    if bool(args.environment_id) != bool(args.ledger_id):
+        parser.error("Supply both --environment-id and --ledger-id, or neither for a legacy unbound receipt")
+    context = (ObservationContext(version=1, environment_id=args.environment_id, ledger_id=args.ledger_id,
+                                  provenance="operator-local" if args.live else "synthetic").model_dump(mode="json")
+               if args.environment_id else None)
     if args.summary:
         result, code = summary(read_receipts(ROOT), datetime.now(UTC)), 0
     else:
-        result, code = asyncio.run(observe(live=args.live))
+        result, code = asyncio.run(observe(live=args.live, context=context))
     import json
     print(json.dumps(result, indent=2))
     return code

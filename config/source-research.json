@@ -38,6 +38,14 @@
           "note": "Publisher-issued licence file states: 'The KEV database is distributed under the Creative Commons 0 1.0 License.' Full CC0 1.0 text retrieved on the access date."
         }
       ],
+      "review_updates": [
+        {
+          "access_date": "2026-10-21",
+          "url": "https://www.cisa.gov/sites/default/files/licenses/kev/license.txt",
+          "result": "NOT_VERIFIED_HTTP_403",
+          "note": "Current recheck was denied. Preserve the dated historical licence evidence; no renewed legal verification or approval."
+        }
+      ],
       "verification": {
         "technical_availability": "VERIFIED",
         "licence": "CC0-1.0",
@@ -214,6 +222,14 @@
           "note": "Canonical intellectual-property policy page retrieved on the access date. The page is largely navigation, so the clause that governs security-notice prose could not be isolated from the retrieved text."
         }
       ],
+      "review_updates": [
+        {
+          "access_date": "2026-10-21",
+          "url": "https://canonical.com/legal/intellectual-property-policy",
+          "result": "POLICY_READ_SCOPE_REVIEW_REQUIRED",
+          "note": "Policy text has its own CC-BY-SA 3.0 UK licence and requires applicable item-specific licences. No security-notice text reuse licence was established."
+        }
+      ],
       "verification": {
         "technical_availability": "VERIFIED",
         "licence": "NOT_VERIFIED",
@@ -249,6 +265,14 @@
       "last_fetch_outcome": "UNKNOWN",
       "coverage_categories": ["cybersecurity-advisories", "bangladesh-technology-ecosystem"],
       "evidence": [],
+      "review_updates": [
+        {
+          "access_date": "2026-10-21",
+          "url": "https://www.bdcert.gov.bd/",
+          "result": "NOT_VERIFIED_INACCESSIBLE",
+          "note": "Candidate website was inaccessible. A separate cirt.gov.bd probe timed out; it is not an authenticated replacement identity or reuse permission."
+        }
+      ],
       "verification": {
         "technical_availability": "NOT_PERFORMED",
         "licence": "NOT_VERIFIED",

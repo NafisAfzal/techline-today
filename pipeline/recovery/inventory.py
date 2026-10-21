@@ -55,7 +55,8 @@ RECOVERY_ASSETS: tuple[RecoveryAsset, ...] = (
         protection="Encrypted backup held separately from the machine that signs",
         required_action="Rehearse passphrase access offline; if lost, run a reviewed root-rotation "
                         "and recovery-authorization decision",
-        notes="No backup can restore it. Rotation needs possession proof from the replacement key",
+        notes="Excluded from this project's recovery packs. A separately held encrypted key backup may "
+              "support human recovery; if every copy is lost, the journal cannot reconstruct the key",
     ),
     RecoveryAsset(
         asset_id="reviewer-public-key-registry",
@@ -193,8 +194,9 @@ def inventory_report() -> dict:
         "recoverable": [a["asset_id"] for a in assets if a["recoverability"] == "recoverable"],
         "reconstructible": [a["asset_id"] for a in assets if a["recoverability"] == "reconstructible"],
         "irrecoverable": irrecoverable,
-        "irrecoverable_note": "These assets cannot be restored from any backup. A loss requires a "
-                              "reviewed rotation or recovery-authorization decision by the owner.",
+        "irrecoverable_note": "These assets cannot be reconstructed or restored from this project's packs. "
+                              "Separate authenticated custody or encrypted credential backups require human "
+                              "verification. Loss of every key copy cannot be repaired by journal replay.",
         "credential_count": sum(1 for a in assets if a["category"] == "credential"),
         "publication_allowed": False,
     }
