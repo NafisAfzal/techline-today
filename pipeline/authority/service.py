@@ -185,6 +185,85 @@ def status(root, now):
                 "reason": error.code if isinstance(error, AuthorityError) else type(error).__name__}
 
 
+def verify_checkpoint_document(root, now, *, document=None, expected_sha256=None, challenge=None,
+                               max_age_seconds=86400, custodian=None):
+    """Verify one externally held checkpoint against the local authority state.
+
+    ``document`` may be supplied directly (for example a document read from an
+    operator-held file) or omitted, in which case the configured custodian is
+    read. ``expected_sha256`` and ``challenge`` must come from an independent
+    channel; when they are absent the result is BLOCKED, never PASS.
+    """
+    from pipeline.authority.checkpoint import (
+        IndependentExpectation,
+        OperatorFileCheckpointStore,
+        ProtectedHistoryCheckpointStore,
+        read_checkpoint_document,
+        verify_external_checkpoint,
+    )
+
+    def blocked(code, detail, **extra):
+        return {"status": "BLOCKED", "code": code, "detail": detail, "trust_level": "LOCAL_SNAPSHOT",
+                "independently_trusted": False, "current": False, "publication_allowed": False, **extra}
+
+    try:
+        bundle = load_authority(root, allow_stopped=True)
+    except AuthorityError as error:
+        return blocked(error.code, str(error))
+    if bundle is None:
+        return blocked("independent_evidence_missing",
+                       "No independently pinned owner trust root is configured; a checkpoint cannot be trusted")
+    pin = TrustPin.model_validate(strict_json(bundle.pin_bytes, max_bytes=MAX_RECORD))
+    try:
+        history = replay(decode_journal(bundle.journal_bytes), pin, now)
+    except (ValueError, OSError, TypeError) as error:
+        return {"status": "INCONCLUSIVE", "code": "local_state_unavailable",
+                "detail": error.code if isinstance(error, AuthorityError) else type(error).__name__,
+                "trust_level": "LOCAL_SNAPSHOT", "independently_trusted": False, "current": False,
+                "publication_allowed": False}
+
+    store = custodian
+    if document is None:
+        path = os.environ.get("TECHLINE_EXTERNAL_CHECKPOINT_FILE")
+        if path:
+            candidate = Path(path)
+            store = ProtectedHistoryCheckpointStore(candidate) if candidate.is_dir() else \
+                OperatorFileCheckpointStore(candidate, require_outside=Path(root).absolute())
+            try:
+                document = read_checkpoint_document(store.read())
+            except AuthorityError as error:
+                return blocked(error.code, str(error))
+        else:
+            store = None
+    expectation = IndependentExpectation(document_sha256=expected_sha256, challenge=challenge,
+                                         source="operator-environment")
+    custody = getattr(store, "custody", None)
+    result = verify_external_checkpoint(document=document, document_bytes=None, expectation=expectation,
+                                        pin=pin, history=history, now=now,
+                                        max_age_seconds=max_age_seconds, custody=custody,
+                                        emergency_stopped=bundle.stopped)
+    payload = result.model_dump(mode="json")
+    payload["custodian"] = store.describe() if store is not None else {
+        "kind": "missing", "present": False, "reason": "No external checkpoint custodian is configured",
+        "network_access": False}
+    payload["publication_allowed"] = False
+    return payload
+
+
+def checkpoint_status(root, now, *, max_age_seconds=86400):
+    """Report how far the externally held checkpoint evidence actually reaches.
+
+    Never mutates state, never provisions anything and never converts missing
+    independent evidence into a pass. The returned ``status`` uses the same
+    PASS/FAIL/BLOCKED/INCONCLUSIVE vocabulary as the readiness report.
+    """
+    expected = os.environ.get("TECHLINE_EXTERNAL_CHECKPOINT_SHA256")
+    challenge = os.environ.get("TECHLINE_EXTERNAL_CHECKPOINT_CHALLENGE") or os.environ.get(
+        "TECHLINE_AUTHORITY_CHALLENGE")
+    return verify_checkpoint_document(root, now, expected_sha256=expected, challenge=challenge,
+                                      max_age_seconds=max_age_seconds)
+
+
 def assert_build_authority(root, snapshot, now):
     """Negative guard for the unchanged legacy edition; full gate for new content."""
     from pipeline.publication_gate import LEGACY_SNAPSHOT_SHA256, assert_publishable, evaluate_snapshot

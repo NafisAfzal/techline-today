@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "note": "Structured record of a dependency advisory and this project's mitigation. It is an operator record, not an upstream authority: the linked advisory and the upstream repository remain the sources of truth.",
+  "advisories": [
+    {
+      "id": "GHSA-ch52-4w7c-c8xp",
+      "cve": "CVE-2026-93748",
+      "package": "http-cache-semantics",
+      "severity": "HIGH",
+      "cvss_3_1": 7.5,
+      "cvss_4_0": 8.7,
+      "vulnerable_range": "<= 4.2.0",
+      "patched_versions": null,
+      "upstream_latest": "4.3.0",
+      "locked_version": "4.3.0",
+      "chain": "apps/web -> astro@7.3.5 -> http-cache-semantics@4.3.0",
+      "mitigation": "local-patch",
+      "mitigation_artifact": "patches/http-cache-semantics@4.3.0.patch",
+      "mitigation_gate": "scripts/audit-dependencies.mjs",
+      "mitigation_tests": "tests/unit/cache-policy.test.ts",
+      "exposure": "Build-time only. The deployed architecture is asset-only static output with no shared cache, so the advisory's cross-user cache-disclosure path is not reachable in production.",
+      "status": "MITIGATED",
+      "interpretation": "Upstream 4.3.0 sits outside the advisory's affected range but is not a verified fix. The advisory still lists no patched version, the upstream maintainer disputes the premise, and controlled probes against the unmodified 4.3.0 tarball continued to accept restricted max-stale reuse. The locked conservative patch therefore remains required and the dependency is not upgraded on the strength of a version number alone.",
+      "last_reassessed": "2026-10-20",
+      "reassessment_due": "2026-11-03",
+      "next_action": "Re-run the five restricted max-stale probes against the current upstream release and the advisory text before 2026-11-03. Remove the patch only when the unmodified upstream release rejects every probe, or when Astro removes the dependency.",
+      "references": [
+        "https://github.com/advisories/GHSA-ch52-4w7c-c8xp",
+        "https://github.com/kornelski/http-cache-semantics/pull/58",
+        "docs/SECURITY.md"
+      ]
+    }
+  ]
+}

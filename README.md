@@ -64,7 +64,9 @@ The Bangla interface is implemented. **Production Bangla story translation is no
 
 Editorial authority is implemented as an initially **UNPROVISIONED** offline
 Ed25519 reviewer system. Separate role/scope grants, exact content signatures and
-independently trusted checkpoints feed the existing publication gate. No real
+checkpoint checks feed the existing publication gate. Independent current-state
+authentication is unavailable, so production verification remains blocked; see
+the [operational trust limits](docs/PHASE11_TRUST_LIMITS.md). No real
 editors or publisher rights are provisioned. Run `uv run python -m pipeline.authority status`
 or the ephemeral `demo`; neither activates publication. See the
 [security design](docs/PHASE8_EDITORIAL_AUTHORITY.md) and
@@ -107,6 +109,16 @@ pnpm verify:docs
 pnpm verify:repository
 pnpm performance
 pnpm deploy:check
+```
+
+Operator tooling for the newsroom is private and local. It reports state and
+refuses unsafe states; it never approves, activates or publishes.
+
+```sh
+uv run python -m pipeline.newsroom_readiness            # launch readiness
+uv run python -m pipeline.authority checkpoint-status    # current trusted checkpoint
+uv run python -m pipeline.source_onboarding evidence     # source rights evidence
+uv run python -m pipeline.recovery drills                # synthetic disaster drills
 ```
 
 Restore/recollect live content and rebuild after fixture tests. `pnpm verify:content-rights` checks a live candidate, including referenced archives and built JSON. Hosted smoke accepts a supplied `SMOKE_BASE_URL`; it never assumes a live URL. [Current exact results](docs/OWNER_LAUNCH_VERIFICATION.md) · [Test guide](docs/TESTING.md).

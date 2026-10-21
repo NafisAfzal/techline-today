@@ -1,5 +1,20 @@
 # Decision Log
 
+## ADR-014: External checkpoint custody is a separate trust level
+
+A signed journal head proves which key signed it, not that the head is current.
+Phase 10 therefore separates five trust levels — locally generated, locally
+signed, externally stored, independently authenticated and currently trusted —
+and only the last may be reported as a current trusted checkpoint. A file
+copied out of the authority state directory is custody, not authenticity: it
+is upgraded only by a digest obtained through a channel the checkout does not
+control. A document that stays inside the state directory cannot act as an
+external anchor at all. Missing evidence yields BLOCKED or INCONCLUSIVE, never
+PASS. The existing Phase 8 signature protocol, canonical JSON profile and
+journal comparison are reused unchanged; the custody envelope adds only
+custody metadata. Storage adapters are read-only and the protected-history
+adapter never contacts GitHub.
+
 ## ADR-013: Editorial ranking signals
 
 Novelty is 1 for new source evidence, 0.65 for changed evidence and 0 for unchanged coverage. Unknown publication dates receive a configurable recency penalty. The primary release boost requires an announcement/release rather than every primary page; source-backed expiring offers receive the configured urgency boost. Explicit open-sourcing model headlines can populate the model tracker while unsupplied specifications stay unknown.
