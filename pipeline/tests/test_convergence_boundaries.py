@@ -8,6 +8,7 @@ import pytest
 
 from pipeline.models import StoryTranslation, TranslationContent
 from pipeline.newsroom_readiness import newsroom_readiness
+from pipeline.observations import read_receipts
 from pipeline.operations.observation import review_observations
 from pipeline.operations.reports import console, observation_plan
 from pipeline.recovery.fixtures import SYNTHETIC_NOW
@@ -89,3 +90,18 @@ def test_readiness_preserves_corrupt_observation_failure(tmp_path):
     coverage = next(row for row in report["items"] if row["item"] == "operational_observation_coverage")
     assert coverage["result"] == "FAIL"
     assert coverage["evidence"]["anomalies"] == [{"kind": "unreadable_observation_evidence"}]
+
+
+def test_receipt_sorting_is_bounded_before_loading_payloads(tmp_path, monkeypatch):
+    (tmp_path / ".cache/phase4/observations").mkdir(parents=True)
+    enumerated = []
+
+    def oversized_directory(self, pattern):
+        for index in range(1000):
+            enumerated.append(index)
+            yield self / "2026-10-19.json"
+
+    monkeypatch.setattr(Path, "glob", oversized_directory)
+    with pytest.raises(ValueError, match="retention capacity"):
+        read_receipts(tmp_path)
+    assert len(enumerated) == 32

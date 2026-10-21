@@ -6,6 +6,7 @@ import re
 import time
 from collections import Counter
 from datetime import UTC, datetime, timedelta
+from itertools import islice
 from typing import Literal
 
 from pipeline.authority.protocol import Identifier, Model
@@ -91,9 +92,10 @@ def read_receipts(root):
     # Filesystem enumeration order is not collection order (notably on restore).
     # Daily UTC filenames provide deterministic order; the evaluator still
     # validates timestamps, duplicate days and clock regressions within it.
-    for path in sorted(parent.glob("????-??-??.json")) if parent.exists() else []:
-        if len(receipts) >= 31:
-            raise ValueError("Observation retention capacity: archive metadata receipts before continuing")
+    paths = list(islice(parent.glob("????-??-??.json"), 32)) if parent.exists() else []
+    if len(paths) > 31:
+        raise ValueError("Observation retention capacity: archive metadata receipts before continuing")
+    for path in sorted(paths):
         payload = bounded_json(confined_file(root, path.relative_to(root)), limit=100_000)
         if (payload.get("version") != 1 or type(payload.get("live")) is not bool
                 or payload.get("receipt_sha256") != digest({key: value for key, value in payload.items()
