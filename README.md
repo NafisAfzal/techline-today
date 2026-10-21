@@ -72,6 +72,10 @@ or the ephemeral `demo`; neither activates publication. See the
 [security design](docs/PHASE8_EDITORIAL_AUTHORITY.md) and
 [owner runbook](docs/PHASE8_OWNER_RUNBOOK.md).
 
+The [offline operator tools](docs/OFFLINE_NEWSROOM_OPERATIONS.md) prepare ceremony and appointment
+packets, expose launch blockers and run isolated newsroom, source-failure and
+recovery rehearsals. They create no production authority or independent custody.
+
 Use Node 24, pnpm **10.33.1**, Python **3.13** and uv **0.12.22**. From the project root:
 
 ```sh

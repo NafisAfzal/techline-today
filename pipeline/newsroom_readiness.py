@@ -397,9 +397,9 @@ def newsroom_readiness(root, now=None, *, canonical_sha256=None) -> dict:
         window = observation_evidence(receipts, at)
     except (ValueError, OSError, TypeError):
         window = {"live_observations": 0, "distinct_days": 0, "elapsed_days": 0, "missing_days": [],
-                  "anomalies": [], "elapsed_window_satisfied": False}
+                  "anomalies": [{"kind": "unreadable_observation_evidence"}], "elapsed_window_satisfied": False}
     items.append(_item("operational_observation_coverage",
-                        INCONCLUSIVE,
+                        FAIL if window["anomalies"] else INCONCLUSIVE,
                         f"{window['live_observations']} retained live observation(s) over "
                         f"{window['distinct_days']} distinct day(s).",
                         evidence={k: window[k] for k in ("live_observations", "distinct_days",

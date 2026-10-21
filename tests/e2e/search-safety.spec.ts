@@ -6,9 +6,10 @@ test('Pagefind previews remain inert plain text and preserve literal metadata', 
     if(request.url().includes('/__inert_template_must_not_fetch__')) resourceRequests++;
   });
   const metadata:{description?:string} = {};
+  let destination = '/';
   const markup = '<mark>Safety</mark> &amp; 2 <img src="http://127.0.0.1:4327/__inert_template_must_not_fetch__" onerror="window.fixtureScriptExecuted=true"><script>window.fixtureScriptExecuted=true</script><style>.fixture { display:none }</style>';
   await page.route('**/pagefind/pagefind.js', async route => {
-    const item = {url:'/',meta:{title:'Safety preview',...metadata},excerpt:markup};
+    const item = {url:destination,meta:{title:'Safety preview',...metadata},excerpt:markup};
     await route.fulfill({contentType:'application/javascript',body:'export async function search() { return { results: [{ data: async () => (' + JSON.stringify(item) + ') }] }; }'});
   });
   await page.goto('/');
@@ -26,4 +27,13 @@ test('Pagefind previews remain inert plain text and preserve literal metadata', 
   await expect(page.locator('.search-results span').first()).toHaveText(metadata.description);
   await expect(page.locator('.search-results threshold')).toHaveCount(0);
   expect(resourceRequests).toBe(0);
+
+  for (const unsafe of ['/bn//unsafe.example/', '/\t/unsafe.example/']) {
+    destination = unsafe;
+    await page.reload();
+    await page.locator('.search-trigger').click();
+    await page.locator('#search-query').fill('safety');
+    await expect(page.locator('.search-results a').first()).toHaveAttribute('href','/');
+    expect(await page.locator('.search-results a').first().evaluate(link => new URL((link as HTMLAnchorElement).href).origin)).toBe(new URL(page.url()).origin);
+  }
 });

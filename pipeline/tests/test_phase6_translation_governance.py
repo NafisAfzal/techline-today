@@ -33,7 +33,7 @@ class FakeContent:
                 "why_it_matters": "এটি একটি কৃত্রিম ব্যাখ্যা।",
                 "broader_summary": "কৃত্রিম বিবরণ এখানে রয়েছে।",
                 "key_fact_texts": ["কৃত্রিম তথ্য এখানে রয়েছে।"],
-                "limitations": []}
+                "number_labels": [], "number_contexts": [], "limitations": []}
         self.__dict__.update({**base, **overrides})
 
 

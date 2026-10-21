@@ -492,19 +492,22 @@ def drill_lost_owner_key(work: Path) -> DrillResult:
     irrecoverable = inventory_report()["irrecoverable"]
     return DrillResult(
         drill_id="DR-14", name="Lost owner signing key",
-        fixture="A newsroom whose owner private key is no longer available to sign a fresh anchor.",
-        injected_failure="Withheld the owner private key from the fixture.",
+        fixture="A newsroom whose owner key is unavailable; its project pack contains no private key. "
+                "No usable separately held key copy is assumed in this synthetic exercise.",
+        injected_failure="Withheld owner signing capability; no real key was erased or restored.",
         expected_behavior="No new trusted anchor can be produced; the situation is reported as "
                           "BLOCKED and the irrecoverable credential is named.",
         actual_behavior="The tooling refused to assert currency without a fresh owner-signed anchor "
                         "and identified the irrecoverable assets.",
         trust_guarantees=["existing signed history remains verifiable", "no silent re-anchoring"],
-        human_intervention=["Owner performs a reviewed root rotation or a recovery-authorisation "
-                            "decision with a successor key and possession proof",
-                            "Re-anchor with a fresh custodian checkpoint afterwards"],
+        human_intervention=["Owner checks separately held encrypted key backups in a human-controlled ceremony",
+                            "If every usable copy is lost, remain blocked pending an independently reviewed "
+                            "new trust-establishment policy; normal rotation requires the old signing authority",
+                            "Any later recovery needs separately authorised independent custody evidence"],
         result="BLOCKED",
-        detail="A lost private key cannot be restored from any backup; only a reviewed rotation or "
-               "recovery authorisation resolves it.",
+        detail="Project packs exclude private keys. A separately held verified encrypted copy may permit "
+               "human recovery. If every usable copy is lost, this tooling cannot recreate the key or "
+               "automatically restore authority; journal replay is insufficient.",
         evidence={"status": verification.status, "current": verification.current,
                   "irrecoverable_assets": irrecoverable})
 

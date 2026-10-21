@@ -18,6 +18,13 @@ describe('static localization',()=>{
     expect(localizedPath('/data/stories/example.json','bn')).toBe('/data/stories/example.json');
     expect(localizedPath('//unsafe.example/','bn')).toBe('/bn/');
   });
+  it.each(['/bn//unsafe.example/', '/\t/unsafe.example/', '/\n/unsafe.example/', '/\r/unsafe.example/'])('keeps hostile search routes on the local origin: %j', value => {
+    for(const locale of ['en','bn'] as const) {
+      const result=localizedPath(value,locale);
+      expect(new URL(result,'https://techline.example').origin).toBe('https://techline.example');
+      expect(result).toBe(locale==='bn'?'/bn/':'/');
+    }
+  });
   it('falls back to the identical canonical record when a translation is missing',()=>{
     const story={headline:'Canonical English',language:'en'} as Story;
     expect(localizedStory(story,'bn')).toBe(story);expect(localizedStory(story,'en')).toBe(story);

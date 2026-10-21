@@ -9,8 +9,11 @@ export const brandName = 'Techline Today';
 export function localeFor(pathname: string): Locale { return /^\/bn(?:\/|$)/.test(pathname) ? 'bn' : 'en'; }
 export function withoutLocale(pathname: string) { return pathname.replace(/^\/bn(?=\/|$)/, '') || '/'; }
 export function localizedPath(pathname: string, locale: Locale) {
-  if (!pathname.startsWith('/') || pathname.startsWith('//') || pathname.includes('\\')) return locale === 'bn' ? '/bn/' : '/';
   const path = withoutLocale(pathname);
+  // Validate after removing the locale as well: /bn//host must not become a
+  // protocol-relative URL. Browsers strip TAB/CR/LF before parsing a link.
+  if (!path.startsWith('/') || path.startsWith('//') || path.includes('\\') ||
+      [...path].some(char => char.charCodeAt(0) < 32 || char.charCodeAt(0) === 127)) return locale === 'bn' ? '/bn/' : '/';
   if (/^\/(?:data|rss\.xml|pagefind|_astro|favicon\.svg)(?:\/|$)/.test(path)) return path;
   return locale === 'bn' ? `/bn${path}` : path;
 }

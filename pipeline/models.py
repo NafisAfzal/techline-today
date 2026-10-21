@@ -10,6 +10,10 @@ Category = Literal["ai", "research", "dev-apis", "freebies", "jobs-skills", "chi
 Evidence = Literal["primary-confirmed", "multi-source", "single-source", "community-report", "needs-verification"]
 SourceClass = Literal["primary", "independent", "aggregator", "community"]
 
+# Shared by translation ingress, stored content and publication-time review.
+# English/Bangla are left-to-right; ZWJ/ZWNJ remain valid Bangla joining marks.
+DIRECTION_CONTROLS = frozenset("\u061c\u200e\u200f\u202a\u202b\u202c\u202d\u202e\u2066\u2067\u2068\u2069")
+
 
 def is_public_address(address) -> bool:
     # Python's is_global includes multicast and deprecated IPv6 site-local ranges.
@@ -295,6 +299,14 @@ class TranslationContent(Contract):
     number_labels: list[str] = Field(default_factory=list, max_length=3)
     number_contexts: list[str] = Field(default_factory=list, max_length=3)
     limitations: list[str] = Field(default_factory=list, max_length=20)
+
+    @field_validator("*", mode="after")
+    @classmethod
+    def direction_safe(cls, value):
+        texts = value if isinstance(value, list) else [value]
+        if any(char in DIRECTION_CONTROLS for text in texts for char in text):
+            raise ValueError("Hidden direction controls are forbidden in translated content")
+        return value
 
 
 class StoryTranslation(Contract):

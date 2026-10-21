@@ -23,11 +23,17 @@ translation evidence, the generated edition, and the recovery manifests.
 
 **Irrecoverable credentials** — the owner private signing key, every reviewer
 private signing key, and any externally held trusted checkpoint that the
-custodian did not retain. No backup restores these. A loss requires a
-reviewed rotation or a reviewed recovery-authorisation decision.
+custodian did not retain. Here, irrecoverable means unavailable from this
+project's packs. Separately held verified encrypted key backups may permit
+human-controlled recovery; independently held receipts need their own retention.
+If every usable key copy is lost, the journal cannot recreate it and normal
+rotation cannot be signed with the missing key. Remain blocked pending an
+independently reviewed new trust-establishment policy and owner-controlled ceremony.
 
-A recovery pack carries the recoverable material and refuses to export
-anything containing private key markers.
+A recovery pack carries only allowlisted public authority, policy and candidate
+index material. It omits other inventory assets, including the generated edition,
+retained evidence bodies and private keys; recognised private key markers cause
+export refusal. Separate lawful custody and backups are still required.
 
 ## 2. Recovery pack
 

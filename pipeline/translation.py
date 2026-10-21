@@ -7,7 +7,7 @@ from collections import Counter
 from datetime import UTC, datetime
 from pathlib import Path
 
-from pipeline.models import StoryTranslation, TranslationContent
+from pipeline.models import DIRECTION_CONTROLS, StoryTranslation, TranslationContent
 
 POLICY_VERSION = "1"
 DIGITS = str.maketrans("০১২৩৪৫৬৭৮৯", "0123456789")
@@ -65,6 +65,7 @@ def validate_content(content, story):
             if target.strip() == source.strip() and re.search(r"[A-Za-z]{3}", source):
                 raise ValueError("Accidental identical translation")
             if (re.search(r"[<>\ufffd\ud800-\udfff]", target)
+                    or any(char in DIRECTION_CONTROLS for char in target)
                     or any(unicodedata.category(char) == "Cc" for char in target)
                     or any(marker in target for marker in ("Ã", "Â", "à¦", "à§", "â€"))):
                 raise ValueError("Unsafe Unicode or unexpected HTML")
