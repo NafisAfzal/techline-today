@@ -21,8 +21,22 @@
       "exposure": "Build-time only. The deployed architecture is asset-only static output with no shared cache, so the advisory's cross-user cache-disclosure path is not reachable in production.",
       "status": "MITIGATED",
       "interpretation": "Upstream 4.3.0 sits outside the advisory's affected range but is not a verified fix. The advisory still lists no patched version, the upstream maintainer disputes the premise, and controlled probes against the unmodified 4.3.0 tarball continued to accept restricted max-stale reuse. The locked conservative patch therefore remains required and the dependency is not upgraded on the strength of a version number alone.",
-      "last_reassessed": "2026-10-20",
+      "last_reassessed": "2026-10-21",
       "reassessment_due": "2026-11-03",
+      "reassessment_log": [
+        {
+          "date": "2026-10-21",
+          "performed_at_utc": "2026-10-21T19:40:00Z",
+          "upstream_latest": "4.3.0",
+          "upstream_newer_release_available": false,
+          "advisory_patched_version": null,
+          "advisory_text_changed_since_last_review": false,
+          "pristine_upstream_probe_result": "0 of 12 restricted max-stale probes refused",
+          "locked_patched_probe_result": "12 of 12 restricted max-stale probes refused",
+          "conclusion": "The unmodified upstream release still accepts every restricted stale-reuse path and the advisory still lists no patched version, so the local patch remains required. Protection preserved; the 2026-11-03 deadline is unchanged and is not yet due.",
+          "date_convention": "Dates are recorded in UTC. The readiness gate compares a date-only field against the assessment instant in UTC, so a local calendar date can read as a future date and fail the check."
+        }
+      ],
       "next_action": "Re-run the five restricted max-stale probes against the current upstream release and the advisory text before 2026-11-03. Remove the patch only when the unmodified upstream release rejects every probe, or when Astro removes the dependency.",
       "references": [
         "https://github.com/advisories/GHSA-ch52-4w7c-c8xp",

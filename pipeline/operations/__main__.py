@@ -10,6 +10,7 @@ from pipeline.generation import bounded_file
 from pipeline.observations import ObservationContext
 from pipeline.operations import ceremony, reports
 from pipeline.operations.custodian import Challenge, Commitment, Receipt, read_receipt
+from pipeline.operations.redaction import refusal, scan_payload
 from pipeline.operations.rehearsal import rehearse
 from pipeline.strict_json import strict_json
 
@@ -82,6 +83,10 @@ def main(argv=None):
     except (ValueError, OSError, TypeError, KeyError) as error:
         result = {"status": "FAIL", "code": getattr(error, "code", type(error).__name__),
                   "publication_allowed": False, "note": "Inspect invalid input privately; no authority was granted."}
+    detections = scan_payload(result)
+    if detections:
+        print(json.dumps(refusal(detections), indent=2, ensure_ascii=False))
+        return 1
     if args.format == "text":
         print("Techline Today offline operations: " + result.get("status", "TEMPLATE"))
         print(json.dumps(result, indent=2, ensure_ascii=False))
