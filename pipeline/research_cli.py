@@ -127,6 +127,9 @@ def execute(args, now):
             bound.language not in assigned.languages or
             bound.story_id not in assigned.stories and "*" not in assigned.stories):
         raise AuthorityError("scope", "Prepared decision exceeds the human reviewer's signed grant")
+    if (bound.publication_scope == "metadata-extractive:en-bn" and payload.role in {"source-rights", "publisher"}
+            and not {"en", "bn"} <= set(assigned.languages)):
+        raise AuthorityError("scope", "Bilingual rights/publication approval requires an English and Bangla grant")
     target = output(root, args.output, payload.model_dump(mode="json"))
     return {"unsigned": True, "prepared_record_id": payload.record_id, "stage": payload.decision,
             "output": target, "publication_allowed": False}

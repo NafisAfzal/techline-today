@@ -44,7 +44,7 @@ class SyntheticResearchRoom(SyntheticNewsroom):
     def team(self):
         for name, role, workflows, languages in (
             ("editor", "english-editor", ["editorial", "research"], ["en"]),
-            ("rights", "source-rights", ["editorial", "rights", "research"], ["en"]),
+            ("rights", "source-rights", ["editorial", "rights", "research"], ["en", "bn"]),
             ("fact", "fact-checker", ["editorial", "research"], ["en"]),
             ("publisher", "publisher", ["editorial", "translation", "research"], ["en", "bn"]),
             ("native", "native-bn", ["translation", "research"], ["bn"]),

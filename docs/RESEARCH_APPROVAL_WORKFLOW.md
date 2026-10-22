@@ -41,6 +41,9 @@ withdrawals. No research decision converts research into current news or clears 
 source hold. Changing content, dates, translations, source evidence, rights or
 scope invalidates exact bindings. Administrative changes invalidate the prior
 registry epoch; appoint the complete team before reviewing content.
+When the publication scope includes Bangla, the rights reviewer and publisher
+must each hold an explicit grant covering both English and Bangla. The native
+reviewer's Bangla grant cannot expand another reviewer's publication authority.
 
 ## Offline operator commands
 

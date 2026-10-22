@@ -203,6 +203,19 @@ def test_bangla_is_separate_and_translation_changes_invalidate_all_stages(prepar
     assert not room.history().active(bound, RESEARCH_STAGES[0], NOW)
 
 
+@pytest.mark.parametrize("reviewer,decision", [("rights", RESEARCH_STAGES[0]), ("publisher", RESEARCH_STAGES[-1])])
+def test_bilingual_publication_scope_requires_bilingual_rights_and_publisher_grants(prepared, reviewer, decision):
+    room, story, sources, rights, _, _ = prepared
+    translated = bangla_fixture(story)
+    bound = bind_research(translated, sources[story.primary_source_id], rights, sources)
+    record = room.prepared(bound, decision, reviewer)
+    history = room.history()
+    identity, grant = history.registry.grants["g-" + reviewer]
+    history.registry.grants["g-" + reviewer] = (identity, grant.model_copy(update={"languages": ["en"]}))
+    with pytest.raises(AuthorityError, match="Bilingual"):
+        history.registry.authorize(record, NOW)
+
+
 def test_research_stages_do_not_bypass_existing_editorial_or_rights_gate(prepared):
     room, story, sources, rights, _, _ = prepared
     room.review_all(story, sources, rights)
