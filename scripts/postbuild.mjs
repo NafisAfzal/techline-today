@@ -1,8 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { inlineCspHashes } from './csp.mjs';
-import { readSnapshot } from './read-snapshot.mjs';
-const root = path.resolve('apps/web/dist');
+import { readBuildSnapshot, buildDirectory, researchRehearsal } from './research-policy.mjs';
+const root = path.resolve(buildDirectory);
 function files(directory) { return fs.readdirSync(directory,{withFileTypes:true}).flatMap(entry => entry.isDirectory() ? files(path.join(directory,entry.name)) : [path.join(directory,entry.name)]); }
 const scripts = new Set(); const styles = new Set();
 for (const file of files(root).filter(file => file.endsWith('.html'))) {
@@ -15,8 +15,9 @@ const analytics = Boolean(process.env.PUBLIC_CLOUDFLARE_WEB_ANALYTICS_TOKEN);
 const csp = `default-src 'self'; script-src 'self' 'wasm-unsafe-eval' ${[...scripts].join(' ')}${analytics ? ' https://static.cloudflareinsights.com' : ''}; style-src 'self' ${[...styles].join(' ')}; img-src 'self' data:; font-src 'self'; connect-src 'self'${analytics ? ' https://cloudflareinsights.com' : ''}; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests`;
 const headers = `/*\n  Content-Security-Policy: ${csp}\n  X-Content-Type-Options: nosniff\n  X-Frame-Options: DENY\n  Referrer-Policy: strict-origin-when-cross-origin\n  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()\n  Strict-Transport-Security: max-age=31536000\n/_astro/*\n  Cache-Control: public, max-age=31536000, immutable\n/data/*\n  Cache-Control: public, max-age=300, must-revalidate\n/pagefind/*\n  Cache-Control: public, max-age=0, must-revalidate\n`;
 if (headers.split('\n').some(line => line.length > 2000)) throw new Error('Cloudflare header line limit exceeded');
-fs.writeFileSync(path.join(root,'_headers'),headers);
-const snapshot = readSnapshot('content/generated/snapshot.json');
+fs.writeFileSync(path.join(root,'_headers'),researchRehearsal ? headers.replace(/Cache-Control: [^\n]+/g,'Cache-Control: no-store').replace('Referrer-Policy: strict-origin-when-cross-origin','Referrer-Policy: no-referrer') : headers);
+if (researchRehearsal) fs.appendFileSync(path.join(root,'_headers'),'/*\n  X-Robots-Tag: noindex, nofollow, noarchive\n  Cache-Control: no-store\n');
+const snapshot = readBuildSnapshot('content/generated/snapshot.json');
 const sourceRights = JSON.parse(fs.readFileSync('config/source-rights.json','utf8')).sources;
 const exposedSources = {...snapshot.sources};
 const archiveRoot = snapshot.mode === 'fixture' ? '.cache/fixture-archives' : 'content/archives';

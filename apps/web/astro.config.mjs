@@ -3,8 +3,8 @@ import react from '@astrojs/react';
 import sitemap from '@astrojs/sitemap';
 import tailwind from '@tailwindcss/vite';
 import { siteUrl } from '../../scripts/site-url.mjs';
-import { readSnapshot } from '../../scripts/read-snapshot.mjs';
-const snapshot = readSnapshot(new URL('../../content/generated/snapshot.json', import.meta.url));
+import { readBuildSnapshot, researchRehearsal } from '../../scripts/research-policy.mjs';
+const snapshot = readBuildSnapshot(new URL('../../content/generated/snapshot.json', import.meta.url));
 const translated = new Set(snapshot.stories.filter(story=>story.translations?.bn).map(story=>story.slug));
 function publicPage(page) {
   const pathname = new URL(page).pathname;
@@ -16,6 +16,7 @@ function publicPage(page) {
 export default defineConfig({
   site: siteUrl(process.env.SITE_URL).origin,
   output: 'static',
+  outDir: researchRehearsal ? './dist-research' : './dist',
   integrations: [react(), sitemap({ filter: publicPage })],
   // Bundle Astro's cookie parser into prerender output. A bare transitive
   // import can resolve an unrelated parent-directory cookie installation.

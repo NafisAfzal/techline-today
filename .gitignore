@@ -16,6 +16,7 @@ __pycache__/
 coverage/
 *.tsbuildinfo
 apps/web/dist/
+apps/web/dist-research/
 apps/web/.astro/
 apps/web/public/data/
 content/generated/

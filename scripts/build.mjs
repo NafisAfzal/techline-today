@@ -6,6 +6,7 @@ import { verifyContentRights } from './content-rights.mjs';
 import { verifyGovernance } from './governance-preflight.mjs';
 
 const pnpm = process.env.npm_execpath;
+assert(!process.env.TECHLINE_RESEARCH_REHEARSAL, 'The ordinary build does not accept the research rehearsal profile.');
 assert(pnpm && /pnpm\.(?:c?js)$/.test(pnpm), 'Run this supported build through pnpm build.');
 withGenerationLock('.', env => {
   // Preflight is inside the shared lock. The lock owner may read here, too.

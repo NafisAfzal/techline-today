@@ -1,8 +1,8 @@
 import path from 'node:path';
 import type { Snapshot, Story } from '../../../../packages/contracts';
-import { readSnapshot } from '../../../../scripts/read-snapshot.mjs';
+import { readBuildSnapshot } from '../../../../scripts/research-policy.mjs';
 const snapshotPath = path.resolve(process.cwd(), '../../content/generated/snapshot.json');
-export const data = readSnapshot(snapshotPath) as Snapshot;
+export const data = readBuildSnapshot(snapshotPath) as Snapshot;
 for (const entry of data.archive_index) {
   if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(entry.key) || entry.url !== `/archives/${entry.key}/`) throw new Error('Unsafe archive path in snapshot');
 }
