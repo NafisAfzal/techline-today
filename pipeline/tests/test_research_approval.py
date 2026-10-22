@@ -3,11 +3,13 @@
 import hashlib
 import json
 import shutil
+from argparse import Namespace
 from datetime import timedelta
 from pathlib import Path
 
 import pytest
 
+import pipeline.research_cli as research_cli
 from pipeline.authority.checkpoint import (
     IndependentExpectation,
     build_attestation,
@@ -24,13 +26,15 @@ from pipeline.authority.protocol import (
     envelope_bytes,
     read_envelope,
     sign,
+    stamp,
 )
 from pipeline.authority.service import bind_story, load_authority
+from pipeline.models import Snapshot
 from pipeline.operations.article_fixture import bangla_fixture
 from pipeline.recovery.fixtures import SYNTHETIC_NOW as NOW
 from pipeline.recovery.fixtures import synthetic_private
 from pipeline.research_approval import bind_research, evaluate_item, readiness, validate_decision
-from pipeline.research_cli import main
+from pipeline.research_cli import execute, main
 from pipeline.research_demo import SyntheticResearchRoom, content, demonstrate
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -285,3 +289,88 @@ def test_historical_journal_serialization_remains_unchanged(prepared):
     wire = journal_bytes(room.journal())
     history = replay(room.journal(), room.pin, NOW, mode="synthetic")
     assert journal_bytes(history.journal) == wire
+
+
+def _prepare(monkeypatch, room, story, sources, rights, tmp_path, *, stage=RESEARCH_STAGES[0],
+             reviewer="rights", grant="g-rights", challenge="cli-review", supersedes=None,
+             checkpoint=None, now=NOW, output="unsigned-decision.json"):
+    cp = checkpoint or room.checkpoint(challenge=challenge)
+    cp_path = tmp_path / f"checkpoint-{challenge}.json"
+    cp_path.write_bytes(envelope_bytes(cp))
+    bound = bind_research(story, sources[story.primary_source_id], rights, sources)
+    edition = Snapshot(generated_at=now, last_successful_fetch_at=now, mode="live", stories=[story],
+                       sources=sources, categories={}, digests=[], offers=[], model_releases=[])
+    monkeypatch.setattr(research_cli, "read_policy", lambda root: None)
+    monkeypatch.setattr(research_cli, "snapshot", lambda root: edition)
+    monkeypatch.setattr(research_cli, "policy", lambda root: rights)
+    monkeypatch.setattr(research_cli, "trusted_history",
+                        lambda root, at: (room.pin, replay(room.journal(), room.pin, at, mode="synthetic")))
+    args = Namespace(root=room.root, action="prepare", story=story.id, source=story.primary_source_id,
+                     reviewer=reviewer, grant=grant, stage=stage,
+                     output=".cache/authority/outbox/" + output, checkpoint=str(cp_path),
+                     evidence=[bound.rights_sha256], supersedes=supersedes)
+    return execute(args, now)
+
+
+def test_prepare_emits_unsigned_packet_for_the_next_stage_only(prepared, tmp_path, monkeypatch):
+    room, story, sources, rights, _, _ = prepared
+    result = _prepare(monkeypatch, room, story, sources, rights, tmp_path)
+    assert result["unsigned"] is True and result["publication_allowed"] is False
+    packet = json.loads((room.root / ".cache/authority/outbox/unsigned-decision.json").read_bytes())
+    assert packet["decision"] == RESEARCH_STAGES[0]
+    assert "signature" not in packet and "proof" not in packet
+
+
+def test_prepare_refuses_a_forward_stage_jump(prepared, tmp_path, monkeypatch):
+    room, story, sources, rights, _, _ = prepared
+    with pytest.raises(AuthorityError, match="next legal research transition"):
+        _prepare(monkeypatch, room, story, sources, rights, tmp_path,
+                 stage=RESEARCH_STAGES[1], reviewer="editor", grant="g-editor")
+
+
+def test_prepare_refuses_revoked_grants(prepared, tmp_path, monkeypatch):
+    room, story, sources, rights, _, _ = prepared
+    room.admin("revoke_grant", "g-rights")
+    with pytest.raises(AuthorityError, match="grant has been revoked"):
+        _prepare(monkeypatch, room, story, sources, rights, tmp_path)
+
+
+def test_prepare_refuses_retired_keys(prepared, tmp_path, monkeypatch):
+    room, story, sources, rights, _, _ = prepared
+    key_id = room.history().registry.member("rights")["key_id"]
+    room.admin("retire_key", key_id)
+    with pytest.raises(AuthorityError, match="signing key"):
+        _prepare(monkeypatch, room, story, sources, rights, tmp_path)
+
+
+def test_prepare_refuses_an_expired_grant(prepared, tmp_path, monkeypatch):
+    room, story, sources, rights, _, _ = prepared
+    later = NOW + timedelta(days=2)
+    cp = room.checkpoint(challenge="expired-grant", issued_at=stamp(later - timedelta(hours=1)),
+                         expires_at=stamp(later + timedelta(hours=1)))
+    with pytest.raises(AuthorityError, match="not active at preparation"):
+        _prepare(monkeypatch, room, story, sources, rights, tmp_path, checkpoint=cp, now=later)
+
+
+def test_prepare_refuses_a_blocked_binding(prepared, tmp_path, monkeypatch):
+    room, story, sources, rights, _, _ = prepared
+    room.admin("revoke_source", "arxiv")
+    with pytest.raises(AuthorityError, match="source_authorization_revoked"):
+        _prepare(monkeypatch, room, story, sources, rights, tmp_path)
+
+
+def test_prepare_refuses_a_mismatched_supersession_target(prepared, tmp_path, monkeypatch):
+    room, story, sources, rights, bound, _ = prepared
+    unrelated = room.prepared(bound.model_copy(update={"content_sha256": "f" * 64}), RESEARCH_STAGES[0], "rights")
+    room.store(unrelated)
+    with pytest.raises(AuthorityError, match="does not belong to this exact binding"):
+        _prepare(monkeypatch, room, story, sources, rights, tmp_path, supersedes=unrelated.payload.record_id)
+
+
+def test_prepare_refuses_a_consumed_review_challenge(prepared, tmp_path, monkeypatch):
+    room, story, sources, rights, bound, _ = prepared
+    challenge = "consumed-cli-review"
+    room.store(room.prepared(bound, RESEARCH_STAGES[0], "rights", checkpoint=room.checkpoint(challenge=challenge)))
+    with pytest.raises(AuthorityError, match="already consumed"):
+        _prepare(monkeypatch, room, story, sources, rights, tmp_path, stage=RESEARCH_STAGES[1],
+                 reviewer="editor", grant="g-editor", challenge=challenge)

@@ -239,8 +239,10 @@ independent backup and checkpoint remain necessary.
 
 The emergency stop uses an exclusive create; its existence blocks publication
 even if a process is killed before the reason digest finishes writing. It
-preserves the first stop and is never automatically cleared. It is a denial of
-service boundary, not authenticated approval. Signed revocations remain available
+preserves the first stop and is never automatically cleared. New positive
+journal decisions are refused while it exists; only denials and other
+risk-reducing records may still append. It is a denial of service boundary, not
+authenticated approval. Signed revocations remain available
 without a fresh publication checkpoint; if credentials or history are broken,
 use this stop first. Clearing a stop, a corrupt-history restore, or stale-lock
 removal requires human investigation under the [owner runbook](PHASE8_OWNER_RUNBOOK.md).

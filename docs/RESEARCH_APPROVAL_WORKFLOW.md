@@ -80,8 +80,11 @@ The existing signer requires a private interactive terminal and an operator-held
 encrypted Ed25519 key outside the checkout. No key generation command is added.
 Preparation does not assert that custody exists; production validation and
 recording of positive research decisions remain blocked by the current custody
-limitation. One transaction changes the journal head. Prepare a new checkpoint
-and decision for the next transaction; never bulk-sign stale packets.
+limitation. It does refuse a packet that the current journal would reject:
+forward stage jumps, revoked or expired grants/keys, blocked bindings,
+mismatched supersession targets and already-consumed checkpoint challenges.
+One transaction changes the journal head. Prepare a new checkpoint and decision
+for the next transaction; never bulk-sign stale packets.
 
 `supersede` accepts the same arguments as `prepare` plus `--supersedes OLD_ID`.
 Re-review of an earlier stage withdraws downstream approvals and requires fresh

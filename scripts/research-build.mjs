@@ -6,9 +6,9 @@ import { withGenerationLock } from './generation-state.mjs';
 import { readSnapshot } from './read-snapshot.mjs';
 import { rehearsalSnapshot } from './research-policy.mjs';
 
+assert(!Object.entries(process.env).some(([key, value]) => key.startsWith('PUBLIC_') && value), 'Research builds forbid public environment injection, including analytics.');
 const pnpm = process.env.npm_execpath;
 assert(pnpm && /pnpm\.(?:c?js)$/.test(pnpm), 'Run through pnpm build:research.');
-assert(!Object.entries(process.env).some(([key, value]) => key.startsWith('PUBLIC_') && value), 'Research builds forbid public environment injection, including analytics.');
 for (const directory of ['.', 'apps/web']) {
   assert(!fs.readdirSync(directory).some(name => /^\.env(?:\.|$)/.test(name) && name !== '.env.example'), 'Remove local dotenv files from this isolated rehearsal worktree.');
 }

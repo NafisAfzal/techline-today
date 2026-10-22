@@ -371,6 +371,15 @@ def verify_anchor(history, anchor, at):
 
 def append(root, envelope, pin, at, *, mode="production"):
     envelope = read_envelope(canonical(envelope.model_dump(mode="json")))
+    payload = envelope.payload
+    # A STOP_PUBLICATION marker is an exposure barrier, not just a report flag.
+    # Risk-reducing denials remain possible, but no new positive content decision
+    # may enter the journal while the marker is present.
+    if (isinstance(payload, Decision) and payload.decision not in DENIALS
+            and confined_file(root, STOP).exists()):
+        raise AuthorityError("emergency_hold",
+                             "An emergency publication stop is present; positive decisions are frozen "
+                             "until owner-reviewed recovery")
     with writer(root):
         assert_stable(root)
         journal = load(root)

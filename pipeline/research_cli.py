@@ -16,13 +16,14 @@ from pipeline.authority.cli import (
     snapshot,
     trusted_history,
 )
-from pipeline.authority.ledger import append, load
+from pipeline.authority.ledger import append, lifecycle, load
 from pipeline.authority.protocol import (
     MAX_RECORD,
     RESEARCH_STAGES,
     AuthorityError,
     Checkpoint,
     ResearchDecision,
+    instant,
     read_envelope,
 )
 from pipeline.filesystem import regular_path
@@ -130,6 +131,31 @@ def execute(args, now):
     if (bound.publication_scope == "metadata-extractive:en-bn" and payload.role in {"source-rights", "publisher"}
             and not {"en", "bn"} <= set(assigned.languages)):
         raise AuthorityError("scope", "Bilingual rights/publication approval requires an English and Bangla grant")
+    # Preparation is unsigned, but it must not manufacture a packet that the
+    # ledger will necessarily reject. Check every condition that does not
+    # require independent checkpoint custody.
+    if args.grant in history.registry.revoked_grants:
+        raise AuthorityError("grant", "Reviewer grant has been revoked")
+    if not instant(assigned.active_at) <= now < instant(assigned.expires_at):
+        raise AuthorityError("grant_expired", "Reviewer grant is not active at preparation time")
+    key_entry = history.registry.keys.get(member["key_id"])
+    if (key_entry is None or key_entry["disabled"]
+            or not instant(key_entry["key"].active_at) <= now < instant(key_entry["key"].expires_at)):
+        raise AuthorityError("key", "Reviewer signing key is unknown, retired or expired")
+    if payload.decision != "RESEARCH_REVOKED":
+        blocked = history.blocked(bound)
+        if blocked:
+            raise AuthorityError("research_authorization_revoked", blocked)
+        transitions = lifecycle(bound)[1].get(history.state(bound), frozenset())
+        if payload.to_state not in transitions:
+            raise AuthorityError("transition", "Prepared stage is not the next legal research transition")
+    if args.supersedes:
+        target = history.by_id.get(args.supersedes)
+        if (target is None or not isinstance(target.payload, ResearchDecision)
+                or target.payload.binding != bound):
+            raise AuthorityError("supersedes", "Superseded record does not belong to this exact binding")
+    if checkpoint.payload.challenge in history.research_challenges:
+        raise AuthorityError("research_checkpoint_replay", "This review challenge was already consumed")
     target = output(root, args.output, payload.model_dump(mode="json"))
     return {"unsigned": True, "prepared_record_id": payload.record_id, "stage": payload.decision,
             "output": target, "publication_allowed": False}

@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { describe, expect, it } from 'vitest';
 import { rehearsalSnapshot, recordKind, researchPolicy } from '../../scripts/research-policy.mjs';
-import { researchEligibility } from '../../scripts/research-inventory.mjs';
+import { researchEligibility, consistentEligibilityReport } from '../../scripts/research-inventory.mjs';
 import { provenanceErrors } from '../../scripts/build-provenance.mjs';
 import { editorialQuality } from '../../scripts/editorial-quality.mjs';
 
@@ -46,6 +46,25 @@ describe('research edition isolation', () => {
     expect(result.excluded[0].reasons.some(reason => reason.startsWith('research-verifier-refused:'))).toBe(true);
     expect(researchPolicy.publication_enabled).toBe(false);
     expect(researchPolicy.approval_adapter).toBe('editorial-authority-research-v1');
+  });
+  it('rejects internally inconsistent Python eligibility reports before selecting anything', () => {
+    const snapshot = {stories:[{id:'a'},{id:'b'}]};
+    const row = (id, allowed) => ({id,publication_allowed:allowed,reasons:[]});
+    const report = {policy:researchPolicy.policy,record_count:2,eligible_count:0,publication_allowed:false,
+      ai_submission_allowed:false,items:[row('a',false),row('b',false)],eligible:[]};
+    expect(consistentEligibilityReport(report, snapshot)).toBe(true);
+    expect(consistentEligibilityReport({...report,policy:'another-policy'},snapshot)).toBe(false);
+    expect(consistentEligibilityReport({...report,record_count:1},snapshot)).toBe(false);
+    expect(consistentEligibilityReport({...report,items:[row('b',false),row('a',false)]},snapshot)).toBe(false);
+    expect(consistentEligibilityReport({...report,items:[row('a',true),row('b',false)],eligible:['a'],
+      eligible_count:1,publication_allowed:true},snapshot)).toBe(true);
+    expect(consistentEligibilityReport({...report,items:[row('a',false),row('b',false)],eligible:['a'],
+      eligible_count:1,publication_allowed:true},snapshot)).toBe(false);
+    expect(consistentEligibilityReport({...report,eligible:['a','a'],eligible_count:2,
+      publication_allowed:true},snapshot)).toBe(false);
+    expect(consistentEligibilityReport({...report,items:[row('a',true),row('b',false)],eligible:[],
+      publication_allowed:false},snapshot)).toBe(false);
+    expect(consistentEligibilityReport({...report,ai_submission_allowed:true},snapshot)).toBe(false);
   });
   it('does not classify unknown sources or ordinary news as research/reference', () => {
     expect(recordKind(story,{one:source})).toBe('research');
