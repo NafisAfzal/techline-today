@@ -7,25 +7,27 @@ stdout. This module decides whether a report may be printed.
 The credential markers are the ones this repository already applies to source
 files, build output and recovery packs, so the operator CLI is governed by the
 same rule as the rest of the project. Nothing here inspects a value's content
-beyond matching a marker; a detection records only a category and the JSON path
-where the marker was found, never the value itself.
+beyond matching a marker; a detection records only a category and a positional
+path. Neither field names nor values from the input enter the diagnostic path.
 """
 
+import math
 import re
 
 # Private key markers already used by pipeline/recovery/verify.py.
 PRIVATE_KEY_MARKERS = (
     "PRIVATE KEY-----", "BEGIN ENCRYPTED PRIVATE KEY", "-----BEGIN RSA",
-    "-----BEGIN EC", "-----BEGIN OPENSSH", "ssh-ed25519", "id_ed25519",
+    "-----BEGIN EC", "-----BEGIN OPENSSH",
 )
 
 # Provider credential markers already used by scripts/security.mjs.
 PROVIDER_CREDENTIAL_MARKERS = (
-    re.compile(r"\bghp_[A-Za-z0-9]{30,}"),
-    re.compile(r"\bAIza[A-Za-z0-9_-]{30,}"),
-    re.compile(r"\bsk-(?:proj-)?[A-Za-z0-9_-]{25,}"),
+    re.compile(r"gh[pousr]_[A-Za-z0-9]{30,}"),
+    re.compile(r"github_pat_[A-Za-z0-9_]{40,}"),
+    re.compile(r"AIza[A-Za-z0-9_-]{30,}"),
+    re.compile(r"sk-(?:proj-)?[A-Za-z0-9_-]{25,}"),
 )
-AUTHORIZATION_MARKER = re.compile(r"\b(?:bearer|basic)\s+[A-Za-z0-9._+/=-]{16,}", re.IGNORECASE)
+AUTHORIZATION_MARKER = re.compile(r"\b(?:bearer|basic)\s+[A-Za-z0-9._+/=-]+", re.IGNORECASE)
 
 # A key whose string value is a credential. Public material is deliberately
 # excluded: public keys, fingerprints, key ids and signatures are not secrets
@@ -33,8 +35,8 @@ AUTHORIZATION_MARKER = re.compile(r"\b(?:bearer|basic)\s+[A-Za-z0-9._+/=-]{16,}"
 SENSITIVE_KEY = re.compile(
     r"(?i)(?:^|[_-])(?:private[_-]?key|client[_-]?secret|secret[_-]?key|session[_-]?key|"
     r"access[_-]?key|api[_-]?key|apikey|secret|password|passwd|passphrase|token|"
-    r"credential|credentials|seed|mnemonic)(?:$|[_-])")
-MIN_CREDENTIAL_LENGTH = 12
+    r"credential|credentials|authorization|seed|mnemonic)(?:$|[_-])")
+MAX_OUTPUT_DEPTH = 64
 
 
 def _string_category(value: str) -> str | None:
@@ -47,31 +49,53 @@ def _string_category(value: str) -> str | None:
     return None
 
 
-def _walk(value, path: str, found: list[dict]) -> None:
-    if isinstance(value, dict):
-        for key, child in value.items():
-            child_path = f"{path}.{key}" if path else str(key)
-            if (isinstance(child, str) and len(child) >= MIN_CREDENTIAL_LENGTH
-                    and SENSITIVE_KEY.search(str(key))):
+def _walk(value, path: str, found: list[dict], depth: int = 0) -> None:
+    if depth > MAX_OUTPUT_DEPTH:
+        raise ValueError("Output nesting exceeds the inspection limit")
+    if type(value) is dict:
+        for index, (key, child) in enumerate(value.items()):
+            if type(key) is not str:
+                raise ValueError("Output object keys must be strings")
+            if re.search(r"[\ud800-\udfff]", key):
+                raise ValueError("Output contains an invalid Unicode surrogate")
+            # Field names can themselves contain credentials. Keep diagnostics
+            # independent of input text, including opaque names we cannot classify.
+            child_path = f"{path}[field:{index}]"
+            category = _string_category(key)
+            if category is not None:
+                found.append({"category": category, "path": child_path + ".key"})
+            sensitive = SENSITIVE_KEY.search(key)
+            # Numeric metadata such as credential_count is not a credential.
+            # A numeric api_key/password still ends with the sensitive name.
+            if sensitive and ((type(child) in (int, float) and sensitive.end() == len(key))
+                    or (type(child) in (str, list, dict) and bool(child))):
                 found.append({"category": "credential_value", "path": child_path})
-            _walk(child, child_path, found)
-    elif isinstance(value, list):
+            _walk(child, child_path, found, depth + 1)
+    elif type(value) is list:
         for index, child in enumerate(value):
-            _walk(child, f"{path}[{index}]", found)
-    elif isinstance(value, str):
+            _walk(child, f"{path}[{index}]", found, depth + 1)
+    elif type(value) is str:
+        if re.search(r"[\ud800-\udfff]", value):
+            raise ValueError("Output contains an invalid Unicode surrogate")
         category = _string_category(value)
         if category is not None:
             found.append({"category": category, "path": path or "$"})
+    elif type(value) is float:
+        if not math.isfinite(value):
+            raise ValueError("Output contains a nonfinite number")
+    elif value is not None and type(value) not in (bool, int):
+        raise ValueError("Output contains an unsupported JSON type")
 
 
 def scan_payload(payload) -> list[dict]:
     """Report credential-shaped material in a report.
 
-    Returns a list of ``{"category": ..., "path": ...}`` entries. The detected
-    value is never included in the result.
+    Returns ``{"category": ..., "path": ...}`` entries without input names or
+    values. Paths start at ``$``; ``[field:N]`` identifies a zero-based object
+    entry in input order and ``[N]`` identifies a list entry.
     """
     found: list[dict] = []
-    _walk(payload, "", found)
+    _walk(payload, "$", found)
     return found
 
 

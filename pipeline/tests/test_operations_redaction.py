@@ -51,13 +51,13 @@ def seed_research(root: Path, mutate) -> str:
     return candidate_id
 
 
-def test_scan_payload_names_the_category_and_path_without_the_value():
+def test_scan_payload_names_the_category_and_position_without_input_names_or_values():
     from pipeline.operations.redaction import scan_payload
 
     detections = scan_payload({"sections": {"packets": [{"note": PEM}]}})
     assert detections
     assert detections[0]["category"] == "private_key_material"
-    assert "note" in detections[0]["path"]
+    assert detections[0]["path"] == "$[field:0][field:0][0][field:0]"
     assert OPAQUE not in json.dumps(detections)
 
 
@@ -121,6 +121,37 @@ def test_the_text_format_never_reproduces_a_refused_credential(isolated, capsys)
     assert code == 1
 
 
+@pytest.mark.parametrize("action", ["rights-packets", "console"])
+@pytest.mark.parametrize("output_format", ["json", "text"])
+@pytest.mark.parametrize("key_shape", ["provider-key", "provider-path", "opaque-path"])
+def test_credential_field_names_never_reach_normal_or_refusal_output(
+        isolated, capsys, action, output_format, key_shape):
+    prefix = "ghp_"
+    provider_canary = prefix + "SYNTHETIC" * 5
+    injected = {
+        "provider-key": {provider_canary: "ordinary public text"},
+        "provider-path": {provider_canary: {"owner_secret": OPAQUE_CREDENTIAL}},
+        "opaque-path": {OPAQUE: [{"owner_secret": OPAQUE_CREDENTIAL}]},
+    }[key_shape]
+
+    def mutate(data):
+        data["candidates"][0]["verification"].update(injected)
+        return data["candidates"][0]["candidate_id"]
+
+    seed_research(isolated, mutate)
+    code = main(["--root", str(isolated), "--format", output_format, action])
+    captured = capsys.readouterr()
+    output = captured.out + captured.err
+    assert provider_canary not in output
+    assert OPAQUE not in output
+    assert OPAQUE_CREDENTIAL not in output
+    report = json.loads(captured.out)
+    assert report["status"] == "REFUSED"
+    assert report["publication_allowed"] is False
+    assert report["ai_submission_allowed"] is False
+    assert code == 1
+
+
 @pytest.mark.parametrize("args", [
     ["appointment-packet", "english-editor"],
     ["appointment-packet", "native-bn"],
@@ -151,3 +182,176 @@ def test_public_key_fingerprints_and_digests_are_not_treated_as_credentials(isol
     report = json.loads(capsys.readouterr().out)
     assert report.get("status") != "REFUSED", report
     assert code == 2
+
+
+@pytest.mark.parametrize("output_format", ["json", "text"])
+@pytest.mark.parametrize("credential", ["short", 123456789, [OPAQUE], {"nested": [OPAQUE]}])
+def test_sensitive_fields_refuse_short_numeric_and_nested_credentials(isolated, capsys, output_format, credential):
+    def mutate(data):
+        data["candidates"][0]["verification"]["api_key"] = credential
+        return data["candidates"][0]["candidate_id"]
+
+    seed_research(isolated, mutate)
+    code = main(["--root", str(isolated), "--format", output_format, "rights-packets"])
+    captured = capsys.readouterr()
+    report = json.loads(captured.out)
+    assert report["status"] == "REFUSED"
+    assert report["publication_allowed"] is False and report["ai_submission_allowed"] is False
+    assert OPAQUE not in captured.out + captured.err
+    assert code == 1
+
+
+@pytest.mark.parametrize("prefix", ["ghp_", "gho_", "ghu_", "ghs_", "ghr_", "github_pat_", "AIza", "sk-proj-"])
+def test_provider_credentials_are_found_inside_nested_free_text(isolated, capsys, prefix):
+    canary = prefix + "SYNTHETIC" * 7
+
+    def mutate(data):
+        data["candidates"][0]["verification"]["note"] = [{"text": "prefix" + canary + "suffix"}]
+        return data["candidates"][0]["candidate_id"]
+
+    seed_research(isolated, mutate)
+    code = main(["--root", str(isolated), "rights-packets"])
+    captured = capsys.readouterr()
+    assert canary not in captured.out + captured.err
+    assert json.loads(captured.out)["status"] == "REFUSED"
+    assert code == 1
+
+
+@pytest.mark.parametrize("where", ["field", "value"])
+def test_json_unicode_escapes_cannot_hide_credential_markers(isolated, capsys, where):
+    prefix = "ghp_"
+    canary = prefix + "SYNTHETIC" * 5
+    path = isolated / "config/source-research.json"
+    data = json.loads(path.read_text(encoding="utf-8"))
+    data["candidates"][0]["verification"].update({canary: "public"} if where == "field" else {"note": canary})
+    escaped = "".join(f"\\u{ord(char):04x}" for char in canary)
+    path.write_text(json.dumps(data).replace(canary, escaped), encoding="utf-8")
+    code = main(["--root", str(isolated), "rights-packets"])
+    captured = capsys.readouterr()
+    assert canary not in captured.out + captured.err
+    assert json.loads(captured.out)["status"] == "REFUSED"
+    assert code == 1
+
+
+@pytest.mark.parametrize("raw", [b'{"version":1,"version":1}', b'{"version":NaN}',
+                                b'{"note":"\\ud800"}', b'[' * 40 + b']' * 40, b'\xff'])
+def test_malformed_research_stays_a_visible_failure_without_raw_input(isolated, capsys, raw):
+    (isolated / "config/source-research.json").write_bytes(raw)
+    code = main(["--root", str(isolated), "rights-packets"])
+    captured = capsys.readouterr()
+    assert json.loads(captured.out)["status"] == "FAIL"
+    assert not captured.err
+    assert code == 1
+
+
+@pytest.mark.parametrize("exception", [ValueError, OSError, TypeError, KeyError, RuntimeError, IndexError])
+def test_raw_exception_messages_never_reach_the_cli(isolated, capsys, monkeypatch, exception):
+    from pipeline.operations import reports
+
+    def broken(*args):
+        raise exception(OPAQUE_CREDENTIAL)
+
+    monkeypatch.setattr(reports, "rights_packets", broken)
+    code = main(["--root", str(isolated), "rights-packets"])
+    captured = capsys.readouterr()
+    assert OPAQUE_CREDENTIAL not in captured.out + captured.err
+    report = json.loads(captured.out)
+    assert report["status"] == "FAIL" and report["code"] == exception.__name__
+    assert code == 1
+
+
+@pytest.mark.parametrize("args", [["--format", OPAQUE_CREDENTIAL, "rights-packets"],
+                                 ["rights-packets", "--unexpected", OPAQUE_CREDENTIAL]])
+def test_invalid_arguments_do_not_echo_credential_bodies_to_stderr(capsys, args):
+    with pytest.raises(SystemExit) as stopped:
+        main(args)
+    captured = capsys.readouterr()
+    assert OPAQUE_CREDENTIAL not in captured.out + captured.err
+    assert "argument" in captured.err.lower()
+    assert stopped.value.code == 2
+
+
+@pytest.mark.parametrize("output_format", ["json", "text"])
+@pytest.mark.parametrize("shape", ["tuple", "nonstring-key", "set", "nonfinite", "surrogate", "surrogate-key", "cycle"])
+def test_unserializable_or_unscannable_reports_fail_before_any_output(capsys, monkeypatch, output_format, shape):
+    from pipeline.operations import reports
+
+    cyclic = {}
+    cyclic["note"] = cyclic
+    payload = {"tuple": (OPAQUE_CREDENTIAL,), "nonstring-key": {1: "public"},
+               "set": {OPAQUE_CREDENTIAL}, "nonfinite": float("inf"),
+               "surrogate": "\ud800", "surrogate-key": {"\ud800": "public"}, "cycle": cyclic}[shape]
+    monkeypatch.setattr(reports, "rights_packets", lambda *args: {"status": "BLOCKED", "note": payload})
+    code = main(["--format", output_format, "rights-packets"])
+    captured = capsys.readouterr()
+    assert OPAQUE_CREDENTIAL not in captured.out + captured.err
+    report = json.loads(captured.out)
+    assert report["status"] == "FAIL"
+    assert report["code"] == "invalid_output"
+    assert report["publication_allowed"] is False
+    assert not captured.err
+    assert code == 1
+
+
+def test_serialization_failure_is_reported_without_partial_output_or_exception_text(capsys, monkeypatch):
+    from pipeline.operations import __main__ as cli
+
+    real_dumps = json.dumps
+    calls = 0
+
+    def broken_once(*args, **kwargs):
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            raise TypeError(OPAQUE_CREDENTIAL)
+        return real_dumps(*args, **kwargs)
+
+    monkeypatch.setattr(cli.json, "dumps", broken_once)
+    code = main(["--format", "text", "appointment-packet", "english-editor"])
+    captured = capsys.readouterr()
+    assert OPAQUE_CREDENTIAL not in captured.out + captured.err
+    report = json.loads(captured.out)
+    assert report["status"] == "FAIL" and report["code"] == "invalid_output"
+    assert code == 1
+
+
+def test_a_persistently_broken_serializer_cannot_leak_its_exception(capsys, monkeypatch):
+    from pipeline.operations import __main__ as cli
+
+    def broken(*args, **kwargs):
+        raise RuntimeError(OPAQUE_CREDENTIAL)
+
+    monkeypatch.setattr(cli.json, "dumps", broken)
+    code = main(["appointment-packet", "english-editor"])
+    captured = capsys.readouterr()
+    assert OPAQUE_CREDENTIAL not in captured.out + captured.err
+    assert json.loads(captured.out)["code"] == "invalid_output"
+    assert code == 1
+
+
+def test_public_ssh_keys_and_unicode_prose_are_not_credentials(isolated, capsys):
+    def mutate(data):
+        data["candidates"][0]["verification"].update(
+            {"public_key": "ssh-ed25519 PUBLIC-SYNTHETIC-KEY", "note": "বাংলা পরীক্ষা"})
+        return data["candidates"][0]["candidate_id"]
+
+    seed_research(isolated, mutate)
+    code = main(["--root", str(isolated), "rights-packets"])
+    report = json.loads(capsys.readouterr().out)
+    assert report["status"] == "BLOCKED"
+    assert report["packets"][0]["historical_research"]["note"] == "বাংলা পরীক্ষা"
+    assert code == 2
+
+
+@pytest.mark.parametrize("credential", ["Basic dTpw", "Bearer x"])
+def test_short_authorization_headers_are_not_printed(isolated, capsys, credential):
+    def mutate(data):
+        data["candidates"][0]["verification"]["note"] = credential
+        return data["candidates"][0]["candidate_id"]
+
+    seed_research(isolated, mutate)
+    code = main(["--root", str(isolated), "rights-packets"])
+    captured = capsys.readouterr()
+    assert credential not in captured.out + captured.err
+    assert json.loads(captured.out)["status"] == "REFUSED"
+    assert code == 1

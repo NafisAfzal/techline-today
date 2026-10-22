@@ -15,8 +15,14 @@ from pipeline.operations.rehearsal import rehearse
 from pipeline.strict_json import strict_json
 
 
+class _ArgumentParser(argparse.ArgumentParser):
+    def error(self, message):
+        # argparse's normal diagnostic embeds arbitrary argument values.
+        self.exit(2, "argument_error: Invalid operation arguments; run --help for valid options.\n")
+
+
 def main(argv=None):
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = _ArgumentParser(prog="techline-operations", description=__doc__)
     parser.add_argument("--root", type=Path, default=Path("."))
     parser.add_argument("--format", choices=["json", "text"], default="json")
     sub = parser.add_subparsers(dest="action", required=True)
@@ -80,20 +86,39 @@ def main(argv=None):
             result = {"status": "BLOCKED", "structure": "PASS", "protocol": parsed.payload.protocol,
                       "independently_trusted": False, "publication_allowed": False,
                       "note": "Shape validation is not signature, provenance or current-head verification."}
-    except (ValueError, OSError, TypeError, KeyError) as error:
+    except Exception as error:
+        # Unexpected failures must still be visible, but their messages can
+        # contain the same operator-held credential material as normal reports.
         result = {"status": "FAIL", "code": getattr(error, "code", type(error).__name__),
                   "publication_allowed": False, "note": "Inspect invalid input privately; no authority was granted."}
-    detections = scan_payload(result)
-    if detections:
-        print(json.dumps(refusal(detections), indent=2, ensure_ascii=False))
-        return 1
-    if args.format == "text":
-        print("Techline Today offline operations: " + result.get("status", "TEMPLATE"))
-        print(json.dumps(result, indent=2, ensure_ascii=False))
-        print("This report authorizes nothing.")
+    detections = []
+    invalid_output = False
+    try:
+        if type(result) is not dict:
+            raise ValueError("Output must be a report object")
+        detections = scan_payload(result)
+        if detections:
+            result = refusal(detections)
+        status = result.get("status", "TEMPLATE")
+        if status not in {"TEMPLATE", "PASS", "FAIL", "BLOCKED", "INCONCLUSIVE", "REFUSED",
+                          "READY_FOR_HUMAN_CEREMONY"}:
+            raise ValueError("Output has an invalid status")
+        # Finish inspection and serialization before writing anything. Escaping
+        # Unicode also avoids platform stdout encoding failures mid-report.
+        serialized = json.dumps(result, indent=2, ensure_ascii=True, allow_nan=False)
+    except Exception:
+        invalid_output = True
+        status = "FAIL"
+        # A failing serializer cannot safely serialize its own error report.
+        serialized = ('{"status":"FAIL","code":"invalid_output","publication_allowed":false,'
+                      '"ai_submission_allowed":false,"note":"Output inspection or serialization '
+                      'failed; inspect input privately."}')
+    if args.format == "text" and not detections and not invalid_output:
+        output = f"Techline Today offline operations: {status}\n{serialized}\nThis report authorizes nothing."
     else:
-        print(json.dumps(result, indent=2, ensure_ascii=False))
-    return 1 if result.get("status") == "FAIL" else 2 if result.get("status") in {"BLOCKED", "INCONCLUSIVE"} else 0
+        output = serialized
+    print(output)
+    return 1 if detections or status == "FAIL" else 2 if status in {"BLOCKED", "INCONCLUSIVE"} else 0
 
 
 if __name__ == "__main__":
