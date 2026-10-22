@@ -48,4 +48,8 @@ assert(jsGzip < 100000 && cssBytes < 40000, 'Research client asset budget exceed
 console.log(JSON.stringify({status:'passed', profile:manifest.profile, synthetic_stories:snapshot.stories.length,
   eligible_real_stories:0, assets:files.length, total_bytes:bytes, all_application_js_gzip:jsGzip, css_bytes:cssBytes,
   publication_allowed:false, deployment_performed:false}, null, 2));
-if (process.argv.includes('--publish')) throw Error('Research publication is disabled: no authenticated item approval adapter/current trusted checkpoint; synthetic rehearsal cannot be deployed.');
+if (process.argv.includes('--publish')) {
+  const {researchEligibility} = await import('./research-inventory.mjs');
+  const readiness = researchEligibility(raw);
+  throw Error(`Research publication refused: ${readiness.eligible_count} real eligible records; independently authenticated current checkpoint custody is unavailable. Synthetic rehearsal cannot be deployed.`);
+}

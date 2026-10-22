@@ -2,7 +2,7 @@
   "version": 1,
   "policy": "research-reference-v1",
   "publication_enabled": false,
-  "approval_adapter": null,
+  "approval_adapter": "editorial-authority-research-v1",
   "required_controls": ["item-bound-rights", "authenticated-editorial-review", "current-trusted-checkpoint", "source-validation", "date-integrity", "native-review-for-translations"],
   "allowed_kinds": ["research", "reference"],
   "worker_name": "ai-tech-intelligence-preview",

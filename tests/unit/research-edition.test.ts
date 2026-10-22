@@ -43,9 +43,9 @@ describe('research edition isolation', () => {
     const result = researchEligibility(live);
     expect(result.eligible_count).toBe(0);
     expect(result.publication_allowed).toBe(false);
-    expect(result.excluded[0].reasons).toContain('research-approval-adapter-unavailable');
+    expect(result.excluded[0].reasons.some(reason => reason.startsWith('research-verifier-refused:'))).toBe(true);
     expect(researchPolicy.publication_enabled).toBe(false);
-    expect(researchPolicy.approval_adapter).toBeNull();
+    expect(researchPolicy.approval_adapter).toBe('editorial-authority-research-v1');
   });
   it('does not classify unknown sources or ordinary news as research/reference', () => {
     expect(recordKind(story,{one:source})).toBe('research');
