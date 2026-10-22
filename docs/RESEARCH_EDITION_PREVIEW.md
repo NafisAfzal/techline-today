@@ -22,10 +22,11 @@ uv run python -m pipeline --validate
 pnpm build:research
 pnpm verify:research
 pnpm test:research
+pnpm test:research:edge
 pnpm preview:research
 ```
 
-The last command binds loopback only. Stop it with Ctrl+C. Do not run fixture generation in the original canonical-data workspace. The separate research browser suite covers all generated HTML routes, static assets, noindex/headers, missing routes, synthetic-only selection, search, both themes, accessibility and Bangla fallback. The ordinary browser suite continues to run against the full fixture edition in `apps/web/dist`.
+The last command binds loopback only. Stop it with Ctrl+C. Do not run fixture generation in the original canonical-data workspace. The separate research browser suite covers all generated HTML routes, static assets, noindex/headers, missing routes, synthetic-only selection, search, both themes, accessibility and Bangla fallback. The edge test uses local workerd only and verifies actual Static Assets header parsing, including missing routes and JS/CSS MIME types. Header paths are unique: repeated identical patterns can replace an earlier security block. The ordinary browser suite continues to run against the full fixture edition in `apps/web/dist`.
 
 ## Minimal owner setup for a future authorized session
 

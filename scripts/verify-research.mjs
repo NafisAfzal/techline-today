@@ -20,6 +20,8 @@ const bytes = files.reduce((sum, file) => sum + fs.statSync(file).size, 0);
 assert(files.length <= 18000 && bytes <= 25 * 1024 * 1024, 'Research bundle exceeds conservative Free/rollback budgets.');
 assert(files.every(file => fs.statSync(file).size <= 25 * 1024 * 1024), 'Asset exceeds Free limit.');
 const headers = fs.readFileSync(path.join(buildDirectory, '_headers'), 'utf8');
+const patterns = headers.split('\n').filter(line => line.startsWith('/'));
+assert.equal(new Set(patterns).size, patterns.length, 'Duplicate header patterns can discard Cloudflare security headers.');
 for (const required of ['X-Robots-Tag: noindex, nofollow, noarchive', 'Cache-Control: no-store', "frame-ancestors 'none'", 'X-Content-Type-Options: nosniff', 'Referrer-Policy: no-referrer']) assert(headers.includes(required), `Missing research header: ${required}`);
 assert(!/'unsafe-inline'|'unsafe-eval'|cloudflareinsights\.com/.test(headers), 'Unsafe CSP or analytics enabled.');
 assert(headers.split('\n').every(line => line.length <= 2000), 'Header exceeds Cloudflare line limit.');

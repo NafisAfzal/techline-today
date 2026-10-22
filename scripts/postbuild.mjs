@@ -15,8 +15,11 @@ const analytics = Boolean(process.env.PUBLIC_CLOUDFLARE_WEB_ANALYTICS_TOKEN);
 const csp = `default-src 'self'; script-src 'self' 'wasm-unsafe-eval' ${[...scripts].join(' ')}${analytics ? ' https://static.cloudflareinsights.com' : ''}; style-src 'self' ${[...styles].join(' ')}; img-src 'self' data:; font-src 'self'; connect-src 'self'${analytics ? ' https://cloudflareinsights.com' : ''}; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests`;
 const headers = `/*\n  Content-Security-Policy: ${csp}\n  X-Content-Type-Options: nosniff\n  X-Frame-Options: DENY\n  Referrer-Policy: strict-origin-when-cross-origin\n  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()\n  Strict-Transport-Security: max-age=31536000\n/_astro/*\n  Cache-Control: public, max-age=31536000, immutable\n/data/*\n  Cache-Control: public, max-age=300, must-revalidate\n/pagefind/*\n  Cache-Control: public, max-age=0, must-revalidate\n`;
 if (headers.split('\n').some(line => line.length > 2000)) throw new Error('Cloudflare header line limit exceeded');
-fs.writeFileSync(path.join(root,'_headers'),researchRehearsal ? headers.replace(/Cache-Control: [^\n]+/g,'Cache-Control: no-store').replace('Referrer-Policy: strict-origin-when-cross-origin','Referrer-Policy: no-referrer') : headers);
-if (researchRehearsal) fs.appendFileSync(path.join(root,'_headers'),'/*\n  X-Robots-Tag: noindex, nofollow, noarchive\n  Cache-Control: no-store\n');
+// Cloudflare keeps one block per path pattern. Repeating /* can replace the
+// security block with the final attribution block, unlike our Node preview.
+const globalHeaders = '  Link: </content-attribution.json>; rel="describedby"\n' + (researchRehearsal ? '  X-Robots-Tag: noindex, nofollow, noarchive\n  Cache-Control: no-store\n' : '');
+const combinedHeaders = headers.replace('/*\n', '/*\n' + globalHeaders);
+fs.writeFileSync(path.join(root,'_headers'),researchRehearsal ? combinedHeaders.replace(/Cache-Control: [^\n]+/g,'Cache-Control: no-store').replace('Referrer-Policy: strict-origin-when-cross-origin','Referrer-Policy: no-referrer') : combinedHeaders);
 const snapshot = readBuildSnapshot('content/generated/snapshot.json');
 const sourceRights = JSON.parse(fs.readFileSync('config/source-rights.json','utf8')).sources;
 const exposedSources = {...snapshot.sources};
@@ -33,7 +36,6 @@ for (const year of new Set(snapshot.archive_index.map(archive=>archive.key.slice
 const localized404 = path.join(root,'bn/404/index.html');
 const attribution = {notice:'News material is separate from the MIT software license. Source wording has been excerpted, normalized, classified and summarized; no publisher endorsement is implied.',sources:Object.fromEntries(Object.entries(exposedSources).map(([id,source])=>[id,{title:source.title,publisher:source.publisher,original_url:source.original_url,license:sourceRights[source.source_registry_id]?.license || 'Synthetic test content; not cleared for publication',license_url:sourceRights[source.source_registry_id]?.license_url || null}]))};
 fs.writeFileSync(path.join(root,'content-attribution.json'),JSON.stringify(attribution));
-fs.appendFileSync(path.join(root,'_headers'),'/*\n  Link: </content-attribution.json>; rel="describedby"\n');
 if (fs.existsSync(localized404)) {fs.renameSync(localized404,path.join(root,'bn/404.html'));fs.rmdirSync(path.join(root,'bn/404'));}
 const assets = files(root);
 if (assets.length > 18000 || assets.some(file => fs.statSync(file).size > 25 * 1024 * 1024)) throw new Error('Static asset budget exceeded');
