@@ -25,7 +25,7 @@ The intended architecture is Astro static assets on Workers Free, with separate 
 7. Review CSP hashes, HSTS, frame denial, nosniff, referrer policy, robots/noindex and no-store. Later edge verification must include homepage, direct articles, search, RSS, sitemap, missing paths and both locales.
 8. Separately approve destination, cost assumptions, source provenance, exact SHA and asset manifest. Only then provision minimal credentials/resources. This preparation creates neither.
 
-Official references checked 2026-10-23: [static billing/limits](https://developers.cloudflare.com/workers/static-assets/billing-and-limitations/), [Workers limits](https://developers.cloudflare.com/workers/platform/limits/), [version URLs](https://developers.cloudflare.com/workers/versions-and-deployments/version-urls/), [Access configuration](https://developers.cloudflare.com/workers/configuration/access/). Static requests and Worker execution have different billing. Actual subscriptions remain owner-verification work.
+Official references checked 2026-10-23: [static billing/limits](https://developers.cloudflare.com/workers/static-assets/billing-and-limitations/), [Workers limits](https://developers.cloudflare.com/workers/platform/limits/), [version URLs](https://developers.cloudflare.com/workers/versions-and-deployments/version-urls/), [Access configuration](https://developers.cloudflare.com/workers/configuration/cloudflare-access/). Static requests and Worker execution have different billing. Actual subscriptions remain owner-verification work.
 
 ## Future preview operation and recovery
 
