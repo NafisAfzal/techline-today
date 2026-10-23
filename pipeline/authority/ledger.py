@@ -368,8 +368,8 @@ def verify_anchor(history, anchor, at):
         proof = anchor.custody or configured_proof(os.getcwd())
         if not isinstance(proof, ManualCustodyProof):
             raise AuthorityError("independent_freshness_unverified",
-                                 "A digest and challenge do not authenticate independent current state; "
-                                 "a separately provisioned custody operation is required")
+                               "A digest and challenge do not authenticate an independent custodian's current state; "
+                               "a separately provisioned custody operation is required")
         proof.verify(history, anchor, at)
     return envelope
 
