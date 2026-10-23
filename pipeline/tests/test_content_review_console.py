@@ -20,6 +20,11 @@ from pipeline.review_governance import digest
 ROOT = Path(__file__).resolve().parents[2]
 
 
+def credential_marker(prefix, length):
+    """Keep public fake tokens out of source and constant-folded bytecode."""
+    return prefix + "A" * length
+
+
 @pytest.fixture
 def room(tmp_path, monkeypatch):
     root = tmp_path / "room"
@@ -172,7 +177,7 @@ def test_console_cli_exit_status_and_human_table(room, monkeypatch, capsys):
 @pytest.mark.parametrize("json_mode", [True, False])
 @pytest.mark.parametrize("location", ["key", "value"])
 def test_console_refuses_credential_shaped_keys_and_values(room, monkeypatch, capsys, location, json_mode):
-    synthetic_credential = "ghp_" + "A" * 36
+    synthetic_credential = credential_marker("ghp_", 36)
     payload = {synthetic_credential: "ordinary"} if location == "key" else {"reviewer": synthetic_credential}
     monkeypatch.setattr(launch_console, "launch_report", lambda root, now: payload)
     assert launch_console.main(["--root", str(room), *(["--json"] if json_mode else [])]) == 1
@@ -181,7 +186,7 @@ def test_console_refuses_credential_shaped_keys_and_values(room, monkeypatch, ca
 
 
 def test_export_and_content_stdout_refuse_credentials_before_writing(room, tmp_path, monkeypatch, capsys):
-    synthetic_credential = "sk-" + "A" * 30
+    synthetic_credential = credential_marker("sk-", 30)
     payload = {"field": {synthetic_credential: "unsafe input"}}
     destination = tmp_path / "must-not-exist"
     with pytest.raises(AuthorityError, match="Credential-shaped"):
@@ -194,7 +199,7 @@ def test_export_and_content_stdout_refuse_credentials_before_writing(room, tmp_p
 
 
 def test_unknown_arguments_never_echo_credential_values(capsys):
-    credential = "ghp_" + "A" * 36
+    credential = credential_marker("ghp_", 36)
     with pytest.raises(SystemExit):
         launch_console.main(["--unknown", credential])
     assert credential not in capsys.readouterr().err

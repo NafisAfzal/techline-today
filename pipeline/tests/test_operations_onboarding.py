@@ -192,7 +192,8 @@ def test_cli_template_schema_refusal_and_private_error(tmp_path, capsys):
     assert main(["schema", "reviewer"]) == 0
     assert "Grant" in json.loads(capsys.readouterr().out)["$defs"]
     data = proposal()
-    synthetic_marker = "ghp_" + "a" * 36
+    # Generate in memory: constant folding would embed the fake token in pyc.
+    synthetic_marker = "ghp_" + "".join("a" for _ in range(36))
     data["intended_identity"] = synthetic_marker
     path = tmp_path / "packet.json"
     path.write_text(json.dumps(data), encoding="utf-8")
