@@ -14,10 +14,12 @@ Five trust levels are distinguished and never collapsed:
 1. ``LOCAL_SNAPSHOT`` - generated locally, never signed.
 2. ``LOCAL_SIGNED`` - signed locally; still only local evidence.
 3. ``EXTERNAL_STORED`` - written outside the authority state directory.
-4. ``INDEPENDENTLY_AUTHENTICATED`` - reserved for authenticated independent
-   custody evidence; no current adapter establishes this property.
+4. ``INDEPENDENTLY_AUTHENTICATED`` - authenticated independent custody evidence;
+   no file store in this module establishes this property.
 5. ``CURRENTLY_TRUSTED`` - additionally requires independently authenticated
-   current-head evidence and a fresh, single-use challenge response; unavailable.
+   current-head evidence and a fresh, single-use challenge response; unavailable
+   through these file stores alone. The separate manual custodian adapter adds
+   production challenge exchange and scoped operation leases.
 
 Only level 5 may be reported as a current trusted checkpoint. Level 3 is not
 authenticity: a file copied into another folder is still a file on the same
@@ -462,7 +464,7 @@ def verify_external_checkpoint(*, document: ExternalCheckpoint | None,
 
     * do the signature, supplied digest and local journal agree?, and
     * can a supported adapter authenticate an independent custodian's current
-      state and fresh challenge response? None currently can.
+      state and fresh challenge response? No ordinary file store here can.
 
     ``custody`` is what the *store* can actually vouch for. A document's own
     custody claim is recorded as evidence but never upgrades the trust level:

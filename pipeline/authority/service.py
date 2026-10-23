@@ -85,6 +85,12 @@ def load_authority(root, *, allow_stopped=False):
     anchor = None
     if checkpoint and expected and challenge:
         anchor = Anchor(bounded_file(regular_path(Path(checkpoint)), MAX_RECORD), expected, challenge)
+    from pipeline.authority.manual_custodian import configured_proof
+    # A configured archive without an operation token supports historical
+    # journal inspection only. It cannot supply a live publication anchor.
+    proof = configured_proof(root, historical=True)
+    if proof is not None and proof.token:
+        anchor = proof.anchor()
     result = AuthorityBundle(pin_bytes, journal_bytes(load(root)), anchor, stopped=stopped)
     assert_readable(root)
     return result
@@ -213,6 +219,12 @@ def verify_checkpoint_document(root, now, *, document=None, expected_sha256=None
     if bundle is None:
         return blocked("independent_evidence_missing",
                        "No independently pinned owner trust root is configured; a checkpoint cannot be trusted")
+    if document is None and bundle.anchor is not None and bundle.anchor.custody is not None:
+        try:
+            history = bundle.verify(now)
+            return bundle.anchor.custody.verify(history, bundle.anchor, now)
+        except (ValueError, OSError, TypeError) as error:
+            return blocked(getattr(error, "code", "custodian_verification"), "Current custody evidence was refused")
     pin = TrustPin.model_validate(strict_json(bundle.pin_bytes, max_bytes=MAX_RECORD))
     try:
         history = replay(decode_journal(bundle.journal_bytes), pin, now)
@@ -253,9 +265,10 @@ def verify_checkpoint_document(root, now, *, document=None, expected_sha256=None
 def checkpoint_status(root, now, *, max_age_seconds=86400):
     """Report how far the externally held checkpoint evidence actually reaches.
 
-    Never mutates state, never provisions anything and never converts missing
-    independent evidence into a pass. The returned ``status`` uses the same
-    PASS/FAIL/BLOCKED/INCONCLUSIVE vocabulary as the readiness report.
+    Never provisions authority or converts missing evidence into a pass. File
+    inspection is read-only; within an explicit manual-custody operation lease,
+    successful verification advances the durable observed UTC floor. Status
+    uses the same PASS/FAIL/BLOCKED/INCONCLUSIVE vocabulary as readiness reports.
     """
     expected = os.environ.get("TECHLINE_EXTERNAL_CHECKPOINT_SHA256")
     challenge = os.environ.get("TECHLINE_EXTERNAL_CHECKPOINT_CHALLENGE") or os.environ.get(

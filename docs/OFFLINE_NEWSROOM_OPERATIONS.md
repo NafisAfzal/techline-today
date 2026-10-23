@@ -73,10 +73,12 @@ mock wire schemas. `checkpoint-inspect PATH` checks exact canonical wire shape;
 it does not authenticate signatures or independent custody. The mock verifier
 requires an explicit synthetic session, a pinned key, a single-use challenge and
 existing owner-checkpoint verification. Replays, conflicts and clock regression
-freeze that session. Production integration is deliberately absent. Process-local
-state, a caller's clock and a locally controlled signer cannot establish an
-independent current head; production remains blocked. See the [design and trust
-requirements](PHASE12_OPERATOR_DESIGN.md).
+freeze that session. That mock has no production trust. The later
+[manual custodian adapter](MANUAL_CHECKPOINT_CUSTODY.md) adds a separately
+provisioned production path with durable replay state and scoped operation
+leases. Process-local state, a caller's clock and a locally controlled signer
+cannot establish independence. Production remains unprovisioned. See the
+[design and trust requirements](PHASE12_OPERATOR_DESIGN.md).
 
 ## Daily work and future readiness
 

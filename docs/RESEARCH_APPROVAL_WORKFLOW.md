@@ -109,11 +109,14 @@ publication checkpoint must cover the resulting journal and use another challeng
 An owner signature, external file, copied hash, locally filled
 `CURRENTLY_TRUSTED` label, or `independently-signed` custody claim does not prove
 an independent custodian's current state. The existing production checkpoint
-verifier deliberately refuses these. No current adapter establishes durable,
-independently authenticated freshness or replay protection across production
-publication sessions. The real gate therefore remains **BLOCKED**, with zero
-approved canonical records. The synthetic demo establishes software behavior
-only; it cannot provision production authority.
+file verifier deliberately refuses these. The
+[manual independent custodian adapter](MANUAL_CHECKPOINT_CUSTODY.md) connects
+independently signed challenge responses, durable replay protection, historical
+receipt archives and scoped operation leases to the production verifier. It
+requires a genuine separate custodian ceremony, authenticated pins and time;
+none is provisioned by this software work. The real gate remains **BLOCKED**,
+with zero approved canonical records. Synthetic success proves local behavior
+only and cannot provision production authority.
 
 ## Owner ceremony and reviewer onboarding
 
@@ -121,9 +124,9 @@ only; it cannot provision production authority.
    unchanged 37-record canonical SHA-256, content scope and source-rights evidence.
    Resolve legal permissions per item with the actual rights holders as needed.
 2. Owner chooses real custodians and an independent authenticated channel, confirms
-   public key fingerprints out of band, and approves a separate implementation
-   and security review of durable current-head custody, challenge consumption,
-   clock/failure behavior and rollback protection. Local file attestation is
+   public key fingerprints out of band, and reviews the manual adapter's durable
+   current-head custody, challenge consumption, clock/failure behavior and
+   rollback protection before its separate ceremony. Local file attestation is
    insufficient. This workflow cannot complete that operational provisioning.
 3. Humans establish the real owner root and encrypted external keys through the
    existing authority ceremony. Confirm owner identity and key custody personally.

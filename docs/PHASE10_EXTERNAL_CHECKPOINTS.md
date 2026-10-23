@@ -6,7 +6,10 @@ permission, publishes or deploys. The canonical edition is unchanged.
 Phase 11 correction: read [operational trust limits](PHASE11_TRUST_LIMITS.md).
 The file adapters cannot authenticate independent custody or the current head.
 Matching signatures and local history remain BLOCKED. The workflow below
-prepares evidence only; it cannot establish current trust.
+prepares evidence only; it cannot establish current trust. The later
+[manual independent custodian adapter](MANUAL_CHECKPOINT_CUSTODY.md) adds a
+separately provisioned signed challenge exchange and durable operation lease;
+these ordinary file adapters retain their refusal behavior.
 
 ## Why this exists
 
@@ -27,8 +30,8 @@ evidence actually reaches.
 | `LOCAL_SNAPSHOT` | Generated locally, never signed | Nothing. The starting point. |
 | `LOCAL_SIGNED` | Signed locally, still only local evidence | A local signature |
 | `EXTERNAL_STORED` | Written outside the authority state directory | An operator-held custodian file, a materialised protected branch, or a read-only mirror |
-| `INDEPENDENTLY_AUTHENTICATED` | Authenticated evidence from an independently controlled custodian | Reserved; unavailable through current adapters |
-| `CURRENTLY_TRUSTED` | Additionally authenticated current-head evidence with a fresh, single-use challenge response | Reserved; unavailable through current adapters |
+| `INDEPENDENTLY_AUTHENTICATED` | Authenticated evidence from an independently controlled custodian | Independently provisioned key and verified receipt; unavailable from file adapters alone |
+| `CURRENTLY_TRUSTED` | Additionally authenticated current-head evidence with a fresh, single-use challenge response | Manual independent adapter inside a live consumed operation lease; unprovisioned by default |
 
 Only `CURRENTLY_TRUSTED` is a pass. `EXTERNAL_STORED` is **custody, not
 authenticity**: a file copied into another folder is still a file on the same
