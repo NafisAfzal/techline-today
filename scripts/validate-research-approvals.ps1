@@ -1,6 +1,7 @@
 param(
   [Parameter(Mandatory=$true)][string]$AuditDirectory,
-  [Parameter(Mandatory=$true)][string]$CanonicalSnapshot
+  [Parameter(Mandatory=$true)][string]$CanonicalSnapshot,
+  [ValidateRange(1,2)][int]$BrowserWorkers = 2
 )
 # Run only in a newly created, isolated local worktree. All evidence stays private.
 $ErrorActionPreference = 'Stop'
@@ -54,7 +55,7 @@ Check-Step repository { pnpm.cmd verify:repository }
 Check-Step build { pnpm.cmd build }
 Check-Step security { pnpm.cmd security }
 Check-Step browser-install { pnpm.cmd exec playwright install chromium firefox webkit }
-Check-Step browsers-accessibility { pnpm.cmd test:e2e }
+Check-Step browsers-accessibility { pnpm.cmd test:e2e --workers=$BrowserWorkers }
 Check-Step site { pnpm.cmd verify:site }
 Check-Step budget { node scripts/verify-build.mjs }
 $env:LIGHTHOUSE_REPORT_DIR = Join-Path $auditPath 'lighthouse-standard'
@@ -64,7 +65,7 @@ Check-Step dryrun-preview { pnpm.cmd exec wrangler deploy --config wrangler.prev
 Check-Step research-build { pnpm.cmd build:research }
 Check-Step research-verify { pnpm.cmd verify:research }
 $env:RESEARCH_SCREENSHOT_DIR = Join-Path $auditPath 'screenshots'
-Check-Step research-browsers-accessibility { pnpm.cmd test:research }
+Check-Step research-browsers-accessibility { pnpm.cmd test:research --workers=$BrowserWorkers }
 Check-Step research-workerd { pnpm.cmd test:research:edge }
 $env:TECHLINE_RESEARCH_REHEARSAL = 'true'
 $env:LIGHTHOUSE_REPORT_DIR = Join-Path $auditPath 'lighthouse-research'
