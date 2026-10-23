@@ -3,8 +3,6 @@
 import argparse
 import getpass
 import json
-import os
-import stat
 import sys
 import warnings
 from datetime import UTC, datetime, timedelta
@@ -14,6 +12,7 @@ from uuid import uuid4
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from cryptography.hazmat.primitives.serialization import load_pem_private_key
 
+from pipeline.authority.custody import protected_file
 from pipeline.authority.ledger import (
     append,
     emergency_hold,
@@ -94,11 +93,7 @@ def common(history, reviewer_id, key_id, now):
 
 def protected_key(path, root):
     confined_file(root, ".cache/authority/key-boundary-check")
-    path = regular_path(Path(path))
-    if path.is_relative_to(Path(root).absolute()):
-        raise AuthorityError("key_location", "Private signing keys must be kept outside the repository")
-    if os.name != "nt" and path.stat().st_mode & (stat.S_IRWXG | stat.S_IRWXO):
-        raise AuthorityError("key_permissions", "Private key file must not be accessible to group/other users")
+    path = protected_file(path, root)
     data = bounded_file(path, 32_000)
     if b"ENCRYPTED PRIVATE KEY" not in data:
         raise AuthorityError("key_encryption", "Use a user-managed encrypted PKCS8 key file")

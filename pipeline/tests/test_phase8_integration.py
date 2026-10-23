@@ -259,11 +259,14 @@ def test_encrypted_synthetic_key_can_be_loaded_without_secret_output(tmp_path, m
     from cryptography.hazmat.primitives import serialization
 
     from pipeline.authority.cli import protected_key
-    from pipeline.tests.authority_support import private
+    from pipeline.tests.authority_support import private, protect_fixture_directory
     checkout = tmp_path / "checkout"
     checkout.mkdir()
     secret = token_urlsafe(32)
-    key_file = tmp_path / "synthetic-encrypted.pem"
+    custody_directory = tmp_path / "custody"
+    custody_directory.mkdir()
+    protect_fixture_directory(custody_directory)
+    key_file = custody_directory / "synthetic-encrypted.pem"
     key_file.write_bytes(private("editor").private_bytes(serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8,
                                                         serialization.BestAvailableEncryption(secret.encode())))
     key_file.chmod(0o600)

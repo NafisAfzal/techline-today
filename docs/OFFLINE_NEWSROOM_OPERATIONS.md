@@ -25,6 +25,11 @@ limitations even when the process exits 0. There is no readiness percentage.
 
 ## Owner and reviewer preparation
 
+For the interactive Windows guide, file/parent ACL checks, encrypted backup
+inspection and bounded unsigned reviewer requests, follow the
+[owner and reviewer ceremony](OWNER_REVIEWER_CEREMONY.md). The standalone command
+is `python -m pipeline.operations.onboarding`; it never creates or installs keys.
+
 `ceremony --template` produces an unsigned proposal, without a key or identity.
 After a human reviews device custody, encrypted offline backup, restore rehearsal,
 revocation contact, clock, fingerprints, witness arrangements and independent

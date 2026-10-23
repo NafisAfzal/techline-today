@@ -20,7 +20,14 @@ from pipeline.authority.protocol import (
 from pipeline.authority.service import bind_story, status
 from pipeline.models import Snapshot
 from pipeline.publication_gate import evaluate_snapshot
-from pipeline.tests.authority_support import NOW, Newsroom, enrollment, key, private
+from pipeline.tests.authority_support import (
+    NOW,
+    Newsroom,
+    enrollment,
+    key,
+    private,
+    protect_fixture_directory,
+)
 from pipeline.tests.test_phase6_editorial_gate import SID
 from pipeline.tests.test_phase8_integration import RIGHTS, bundle, content
 
@@ -66,16 +73,21 @@ def test_snapshot_timestamp_cannot_choose_the_authority_verification_clock(tmp_p
 def test_signer_refuses_getpass_echo_fallback_even_when_tty_checks_pass(tmp_path, monkeypatch):
     checkout = tmp_path / "checkout"
     checkout.mkdir()
-    key_file = tmp_path / "nonsecret-placeholder.pem"
+    custody_directory = tmp_path / "custody"
+    custody_directory.mkdir()
+    protect_fixture_directory(custody_directory)
+    key_file = custody_directory / "nonsecret-placeholder.pem"
     key_file.write_bytes(b"SYNTHETIC NONSECRET ENCRYPTED PRIVATE KEY PLACEHOLDER")
     key_file.chmod(0o600)
     attempts = []
+    prompts = []
 
     def unsafe_read(*args, **kwargs):
         attempts.append(True)
         return "synthetic-nonsecret-placeholder"
 
     def fallback(prompt):
+        prompts.append(True)
         return getpass.fallback_getpass(prompt, stream=io.StringIO())
 
     monkeypatch.setattr("sys.stdin.isatty", lambda: True)
@@ -84,6 +96,7 @@ def test_signer_refuses_getpass_echo_fallback_even_when_tty_checks_pass(tmp_path
     monkeypatch.setattr(getpass, "_raw_input", unsafe_read)
     with pytest.raises(ValueError):
         protected_key(key_file, checkout)
+    assert prompts, "The fixture must pass custody checks and exercise the private prompt"
     assert not attempts, "A failed private prompt must never attempt echoed input"
 
 
