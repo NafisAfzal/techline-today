@@ -3,8 +3,9 @@ import path from 'node:path';
 import assert from 'node:assert/strict';
 import { pathToFileURL } from 'node:url';
 import { assertGenerationStable } from './generation-state.mjs';
+import rightsPolicy from '../config/source-rights.json' with {type:'json'};
 
-export const rights = JSON.parse(fs.readFileSync(new URL('../config/source-rights.json', import.meta.url), 'utf8')).sources;
+export const rights = rightsPolicy.sources;
 export function contentRightsErrors(snapshot, policy = rights) {
   const errors = [];
   if (snapshot.mode !== 'live') return ['Publication requires live content.'];

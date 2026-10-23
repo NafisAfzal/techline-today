@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { readSnapshot } from './read-snapshot.mjs';
 import policy from '../config/research-edition.json' with {type:'json'};
 import { approvedResearchSnapshot, researchEligibility } from './research-inventory.mjs';
@@ -44,7 +46,12 @@ export function readBuildSnapshot(file) {
   if (researchCandidate) assert.equal(policy.publication_enabled, true, 'Research publication remains disabled by owner policy.');
   const snapshot = readSnapshot(file);
   if (researchCandidate) {
-    return approvedResearchSnapshot(snapshot, researchEligibility(snapshot));
+    // Astro bundles this module into its prerender directory. Derive the
+    // verifier root from the exact canonical input, never a bundled import URL.
+    const input = path.resolve(file instanceof URL ? fileURLToPath(file) : file);
+    const root = path.resolve(path.dirname(input), '../..');
+    assert.equal(input, path.join(root, 'content/generated/snapshot.json'), 'Use the canonical repository snapshot.');
+    return approvedResearchSnapshot(snapshot, researchEligibility(snapshot, {root}));
   }
   return researchRehearsal ? rehearsalSnapshot(snapshot) : snapshot;
 }

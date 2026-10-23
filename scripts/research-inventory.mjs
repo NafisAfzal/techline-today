@@ -51,9 +51,8 @@ export function approvedResearchSnapshot(snapshot, report) {
 }
 
 // Diagnostics never infer approval from a rights allowlist or legacy digest.
-export function researchEligibility(snapshot) {
+export function researchEligibility(snapshot, {root = fileURLToPath(new URL('../', import.meta.url))} = {}) {
   const rightsFailures = contentRightsErrors(snapshot);
-  const root = fileURLToPath(new URL('../', import.meta.url));
   const python = path.resolve(root, '.venv', process.platform === 'win32' ? 'Scripts/python.exe' : 'bin/python');
   const verification = spawnSync(python, ['-m', 'pipeline.research_cli', 'select-stdin'], {
     cwd:root, input: JSON.stringify(snapshot), encoding: 'utf8', maxBuffer: 8 * 1024 * 1024, timeout: 60000,
