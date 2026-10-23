@@ -179,7 +179,7 @@ class VerifiedHistory:
             raise AuthorityError("workflow", "Research decisions cannot enter another workflow")
         if isinstance(d, ResearchDecision):
             from pipeline.research_approval import verify_review_checkpoint
-            verify_review_checkpoint(self, d, instant(d.issued_at))
+            verify_review_checkpoint(self, d, instant(d.issued_at), historical=True)
         if envelope.proof is not None:
             raise AuthorityError("proof", "Reviewer decisions cannot carry administrative possession proofs")
         if d.binding.workflow != "research" and d.binding.language != (
@@ -266,6 +266,7 @@ class Anchor:
     envelope: bytes
     expected_sha256: str
     expected_challenge: str
+    custody: object | None = None
 
 
 @dataclass(frozen=True)
@@ -362,10 +363,14 @@ def verify_local_anchor(history, anchor, at):
 def verify_anchor(history, anchor, at):
     envelope = verify_local_anchor(history, anchor, at)
     if not history.registry.pin.synthetic:
-        raise AuthorityError("independent_freshness_unverified",
-                             "A file digest and matching challenge do not authenticate an independent "
-                             "custodian's current state. Production authority remains blocked until "
-                             "independent current-state evidence can be verified")
+        from pipeline.authority.manual_custodian import ManualCustodyProof, configured_proof
+
+        proof = anchor.custody or configured_proof(os.getcwd())
+        if not isinstance(proof, ManualCustodyProof):
+            raise AuthorityError("independent_freshness_unverified",
+                               "A digest and challenge do not authenticate an independent custodian's current state; "
+                               "a separately provisioned custody operation is required")
+        proof.verify(history, anchor, at)
     return envelope
 
 

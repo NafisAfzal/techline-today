@@ -4,7 +4,7 @@ import crypto from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 import { assertGenerationStable } from './generation-state.mjs';
-import { buildDirectory, researchRehearsal } from './research-policy.mjs';
+import { buildDirectory, researchRehearsal, researchEdition } from './research-policy.mjs';
 
 const sha = bytes => crypto.createHash('sha256').update(bytes).digest('hex');
 const git = (...args) => { try { return execFileSync('git', args, { encoding:'utf8', stdio:['ignore','pipe','ignore'] }); } catch { return ''; } };
@@ -25,8 +25,8 @@ export function currentProvenance(root = buildDirectory) {
   const snapshot = fs.readFileSync('content/generated/snapshot.json');
   const data = JSON.parse(snapshot);
   const archiveRoot = data.mode === 'fixture' ? '.cache/fixture-archives' : 'content/archives';
-  const archiveNames = researchRehearsal ? [] : [...new Set(data.archive_index.flatMap(entry => [entry.key+'.json',entry.key.slice(0,4)+'.json']))];
-  return {version:1,revision:git('rev-parse','HEAD').trim() || null,source_sha256:digestFiles(source),snapshot_sha256:sha(snapshot),archive_sha256:digestFiles(archiveNames,archiveRoot),mode:data.mode,generated_at:data.generated_at,assets_sha256:digestFiles(assets,root),profile:researchRehearsal?'research-rehearsal':'standard'};
+  const archiveNames = researchEdition ? [] : [...new Set(data.archive_index.flatMap(entry => [entry.key+'.json',entry.key.slice(0,4)+'.json']))];
+  return {version:1,revision:git('rev-parse','HEAD').trim() || null,source_sha256:digestFiles(source),snapshot_sha256:sha(snapshot),archive_sha256:digestFiles(archiveNames,archiveRoot),mode:data.mode,generated_at:data.generated_at,assets_sha256:digestFiles(assets,root),profile:researchRehearsal?'research-rehearsal':researchEdition?'research-candidate':'standard'};
 }
 export function provenanceErrors(built, current) {
   return ['version','revision','source_sha256','snapshot_sha256','archive_sha256','mode','generated_at','assets_sha256','profile'].filter(key => built?.[key] !== current[key]).map(key => `Build provenance mismatch: ${key}; rebuild the current live edition.`);

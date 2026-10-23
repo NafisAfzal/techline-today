@@ -1,7 +1,8 @@
-"""Proposed current-head wire protocol and bounded offline mock verifier.
+"""Current-head wire protocol and bounded offline mock verifier.
 
-This does not connect to the production checkpoint loader. Process-local replay
-state, a caller clock and a synthetic custodian cannot establish independence.
+The mock classes do not connect to production. The separate manual independent
+adapter reuses these wire models/domain with required challenge extensions and
+durable scoped state. This process-local synthetic mock cannot prove custody.
 """
 
 import hashlib

@@ -1,6 +1,9 @@
 """Synthetic in-memory identities only. Never imported by production code."""
 
 import hashlib
+import os
+import shutil
+import subprocess
 from datetime import UTC, datetime, timedelta
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
@@ -20,6 +23,29 @@ from pipeline.authority.protocol import (
 from pipeline.authority.registry import TrustPin
 
 NOW = datetime(2026, 10, 20, 0, 0, tzinfo=UTC)
+
+
+def protect_fixture_directory(directory):
+    """Protect only a caller-created pytest custody directory, before key creation."""
+    if os.name != "nt":
+        directory.chmod(0o700)
+        return
+    environment = os.environ.copy()
+    environment["TECHLINE_TEST_CUSTODY_DIR"] = str(directory)
+    script = r"""
+    $ErrorActionPreference='Stop'
+    $sid=[System.Security.Principal.WindowsIdentity]::GetCurrent().User
+    $acl=Get-Acl -LiteralPath $env:TECHLINE_TEST_CUSTODY_DIR
+    $acl.SetOwner($sid)
+    $acl.SetAccessRuleProtection($true,$false)
+    foreach($rule in @($acl.Access)) { $acl.RemoveAccessRuleAll($rule) }
+    $acl.AddAccessRule([System.Security.AccessControl.FileSystemAccessRule]::new(
+        $sid,'FullControl','ContainerInherit,ObjectInherit','None','Allow'))
+    Set-Acl -LiteralPath $env:TECHLINE_TEST_CUSTODY_DIR -AclObject $acl
+    """
+    subprocess.run(  # noqa: S603 - fixed source, caller-created fixture directory only
+        [shutil.which("powershell.exe"), "-NoProfile", "-NonInteractive", "-Command", script],
+        env=environment, capture_output=True, timeout=15, check=True)
 
 
 def private(name):

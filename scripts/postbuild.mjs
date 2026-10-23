@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { inlineCspHashes } from './csp.mjs';
-import { readBuildSnapshot, buildDirectory, researchRehearsal } from './research-policy.mjs';
+import { readBuildSnapshot, buildDirectory, researchEdition } from './research-policy.mjs';
 const root = path.resolve(buildDirectory);
 function files(directory) { return fs.readdirSync(directory,{withFileTypes:true}).flatMap(entry => entry.isDirectory() ? files(path.join(directory,entry.name)) : [path.join(directory,entry.name)]); }
 const scripts = new Set(); const styles = new Set();
@@ -17,9 +17,9 @@ const headers = `/*\n  Content-Security-Policy: ${csp}\n  X-Content-Type-Options
 if (headers.split('\n').some(line => line.length > 2000)) throw new Error('Cloudflare header line limit exceeded');
 // Cloudflare keeps one block per path pattern. Repeating /* can replace the
 // security block with the final attribution block, unlike our Node preview.
-const globalHeaders = '  Link: </content-attribution.json>; rel="describedby"\n' + (researchRehearsal ? '  X-Robots-Tag: noindex, nofollow, noarchive\n  Cache-Control: no-store\n' : '');
+const globalHeaders = '  Link: </content-attribution.json>; rel="describedby"\n' + (researchEdition ? '  X-Robots-Tag: noindex, nofollow, noarchive\n  Cache-Control: no-store\n' : '');
 const combinedHeaders = headers.replace('/*\n', '/*\n' + globalHeaders);
-fs.writeFileSync(path.join(root,'_headers'),researchRehearsal ? combinedHeaders.replace(/Cache-Control: [^\n]+/g,'Cache-Control: no-store').replace('Referrer-Policy: strict-origin-when-cross-origin','Referrer-Policy: no-referrer') : combinedHeaders);
+fs.writeFileSync(path.join(root,'_headers'),researchEdition ? combinedHeaders.replace(/Cache-Control: [^\n]+/g,'Cache-Control: no-store').replace('Referrer-Policy: strict-origin-when-cross-origin','Referrer-Policy: no-referrer') : combinedHeaders);
 const snapshot = readBuildSnapshot('content/generated/snapshot.json');
 const sourceRights = JSON.parse(fs.readFileSync('config/source-rights.json','utf8')).sources;
 const exposedSources = {...snapshot.sources};

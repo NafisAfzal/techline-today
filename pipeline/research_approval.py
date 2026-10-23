@@ -101,7 +101,7 @@ def review_anchor(decision):
     return Anchor(envelope_bytes(envelope), decision.checkpoint_sha256, decision.review_checkpoint.challenge)
 
 
-def verify_review_checkpoint(history, decision, now):
+def verify_review_checkpoint(history, decision, now, *, historical=False):
     cp = decision.review_checkpoint
     if cp.challenge in history.research_challenges:
         raise AuthorityError("research_checkpoint_replay", "This review challenge was already consumed")
@@ -115,6 +115,18 @@ def verify_review_checkpoint(history, decision, now):
     if decision.decision == "RESEARCH_REVOKED":
         # Signed risk reduction remains possible without granting custody trust.
         verify_local_anchor(prior, anchor, now)
+    elif historical and not history.registry.pin.synthetic:
+        # An archived independently signed receipt proves acceptance at the
+        # decision's signed issuance time. It is not current publication trust.
+        from pathlib import Path
+
+        from pipeline.authority.manual_custodian import configured_proof
+
+        verify_local_anchor(prior, anchor, now)
+        proof = configured_proof(Path.cwd(), historical=True)
+        if proof is None:
+            raise AuthorityError("custodian_archive_missing", "Historical independent receipt archive is required")
+        proof.verify(prior, anchor, now, historical=True)
     else:
         verify_anchor(prior, anchor, now)
     history.research_challenges.add(cp.challenge)

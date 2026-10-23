@@ -1,6 +1,7 @@
 param(
   [Parameter(Mandatory=$true)][string]$AuditDirectory,
-  [Parameter(Mandatory=$true)][string]$CanonicalSnapshot
+  [Parameter(Mandatory=$true)][string]$CanonicalSnapshot,
+  [ValidateRange(1,2)][int]$BrowserWorkers = 2
 )
 # Run only in a newly created, isolated local worktree. All evidence stays private.
 $ErrorActionPreference = 'Stop'
@@ -20,7 +21,7 @@ $env:PIPELINE_AI_ENABLED = 'false'
 $env:WRANGLER_SEND_METRICS = 'false'
 $env:ASTRO_TELEMETRY_DISABLED = '1'
 foreach ($entry in @(Get-ChildItem Env:)) {
-  if ($entry.Name -match '^(?:TECHLINE_AUTHORITY_|TECHLINE_EXTERNAL_CHECKPOINT|CLOUDFLARE_)') {
+  if ($entry.Name -match '^(?:TECHLINE_AUTHORITY_|TECHLINE_EXTERNAL_CHECKPOINT|TECHLINE_CUSTOD|TECHLINE_CHECKPOINT|TECHLINE_RESEARCH_|CLOUDFLARE_)') {
     Remove-Item -LiteralPath ('Env:' + $entry.Name)
   }
 }
@@ -54,7 +55,7 @@ Check-Step repository { pnpm.cmd verify:repository }
 Check-Step build { pnpm.cmd build }
 Check-Step security { pnpm.cmd security }
 Check-Step browser-install { pnpm.cmd exec playwright install chromium firefox webkit }
-Check-Step browsers-accessibility { pnpm.cmd test:e2e }
+Check-Step browsers-accessibility { pnpm.cmd test:e2e --workers=$BrowserWorkers }
 Check-Step site { pnpm.cmd verify:site }
 Check-Step budget { node scripts/verify-build.mjs }
 $env:LIGHTHOUSE_REPORT_DIR = Join-Path $auditPath 'lighthouse-standard'
@@ -64,7 +65,7 @@ Check-Step dryrun-preview { pnpm.cmd exec wrangler deploy --config wrangler.prev
 Check-Step research-build { pnpm.cmd build:research }
 Check-Step research-verify { pnpm.cmd verify:research }
 $env:RESEARCH_SCREENSHOT_DIR = Join-Path $auditPath 'screenshots'
-Check-Step research-browsers-accessibility { pnpm.cmd test:research }
+Check-Step research-browsers-accessibility { pnpm.cmd test:research --workers=$BrowserWorkers }
 Check-Step research-workerd { pnpm.cmd test:research:edge }
 $env:TECHLINE_RESEARCH_REHEARSAL = 'true'
 $env:LIGHTHOUSE_REPORT_DIR = Join-Path $auditPath 'lighthouse-research'
@@ -88,6 +89,7 @@ Check-Step canonical-rights { node scripts/content-rights.mjs --snapshot-only }
 Check-Step canonical-build { pnpm.cmd build }
 Check-Step canonical-build-rights { pnpm.cmd verify:content-rights }
 Check-Step real-research-build-denied { pnpm.cmd build:research } 1
+Check-Step authenticated-research-candidate-denied { pnpm.cmd build:research --real } 1
 Check-Step final-repository { pnpm.cmd verify:repository }
 if (git status --porcelain) { throw 'Validation changed tracked files.' }
 $revision = git rev-parse HEAD

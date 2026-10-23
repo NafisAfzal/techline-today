@@ -31,9 +31,13 @@ can conceal a newer head; signatures alone cannot establish honesty. Real use
 requires independently controlled custody, authenticated key/rotation history,
 durable replay and monotonic state outside the compromised operator boundary,
 an authenticated clock and a reviewed availability/conflict procedure. Skew is
-currently refused rather than silently tolerated. There is no network adapter,
-external write or production trust promotion. Existing production checkpoint
-adapters continue to refuse missing independent freshness.
+currently refused rather than silently tolerated. There is no network adapter or
+external write in the mock workflow. The later
+[manual independent custodian adapter](MANUAL_CHECKPOINT_CUSTODY.md) reuses this
+protocol with required challenge continuity fields, durable replay state,
+historical receipt archives and scoped production operation leases. It requires
+separately authenticated independent custody and time; it is unprovisioned by
+default. Ordinary file adapters still refuse missing independent freshness.
 
 For a small newsroom, offline encrypted-file signing with separately held backup
 and out-of-band fingerprint checks is a practical ceremony proposal. A second

@@ -3,14 +3,15 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { gzipSync } from 'node:zlib';
 
-process.env.TECHLINE_RESEARCH_REHEARSAL = 'true';
+const candidate = process.env.TECHLINE_RESEARCH_CANDIDATE === 'true';
+if (!candidate) process.env.TECHLINE_RESEARCH_REHEARSAL = 'true';
 const {readBuildSnapshot, buildDirectory} = await import('./research-policy.mjs');
 const {readSnapshot} = await import('./read-snapshot.mjs');
 const {verifyProvenance} = await import('./build-provenance.mjs');
 const snapshot = readBuildSnapshot('content/generated/snapshot.json');
 const raw = readSnapshot('content/generated/snapshot.json');
 const manifest = verifyProvenance(buildDirectory);
-assert.equal(manifest.profile, 'research-rehearsal');
+assert.equal(manifest.profile, candidate ? 'research-candidate' : 'research-rehearsal');
 const walk = directory => fs.readdirSync(directory,{withFileTypes:true}).flatMap(entry => {
   assert(!entry.isSymbolicLink(), 'Linked build assets are forbidden.');
   return entry.isDirectory() ? walk(path.join(directory,entry.name)) : [path.join(directory,entry.name)];
@@ -45,11 +46,11 @@ const css = files.filter(file => file.endsWith('.css') && file.includes(`${path.
 const jsGzip = js.reduce((sum,file) => sum + gzipSync(fs.readFileSync(file)).length, 0);
 const cssBytes = css.reduce((sum,file) => sum + fs.statSync(file).size, 0);
 assert(jsGzip < 100000 && cssBytes < 40000, 'Research client asset budget exceeded.');
-console.log(JSON.stringify({status:'passed', profile:manifest.profile, synthetic_stories:snapshot.stories.length,
-  eligible_real_stories:0, assets:files.length, total_bytes:bytes, all_application_js_gzip:jsGzip, css_bytes:cssBytes,
+console.log(JSON.stringify({status:'passed', profile:manifest.profile, synthetic_stories:candidate ? 0 : snapshot.stories.length,
+  eligible_real_stories:candidate ? snapshot.stories.length : 0, assets:files.length, total_bytes:bytes, all_application_js_gzip:jsGzip, css_bytes:cssBytes,
   publication_allowed:false, deployment_performed:false}, null, 2));
 if (process.argv.includes('--publish')) {
   const {researchEligibility} = await import('./research-inventory.mjs');
   const readiness = researchEligibility(raw);
-  throw Error(`Research publication refused: ${readiness.eligible_count} real eligible records; independently authenticated current checkpoint custody is unavailable. Synthetic rehearsal cannot be deployed.`);
+  throw Error(`Research publication refused: ${readiness.eligible_count} real eligible records. Local candidate verification is not exact-SHA deployment authorization. Use the separately reviewed release process; synthetic rehearsal cannot be published.`);
 }
