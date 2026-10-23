@@ -13,6 +13,7 @@ from pipeline.authority.protocol import (
     Identifier,
     Key,
     Model,
+    ResearchDecision,
     instant,
     verify_signature,
 )
@@ -161,6 +162,9 @@ class Registry:
                 or binding.story_id not in grant.stories and "*" not in grant.stories
                 or binding.language not in grant.languages or binding.workflow not in grant.workflows):
             raise AuthorityError("scope", "Decision exceeds the appointed role, source, story, language or workflow")
+        if (isinstance(payload, ResearchDecision) and binding.publication_scope == "metadata-extractive:en-bn"
+                and payload.role in {"source-rights", "publisher"} and not {"en", "bn"} <= set(grant.languages)):
+            raise AuthorityError("scope", "Bilingual rights/publication approval requires an English and Bangla grant")
         if payload.registry_revision != self.revision:
             raise AuthorityError("registry_revision", "Review belongs to an older administrative registry revision")
         if current and not instant(payload.issued_at) <= at < instant(payload.expires_at):

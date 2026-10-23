@@ -214,6 +214,15 @@ def test_emergency_hold_needs_neither_keys_nor_a_valid_journal(tmp_path):
     assert (tmp_path / STOP).read_bytes() == before
 
 
+def test_emergency_hold_freezes_positive_records_but_allows_reductions(room):
+    room.publish(binding())
+    emergency_hold(room.root, "Synthetic test hold", NOW)
+    with pytest.raises(AuthorityError, match="emergency publication stop"):
+        room.store(room.prepared(binding(story_id="story-two"), "SOURCE_VALIDATED", "editor"))
+    room.store(room.prepared(binding(), "RETRACTED", "moderator"))
+    assert room.history().active(binding(), "PUBLISHED", NOW) is None
+
+
 def test_no_synthetic_fallback_in_production(room):
     with pytest.raises(AuthorityError, match="forbidden in production"):
         replay(room.journal(), room.pin, NOW)

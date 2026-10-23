@@ -15,7 +15,7 @@ const originalIndex=git(['diff','--cached','--name-only'],false);
 const committed=spawnSync('git',['rev-parse','--verify','HEAD'],{stdio:'ignore'}).status===0;
 git(['read-tree',committed?'HEAD':'--empty']);
 const files=[...new Set([...git(['ls-files','-z']).split('\0'),...git(['ls-files','--cached','--others','--exclude-standard','-z'],false).split('\0')])].filter(Boolean);
-const forbidden=/(^|\/)(?:node_modules|\.venv|\.cache|\.astro|dist|\.wrangler|\.lighthouseci|test-results|playwright-report|__pycache__)(\/|$)|(^|\/)\.dev\.vars|\.(?:key|pem|log|zip|webm|mp4)$/;
+const forbidden=/(^|\/)(?:node_modules|\.venv|\.cache|\.astro|dist|dist-research|\.wrangler|\.lighthouseci|test-results|playwright-report|__pycache__)(\/|$)|(^|\/)\.dev\.vars|\.(?:key|pem|log|zip|webm|mp4)$/;
 const keys=[/\bgh[pousr]_[a-zA-Z0-9]{30,}\b/,/\bgithub_pat_[a-zA-Z0-9_]{40,}\b/,/\bAIza[a-zA-Z0-9_-]{30,}\b/,/\bsk-(?:proj-)?[a-zA-Z0-9_-]{25,}\b/,/-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/];
 let bytes=0;
 for(const file of files) {

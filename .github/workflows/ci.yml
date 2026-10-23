@@ -49,6 +49,18 @@ jobs:
       - run: pnpm verify:site
       - run: pnpm performance
       - run: pnpm deploy:check
+      - name: Research rehearsal (synthetic, no deployment)
+        run: pnpm build:research && pnpm verify:research && pnpm test:research
+      - name: Research publication must remain blocked
+        run: |
+          if node scripts/verify-research.mjs --publish; then
+            echo 'Synthetic research publication unexpectedly allowed'
+            exit 1
+          fi
+      - name: Research static asset packaging only
+        run: pnpm exec wrangler deploy --config wrangler.research-preview.jsonc --dry-run
+      - name: Research headers in local workerd (no deployment)
+        run: pnpm test:research:edge
       - name: Dependency scan (Python)
         run: uv export --frozen --no-hashes --format requirements-txt --output-file /tmp/pipeline-requirements.txt && uvx pip-audit==2.10.1 -r /tmp/pipeline-requirements.txt
       - name: Upload failing browser traces

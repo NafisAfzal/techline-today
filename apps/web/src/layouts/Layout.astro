@@ -6,6 +6,7 @@ import CoverageStatus from '../components/CoverageStatus.astro';
 import { data, categoryEntries, date } from '../lib/data';
 import { localeFor, t, localizedPath, withoutLocale, brandName } from '../lib/i18n';
 import { indexingBlocked } from '../../../../scripts/site-url.mjs';
+import { researchRehearsal } from '../../../../scripts/research-policy.mjs';
 interface Props { title?: string; description?: string; noindex?: boolean }
 const locale = localeFor(Astro.url.pathname);
 const ui = (key: string) => t(locale,key);
@@ -16,7 +17,7 @@ const storySlug = pathname.match(/^\/story\/([^/]+)\/$/)?.[1];
 const story = storySlug ? data.stories.find(story=>story.slug===storySlug) : undefined;
 const fallback = locale === 'bn' && !!story && !story.translations?.bn;
 const canonical = new URL(fallback ? pathname : Astro.url.pathname, Astro.site);
-const blocked = noindex || indexingBlocked(data.mode, Astro.site?.hostname);
+const blocked = researchRehearsal || noindex || indexingBlocked(data.mode, Astro.site?.hostname);
 const alternate = !story || !!story.translations?.bn;
 const languagePath = /\/404(?:\/|\.html|$)/.test(pathname) ? '/' : pathname;
 const analyticsToken = import.meta.env.PUBLIC_CLOUDFLARE_WEB_ANALYTICS_TOKEN;
@@ -29,7 +30,7 @@ if (analyticsToken && !/^[a-f0-9]{32}$/i.test(analyticsToken)) throw new Error('
   <meta name="description" content={ui(description)}/><meta name="color-scheme" content="light dark"/>
   <meta name="theme-color" content="#f4f2eb" media="(prefers-color-scheme: light)"/>
   <meta name="theme-color" content="#101c2d" media="(prefers-color-scheme: dark)"/>
-  <title>{ui(title)} · {brandName}</title><link rel="icon" type="image/svg+xml" href="/favicon.svg"/>
+  <title>{researchRehearsal ? `${ui('Research/reference rehearsal')} · ` : ''}{ui(title)} · {brandName}</title><link rel="icon" type="image/svg+xml" href="/favicon.svg"/>
   <link rel="canonical" href={canonical}/>
   {alternate && !noindex && <><link rel="alternate" hreflang="en" href={new URL(localizedPath(pathname,'en'),Astro.site)}/><link rel="alternate" hreflang="bn" href={new URL(localizedPath(pathname,'bn'),Astro.site)}/><link rel="alternate" hreflang="x-default" href={new URL(localizedPath(pathname,'en'),Astro.site)}/></>}
   <meta property="og:title" content={ui(title)}/><meta property="og:description" content={ui(description)}/><meta property="og:type" content="website"/><meta property="og:url" content={canonical}/><meta property="og:locale" content={locale==='bn'?'bn_BD':'en_GB'}/><meta name="twitter:card" content="summary"/>
@@ -72,6 +73,7 @@ if (analyticsToken && !/^[a-f0-9]{32}$/i.test(analyticsToken)) throw new Error('
     </nav>
   </header>
   {data.mode === 'fixture' && <aside class="demo-notice container" aria-label={ui('Demonstration notice')}><strong>{ui('Demonstration edition.')}</strong> {ui('All stories, model releases and offers in this edition are synthetic test fixtures, not live news.')}</aside>}
+  {researchRehearsal && <aside class="demo-notice container research-edition-notice" aria-label={ui('Research edition notice')}><strong>{ui('Research/reference rehearsal')}.</strong>{' '}{ui('Synthetic examples only. No real research records are approved for this edition. English fallback applies where a Bangla translation is unavailable.')}</aside>}
   <main id="main" class="container" tabindex="-1"><slot/></main>
   <CoverageStatus/>
   <footer class="container site-footer"><div><a class="footer-brand" href={href('/')} aria-label={`${brandName} ${locale==='bn'?'প্রথম পাতা':'home'}`}><Wordmark small/></a><p>{ui('A little context goes a long way.')}</p><p class="small">{ui('Collected periodically. Sources always within reach.')}</p></div><nav aria-label={ui('Footer')}><a href={href('/about/')}>{ui('Methodology & source policy')}</a><a href={href('/settings/')}>{ui('Reading preferences')}</a>{data.archive_index.length>0 && <a href={href('/archives/')}>{ui('Archives')}</a>}<a href="/rss.xml">{ui('RSS feed')} ↗</a></nav><p class="small">{ui('No account. No behavioral profiling.')}<br/>{ui('Your reading list stays on your device.')}</p></footer>

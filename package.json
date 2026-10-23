@@ -36,7 +36,12 @@
     "verify:site": "node scripts/verify-site.mjs",
     "verify:repository": "node scripts/verify-repository.mjs",
     "verify:docs": "node scripts/verify-docs.mjs",
-    "inspect:ui": "node scripts/inspect-ui.mjs"
+    "inspect:ui": "node scripts/inspect-ui.mjs",
+    "build:research": "node scripts/research-build.mjs",
+    "preview:research": "node scripts/preview.mjs --research",
+    "verify:research": "node scripts/verify-research.mjs",
+    "test:research": "playwright test --config playwright.research.config.ts",
+    "test:research:edge": "node scripts/research-edge.mjs"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.13.0",

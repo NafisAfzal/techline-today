@@ -9,6 +9,7 @@ from pydantic import Field, model_validator
 
 from pipeline.authority.protocol import (
     DENIALS,
+    RESEARCH_STAGES,
     ZERO,
     Admin,
     AuthorityError,
@@ -17,6 +18,7 @@ from pipeline.authority.protocol import (
     Digest,
     Envelope,
     Model,
+    ResearchDecision,
     canonical,
     clock,
     instant,
@@ -92,6 +94,11 @@ def binding_id(binding):
 
 def lifecycle(binding):
     """Use the actual project state machines, adding only authenticated edges."""
+    if binding.workflow == "research":
+        stages = ("RESEARCH_REVIEW_REQUIRED", *(RESEARCH_STAGES if binding.language == "en" else
+                                                ("RESEARCH_BANGLA_APPROVED",)))
+        transitions = {state: frozenset(stages[1:index + 2]) for index, state in enumerate(stages)}
+        return stages[0], transitions
     if binding.workflow == "editorial":
         from pipeline.editorial_workflow import TRANSITIONS
         transitions = dict(TRANSITIONS)
@@ -120,6 +127,7 @@ class VerifiedHistory:
     decisions: list = field(default_factory=list)
     by_id: dict = field(default_factory=dict)
     withdrawn: set = field(default_factory=set)
+    research_challenges: set = field(default_factory=set)
 
     def state(self, binding):
         initial, _ = lifecycle(binding)
@@ -143,6 +151,8 @@ class VerifiedHistory:
             if b.workflow == "editorial" and same_story:
                 if d.decision != "CORRECTED" or b.content_sha256 == binding.content_sha256:
                     return "story_withdrawn_or_superseded"
+            if b.workflow == "research" and same_story and b.source_id == binding.source_id:
+                return "research_authorization_revoked"
         return None
 
     def active(self, binding, decision, at):
@@ -162,9 +172,18 @@ class VerifiedHistory:
     def apply_decision(self, envelope):
         d = envelope.payload
         self.registry.authorize(envelope, instant(d.issued_at), current=False)
+        if (d.binding.workflow == "research") != isinstance(d, ResearchDecision):
+            raise AuthorityError("workflow", "Research workflow requires a typed research decision")
+        research_names = {*RESEARCH_STAGES, "RESEARCH_BANGLA_APPROVED", "RESEARCH_REVOKED"}
+        if not isinstance(d, ResearchDecision) and d.decision in research_names:
+            raise AuthorityError("workflow", "Research decisions cannot enter another workflow")
+        if isinstance(d, ResearchDecision):
+            from pipeline.research_approval import verify_review_checkpoint
+            verify_review_checkpoint(self, d, instant(d.issued_at))
         if envelope.proof is not None:
             raise AuthorityError("proof", "Reviewer decisions cannot carry administrative possession proofs")
-        if d.binding.language != ("bn" if d.binding.workflow == "translation" else "en"):
+        if d.binding.workflow != "research" and d.binding.language != (
+                "bn" if d.binding.workflow == "translation" else "en"):
             raise AuthorityError("language", "Decision language does not match this workflow")
         initial, transitions = lifecycle(d.binding)
         state_key = (d.registry_revision, binding_id(d.binding))
@@ -176,7 +195,8 @@ class VerifiedHistory:
             raise AuthorityError("transition", "Illegal, stale or withdrawn approval transition")
         if not denial:
             ordered_states = list(transitions)
-            if ordered_states.index(d.to_state) < ordered_states.index(current):
+            if (ordered_states.index(d.to_state) < ordered_states.index(current)
+                    or isinstance(d, ResearchDecision) and d.to_state == current):
                 # Returning to a review stage supersedes all later approvals.
                 # A fresh native/factual review cannot revive an older publisher
                 # decision merely because its signature has not expired.
@@ -190,7 +210,7 @@ class VerifiedHistory:
             allowed = {"editorial": {"CORRECTED", "RETRACTED", "ARCHIVED", "REJECTED", "SUSPENDED",
                                        "REVOKED", "WITHDRAWN"},
                        "translation": {"WITHDRAWN", "TRANSLATION_WITHDRAWN", "TRANSLATION_REJECTED"},
-                       "source": {"SUSPENDED", "REVOKED"}, "rights": set()}
+                       "source": {"SUSPENDED", "REVOKED"}, "rights": set(), "research": {"RESEARCH_REVOKED"}}
             if d.decision not in allowed[d.binding.workflow]:
                 raise AuthorityError("workflow", "Denial is outside this workflow")
         if d.decision in {"RIGHTS_REJECTED", "RIGHTS_REVOKED"} and d.binding.workflow != "rights":
@@ -311,7 +331,8 @@ def compare_checkpoint(history, cp) -> CheckpointComparison:
                                 evidence)
 
 
-def verify_anchor(history, anchor, at):
+def verify_local_anchor(history, anchor, at):
+    """Signature/position only. Cannot establish independent checkpoint custody."""
     if anchor is None:
         raise AuthorityError("checkpoint_missing", "An independently trusted current checkpoint is required")
     if hashlib.sha256(anchor.envelope.removesuffix(b"\n")).hexdigest() != anchor.expected_sha256:
@@ -335,6 +356,11 @@ def verify_anchor(history, anchor, at):
         raise AuthorityError("checkpoint_challenge", "Checkpoint is not for this independent publication challenge")
     if not instant(history.registry.root_key.active_at) <= clock(at) < instant(history.registry.root_key.expires_at):
         raise AuthorityError("owner_expired", "Current owner root has expired")
+    return envelope
+
+
+def verify_anchor(history, anchor, at):
+    envelope = verify_local_anchor(history, anchor, at)
     if not history.registry.pin.synthetic:
         raise AuthorityError("independent_freshness_unverified",
                              "A file digest and matching challenge do not authenticate an independent "
@@ -345,6 +371,15 @@ def verify_anchor(history, anchor, at):
 
 def append(root, envelope, pin, at, *, mode="production"):
     envelope = read_envelope(canonical(envelope.model_dump(mode="json")))
+    payload = envelope.payload
+    # A STOP_PUBLICATION marker is an exposure barrier, not just a report flag.
+    # Risk-reducing denials remain possible, but no new positive content decision
+    # may enter the journal while the marker is present.
+    if (isinstance(payload, Decision) and payload.decision not in DENIALS
+            and confined_file(root, STOP).exists()):
+        raise AuthorityError("emergency_hold",
+                             "An emergency publication stop is present; positive decisions are frozen "
+                             "until owner-reviewed recovery")
     with writer(root):
         assert_stable(root)
         journal = load(root)
@@ -369,6 +404,9 @@ def stage(journal, envelope, pin, at, *, mode="production"):
         before = replay(journal, pin, at, mode=mode)
         if isinstance(payload, Decision):
             before.registry.authorize(envelope, clock(at))
+            if isinstance(payload, ResearchDecision):
+                from pipeline.research_approval import verify_review_checkpoint
+                verify_review_checkpoint(before, payload, clock(at))
         else:
             owner_key = before.registry.root_key
             if not instant(owner_key.active_at) <= clock(at) < instant(owner_key.expires_at):

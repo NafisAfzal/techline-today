@@ -26,26 +26,34 @@ Identifier = Annotated[StrictStr, Field(pattern=r"^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,
 ScopeId = Annotated[StrictStr, Field(pattern=r"^(?:[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,127}|\*)$")]
 Timestamp = Annotated[StrictStr, Field(pattern=r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")]
 Role = Literal["source-rights", "fact-checker", "english-editor", "native-bn", "publisher", "suspension"]
-Workflow = Literal["editorial", "rights", "translation", "source"]
+Workflow = Literal["editorial", "rights", "translation", "source", "research"]
+RESEARCH_POLICY = "research-reference-v1"
+RESEARCH_STAGES = (
+    "RESEARCH_METADATA_APPROVED", "RESEARCH_EXTRACTIVE_APPROVED", "RESEARCH_FACTUAL_APPROVED",
+    "RESEARCH_CLASSIFICATION_APPROVED", "RESEARCH_PUBLICATION_APPROVED",
+)
 
 # Only owner administration can create grants. Each reviewer role is independent.
 CAPABILITIES = {
     "source-rights": frozenset({"RIGHTS_APPROVED", "RIGHTS_ELIGIBLE", "RIGHTS_REJECTED", "RIGHTS_REVOKED",
-                                "RIGHTS_REVIEW_REQUIRED", "RIGHTS_EVIDENCE_RECORDED"}),
-    "fact-checker": frozenset({"FACT_CHECKED"}),
+                                "RIGHTS_REVIEW_REQUIRED", "RIGHTS_EVIDENCE_RECORDED",
+                                "RESEARCH_METADATA_APPROVED"}),
+    "fact-checker": frozenset({"FACT_CHECKED", "RESEARCH_FACTUAL_APPROVED"}),
     "english-editor": frozenset({"SOURCE_VALIDATED", "DRAFT_READY", "FACT_CHECK_PENDING",
                                  "EDITORIAL_APPROVAL_PENDING", "APPROVED", "TECHNICALLY_VALIDATED",
-                                 "EDITORIAL_REVIEW_REQUIRED"}),
+                                 "EDITORIAL_REVIEW_REQUIRED", "RESEARCH_EXTRACTIVE_APPROVED",
+                                 "RESEARCH_CLASSIFICATION_APPROVED"}),
     "native-bn": frozenset({"DRAFT_TRANSLATION", "LANGUAGE_REVIEW_PENDING", "NATIVE_REVIEW_COMPLETE",
-                            "WITHDRAWN"}),
+                            "WITHDRAWN", "RESEARCH_BANGLA_APPROVED"}),
     "publisher": frozenset({"PUBLICATION_ELIGIBLE", "PUBLISHED", "APPROVED_TRANSLATION",
-                            "PUBLISHED_TRANSLATION", "ELIGIBLE_FOR_ACTIVATION"}),
+                            "PUBLISHED_TRANSLATION", "ELIGIBLE_FOR_ACTIVATION", "RESEARCH_PUBLICATION_APPROVED"}),
     "suspension": frozenset({"REJECTED", "SUSPENDED", "REVOKED", "CORRECTED", "RETRACTED",
-                             "ARCHIVED", "WITHDRAWN", "RIGHTS_REVOKED", "TRANSLATION_WITHDRAWN"}),
+                             "ARCHIVED", "WITHDRAWN", "RIGHTS_REVOKED", "TRANSLATION_WITHDRAWN",
+                             "RESEARCH_REVOKED"}),
 }
 DENIALS = frozenset({"RIGHTS_REJECTED", "RIGHTS_REVOKED", "TRANSLATION_REJECTED",
                     "TRANSLATION_WITHDRAWN", "REJECTED", "SUSPENDED", "REVOKED", "CORRECTED",
-                    "RETRACTED", "ARCHIVED", "WITHDRAWN"})
+                    "RETRACTED", "ARCHIVED", "WITHDRAWN", "RESEARCH_REVOKED"})
 
 
 class AuthorityError(ValueError):
@@ -163,7 +171,7 @@ class Grant(Model):
     sources: list[Identifier] = Field(min_length=1, max_length=50)
     stories: list[ScopeId] = Field(min_length=1, max_length=100)
     languages: list[Literal["en", "bn"]] = Field(min_length=1, max_length=2)
-    workflows: list[Workflow] = Field(min_length=1, max_length=4)
+    workflows: list[Workflow] = Field(min_length=1, max_length=5)
     active_at: Timestamp
     expires_at: Timestamp
 
@@ -281,9 +289,44 @@ class Checkpoint(Common):
         return self
 
 
+class ResearchBinding(Binding):
+    """Separate research scope without changing historical Binding wire bytes."""
+
+    workflow: Literal["research"]
+    research_policy: Literal["research-reference-v1"]
+    publication_scope: Literal["metadata-extractive:en", "metadata-extractive:en-bn"]
+
+
+class ResearchDecision(Decision):
+    """Same signature, registry and ledger; explicitly typed research extension."""
+
+    kind: Literal["research-decision"]
+    binding: ResearchBinding
+    review_checkpoint: Checkpoint
+    checkpoint_signature: StrictStr
+    checkpoint_sha256: Digest
+
+    @model_validator(mode="after")
+    def research_shape(self):
+        allowed = {*RESEARCH_STAGES, "RESEARCH_BANGLA_APPROVED", "RESEARCH_REVOKED"}
+        if self.decision not in allowed or self.binding.story_kind not in {"RESEARCH", "REFERENCE"}:
+            raise ValueError("Research decisions require a research stage and research/reference classification")
+        if self.decision != "RESEARCH_REVOKED" and self.binding.language != (
+                "bn" if self.decision == "RESEARCH_BANGLA_APPROVED" else "en"):
+            raise ValueError("Research stage and language disagree")
+        if self.decision == "RESEARCH_REVOKED" and self.supersedes is None:
+            raise ValueError("Research revocation must identify the exact decision being revoked")
+        if self.binding.language == "bn" and self.binding.publication_scope != "metadata-extractive:en-bn":
+            raise ValueError("Bangla review requires a scope including Bangla")
+        decode64(self.checkpoint_signature, 64)
+        if self.decision != "RESEARCH_REVOKED" and self.binding.rights_sha256 not in self.evidence:
+            raise ValueError("Research review must reference its exact bound source-rights evidence digest")
+        return self
+
+
 class Envelope(Model):
     algorithm: Literal["Ed25519"]
-    payload: Annotated[Admin | Decision | Checkpoint, Field(discriminator="kind")]
+    payload: Annotated[Admin | Decision | Checkpoint | ResearchDecision, Field(discriminator="kind")]
     signature: StrictStr
     proof: StrictStr | None
 

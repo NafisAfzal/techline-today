@@ -4,6 +4,7 @@ import crypto from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 import { assertGenerationStable } from './generation-state.mjs';
+import { buildDirectory, researchRehearsal } from './research-policy.mjs';
 
 const sha = bytes => crypto.createHash('sha256').update(bytes).digest('hex');
 const git = (...args) => { try { return execFileSync('git', args, { encoding:'utf8', stdio:['ignore','pipe','ignore'] }); } catch { return ''; } };
@@ -16,20 +17,21 @@ function digestFiles(names, root = '.') {
   }
   return hash.digest('hex');
 }
-export function currentProvenance(root = 'apps/web/dist') {
+export function currentProvenance(root = buildDirectory) {
   assertGenerationStable();
   const source = [...new Set(git('ls-files','--cached','--others','--exclude-standard','-z').split('\0').filter(Boolean))].filter(name => /^(?:pipeline\/|packages\/|config\/|prompts\/|schemas\/|scripts\/|\.github\/workflows\/|apps\/web\/(?:src\/|public\/|[^/]+\.(?:json|mjs|ts))|(?:package\.json|pnpm-lock\.yaml|uv\.lock|pyproject\.toml|wrangler(?:\.preview)?\.jsonc|pnpm-workspace\.yaml)$)/.test(name));
+  source.push(...['wrangler.research-preview.jsonc'].filter(name => !source.includes(name) && fs.existsSync(name)));
   const assets = walk(root).map(name => path.relative(root,name)).filter(name => name !== 'release-manifest.json');
   const snapshot = fs.readFileSync('content/generated/snapshot.json');
   const data = JSON.parse(snapshot);
   const archiveRoot = data.mode === 'fixture' ? '.cache/fixture-archives' : 'content/archives';
-  const archiveNames = [...new Set(data.archive_index.flatMap(entry => [entry.key+'.json',entry.key.slice(0,4)+'.json']))];
-  return {version:1,revision:git('rev-parse','HEAD').trim() || null,source_sha256:digestFiles(source),snapshot_sha256:sha(snapshot),archive_sha256:digestFiles(archiveNames,archiveRoot),mode:data.mode,generated_at:data.generated_at,assets_sha256:digestFiles(assets,root)};
+  const archiveNames = researchRehearsal ? [] : [...new Set(data.archive_index.flatMap(entry => [entry.key+'.json',entry.key.slice(0,4)+'.json']))];
+  return {version:1,revision:git('rev-parse','HEAD').trim() || null,source_sha256:digestFiles(source),snapshot_sha256:sha(snapshot),archive_sha256:digestFiles(archiveNames,archiveRoot),mode:data.mode,generated_at:data.generated_at,assets_sha256:digestFiles(assets,root),profile:researchRehearsal?'research-rehearsal':'standard'};
 }
 export function provenanceErrors(built, current) {
-  return ['version','revision','source_sha256','snapshot_sha256','archive_sha256','mode','generated_at','assets_sha256'].filter(key => built?.[key] !== current[key]).map(key => `Build provenance mismatch: ${key}; rebuild the current live edition.`);
+  return ['version','revision','source_sha256','snapshot_sha256','archive_sha256','mode','generated_at','assets_sha256','profile'].filter(key => built?.[key] !== current[key]).map(key => `Build provenance mismatch: ${key}; rebuild the current live edition.`);
 }
-export function verifyProvenance(root = 'apps/web/dist') {
+export function verifyProvenance(root = buildDirectory) {
   const built = JSON.parse(fs.readFileSync(path.join(root,'release-manifest.json'),'utf8'));
   const errors = provenanceErrors(built,currentProvenance(root));
   const latest = JSON.parse(fs.readFileSync(path.join(root,'data/latest.json'),'utf8'));
@@ -38,6 +40,6 @@ export function verifyProvenance(root = 'apps/web/dist') {
   return built;
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  fs.writeFileSync('apps/web/dist/release-manifest.json',JSON.stringify(currentProvenance(),null,2)+'\n');
+  fs.writeFileSync(path.join(buildDirectory,'release-manifest.json'),JSON.stringify(currentProvenance(),null,2)+'\n');
   console.log('Build revision, source, snapshot and asset checksums recorded.');
 }

@@ -29,6 +29,7 @@ from pipeline.authority.protocol import (
     AuthorityError,
     Checkpoint,
     Decision,
+    ResearchDecision,
     canonical,
     fingerprint,
     read_envelope,
@@ -234,7 +235,8 @@ def execute(args, now):
                 "note": "Readiness report only; deployment and owner release approval remain separate"}
     if args.action == "sign":
         value = read_json(args.input)
-        types = {"decision": Decision, "admin": Admin, "checkpoint": Checkpoint}
+        types = {"decision": Decision, "research-decision": ResearchDecision, "admin": Admin,
+                 "checkpoint": Checkpoint}
         if not isinstance(value, dict) or value.get("kind") not in types:
             raise AuthorityError("payload", "Expected a prepared typed authority payload")
         payload = types[value["kind"]].model_validate(value)
@@ -251,7 +253,15 @@ def execute(args, now):
     pin, history = trusted_history(root, now)
     if args.action in {"record", "verify"}:
         envelope = read_envelope(bounded_file(regular_path(args.input), MAX_RECORD))
-        stage(history.journal, envelope, pin, now)
+        if isinstance(envelope.payload, ResearchDecision):
+            from pipeline.research_approval import validate_decision
+            edition = snapshot(root)
+            story = next((s for s in edition.stories if s.id == envelope.payload.binding.story_id), None)
+            if story is None:
+                raise AuthorityError("story", "Research decision record is absent from the local edition")
+            validate_decision(history, envelope, story, edition.sources, policy(root), now)
+        else:
+            stage(history.journal, envelope, pin, now)
         if args.action == "record":
             require_confirmation(args, envelope.payload.record_id)
             append(root, envelope, pin, now)
