@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createGzip } from 'node:zlib';
 import { headerRuleMatches, previewCsp } from './csp.mjs';
-const root = path.resolve(process.argv.includes('--research') || process.env.TECHLINE_RESEARCH_REHEARSAL === 'true' ? 'apps/web/dist-research' : 'apps/web/dist');
+const root = path.resolve(process.argv.includes('--research') || process.env.TECHLINE_RESEARCH_REHEARSAL === 'true' || process.env.TECHLINE_RESEARCH_CANDIDATE === 'true' ? 'apps/web/dist-research' : 'apps/web/dist');
 if (!fs.existsSync(root)) throw new Error('Build the site before previewing.');
 const rules = []; let current;
 for (const line of fs.readFileSync(path.join(root,'_headers'),'utf8').split('\n')) {

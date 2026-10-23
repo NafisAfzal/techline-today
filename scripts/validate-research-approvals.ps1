@@ -20,7 +20,7 @@ $env:PIPELINE_AI_ENABLED = 'false'
 $env:WRANGLER_SEND_METRICS = 'false'
 $env:ASTRO_TELEMETRY_DISABLED = '1'
 foreach ($entry in @(Get-ChildItem Env:)) {
-  if ($entry.Name -match '^(?:TECHLINE_AUTHORITY_|TECHLINE_EXTERNAL_CHECKPOINT|CLOUDFLARE_)') {
+  if ($entry.Name -match '^(?:TECHLINE_AUTHORITY_|TECHLINE_EXTERNAL_CHECKPOINT|TECHLINE_CUSTOD|TECHLINE_CHECKPOINT|TECHLINE_RESEARCH_|CLOUDFLARE_)') {
     Remove-Item -LiteralPath ('Env:' + $entry.Name)
   }
 }
@@ -88,6 +88,7 @@ Check-Step canonical-rights { node scripts/content-rights.mjs --snapshot-only }
 Check-Step canonical-build { pnpm.cmd build }
 Check-Step canonical-build-rights { pnpm.cmd verify:content-rights }
 Check-Step real-research-build-denied { pnpm.cmd build:research } 1
+Check-Step authenticated-research-candidate-denied { pnpm.cmd build:research --real } 1
 Check-Step final-repository { pnpm.cmd verify:repository }
 if (git status --porcelain) { throw 'Validation changed tracked files.' }
 $revision = git rev-parse HEAD

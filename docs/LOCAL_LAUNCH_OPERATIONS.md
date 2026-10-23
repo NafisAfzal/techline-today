@@ -37,7 +37,7 @@ the existing authenticated research evaluator. It never downloads sources or
 changes content, policy, authority, approval journals or publication flags.
 
 ```powershell
-.\.venv\Scripts\python.exe -m pipeline.content_review --expected-snapshot-sha256 d146d528ed8b00bc4e3a1e379ceffa300f46ce5a17ee9d34e8291410e9973eb5 --export 'C:\Users\USER\Documents\TechlineToday-Audits\fresh-private-review-export'
+.\.venv\Scripts\python.exe -m pipeline.content_review --expected-snapshot-sha256 d146d528ed8b00bc4e3a1e379ceffa300f46ce5a17ee9d34e8291410e9973eb5 --export 'C:\private\fresh-private-review-export'
 ```
 
 Use a fresh destination outside every Git checkout; existing directories,

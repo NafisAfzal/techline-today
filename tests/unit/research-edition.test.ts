@@ -1,8 +1,10 @@
 import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { describe, expect, it } from 'vitest';
 import { rehearsalSnapshot, recordKind, researchPolicy } from '../../scripts/research-policy.mjs';
-import { researchEligibility, consistentEligibilityReport } from '../../scripts/research-inventory.mjs';
+import { researchEligibility, consistentEligibilityReport, approvedResearchSnapshot } from '../../scripts/research-inventory.mjs';
 import { provenanceErrors } from '../../scripts/build-provenance.mjs';
 import { editorialQuality } from '../../scripts/editorial-quality.mjs';
 
@@ -65,6 +67,64 @@ describe('research edition isolation', () => {
     expect(consistentEligibilityReport({...report,items:[row('a',true),row('b',false)],eligible:[],
       publication_allowed:false},snapshot)).toBe(false);
     expect(consistentEligibilityReport({...report,ai_submission_allowed:true},snapshot)).toBe(false);
+    expect(consistentEligibilityReport({...report,items:[row('a',false),row('a',false)]}, {stories:[{id:'a'},{id:'a'}]})).toBe(false);
+  });
+  it('projects only verified items and their evidence into every research route and aggregate', () => {
+    const live = {...fixture,mode:'live',schema_version:1,generated_at:'2026-10-20T00:00:00Z',
+      private_note:'MUST_NOT_LEAK',stories:[{...story,is_demo:false},{...story,id:'excluded',headline:'MUST_NOT_LEAK'}],
+      sources:{one:{...source,is_demo:false},excluded:{...source,id:'excluded',title:'MUST_NOT_LEAK'}}};
+    // Projection fixture only: this report is never used as real authority.
+    const report = {policy:researchPolicy.policy,record_count:2,eligible_count:1,publication_allowed:true,
+      ai_submission_allowed:false,eligible:['research'],items:[{id:'research',publication_allowed:true,reasons:[]},
+        {id:'excluded',publication_allowed:false,reasons:['no-approval']}]};
+    const selected = approvedResearchSnapshot(live,report);
+    expect(selected.stories.map(row => row.id)).toEqual(['research']);
+    expect(Object.keys(selected.sources)).toEqual(['one']);
+    expect(JSON.stringify(selected)).not.toContain('MUST_NOT_LEAK');
+    for (const key of ['digests','offers','model_releases','archive_index']) expect(selected[key]).toEqual([]);
+    expect(() => approvedResearchSnapshot({...live,mode:'fixture'},report)).toThrow('live');
+    expect(() => approvedResearchSnapshot(live,{...report,eligible_count:0})).toThrow('Malformed');
+    for (const value of [{internal_only:true},{provenance:{private:'held'}},{rights_review:{status:'pending'}},{is_demo:true}]) {
+      expect(() => approvedResearchSnapshot({...live,sources:{one:{...live.sources.one,...value}}},report)).toThrow('private');
+    }
+    const dangling = {...live,stories:[{...live.stories[0],key_facts:[{source_ids:['excluded']}]},live.stories[1]]};
+    expect(() => approvedResearchSnapshot(dangling,report)).toThrow('Unapproved');
+    const claimed = {...live,stories:[{...live.stories[0],claim_map:[{source_ids:['excluded']}]},live.stories[1]]};
+    expect(() => approvedResearchSnapshot(claimed,report)).toThrow('Unapproved');
+  });
+  it('keeps real candidate mode blocked by default policy and rejects mixed profiles', () => {
+    const script = "import {readBuildSnapshot} from './scripts/research-policy.mjs'; readBuildSnapshot('content/generated/snapshot.json');";
+    const run = (extra = {}) => spawnSync(process.execPath,['--input-type=module','-e',script],{
+      encoding:'utf8',env:{...process.env,TECHLINE_RESEARCH_CANDIDATE:'true',TECHLINE_RESEARCH_REHEARSAL:'',...extra}});
+    expect(run().status).not.toBe(0);
+    expect(run().stderr).toContain('disabled by owner policy');
+    expect(run({TECHLINE_RESEARCH_REHEARSAL:'true'}).stderr).toContain('cannot be combined');
+  });
+  it('resolves the same authority bridge when Astro runs inside apps/web', () => {
+    const script = `import {researchEligibility} from '../../scripts/research-inventory.mjs'; console.log(JSON.stringify(researchEligibility(${JSON.stringify(fixture)})));`;
+    const result = spawnSync(process.execPath,['--input-type=module','-e',script],{cwd:'apps/web',encoding:'utf8'});
+    expect(result.status).toBe(0);
+    // Exact snapshot mismatch or missing clean-checkout snapshot is expected;
+    // an unavailable interpreter/import is not an acceptable bridge result.
+    expect(result.stdout).not.toContain('research-verifier-refused:unavailable');
+    expect(JSON.parse(result.stdout).publication_allowed).toBe(false);
+  });
+  it('removes stale candidate assets when a new authorization preflight refuses', () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(),'techline-research-refusal-'));
+    try {
+      fs.mkdirSync(path.join(root,'apps/web/dist-research'),{recursive:true});
+      fs.mkdirSync(path.join(root,'content/generated'),{recursive:true});
+      fs.writeFileSync(path.join(root,'apps/web/dist-research/previous.html'),'STALE_APPROVED_BYTES');
+      fs.writeFileSync(path.join(root,'content/generated/snapshot.json'),JSON.stringify({...fixture,mode:'live'}));
+      const result = spawnSync(process.execPath,[path.resolve('scripts/research-build.mjs')],{
+        cwd:root,encoding:'utf8',env:{...process.env,npm_execpath:'test-pnpm.cjs',
+          TECHLINE_RESEARCH_REHEARSAL:'',TECHLINE_RESEARCH_CANDIDATE:''}});
+      expect(result.status).not.toBe(0);
+      expect(result.stderr).toContain('live content is forbidden');
+      expect(fs.existsSync(path.join(root,'apps/web/dist-research'))).toBe(false);
+    } finally {
+      fs.rmSync(root,{recursive:true,force:true});
+    }
   });
   it('does not classify unknown sources or ordinary news as research/reference', () => {
     expect(recordKind(story,{one:source})).toBe('research');
